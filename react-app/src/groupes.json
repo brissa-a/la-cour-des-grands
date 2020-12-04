@@ -1,0 +1,72 @@
+{
+ "Les Républicains": {
+  "color": {
+   "h": 216,
+   "s": 100,
+   "v": 50
+  }
+ },
+ "La République en Marche": {
+  "color": {
+   "h": 36,
+   "s": 100,
+   "v": 65
+  }
+ },
+ "Libertés et Territoires": {
+  "color": {
+   "h": 252,
+   "s": 100,
+   "v": 50
+  }
+ },
+ "UDI et Indépendants": {
+  "color": {
+   "h": 144,
+   "s": 100,
+   "v": 50
+  }
+ },
+ "La France insoumise": {
+  "color": {
+   "h": 180,
+   "s": 100,
+   "v": 50
+  }
+ },
+ "Socialistes et apparentés": {
+  "color": {
+   "h": 324,
+   "s": 100,
+   "v": 65
+  }
+ },
+ "Non inscrit": {
+  "color": {
+   "h": 0,
+   "s": 100,
+   "v": 100
+  }
+ },
+ "Mouvement Démocrate (MoDem) et Démocrates apparentés": {
+  "color": {
+   "h": 36,
+   "s": 100,
+   "v": 35
+  }
+ },
+ "Agir ensemble": {
+  "color": {
+   "h": 288,
+   "s": 100,
+   "v": 50
+  }
+ },
+ "Gauche démocrate et républicaine": {
+  "color": {
+   "h": 0,
+   "s": 100,
+   "v": 50
+  }
+ }
+}
