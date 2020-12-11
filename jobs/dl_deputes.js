@@ -3,6 +3,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const request = require('request');
 const downloadUnzip = require('./downloadUnzip.js')
+const axios = require('axios');
 
 
 program
@@ -11,6 +12,7 @@ program
   .option('-i, --dl-img', 'download depute pic')
   .option('--override-img', 'override already download pic')
   .option('-d, --debug', 'run puppeteer headless')
+  .option('-c, --config-file <file>' , 'config.json file path', 'config.json')
   .option('--only-one [uid]', 'download only the one depute for debugging purpose. depute uid ex: PA722170')
 
 program.parse(process.argv);
@@ -20,6 +22,7 @@ const debug = program.debug
 
 const data_link = "http://data.assemblee-nationale.fr/static/openData/repository/15/amo/deputes_actifs_mandats_actifs_organes/AMO10_deputes_actifs_mandats_actifs_organes_XV.json.zip"
 const unzipFolder = dlFolder + "/data.assemblee-nationale.fr/"
+const config = JSON.parse(fs.readFileSync(program.configFile));
 
 var download = function(uri, filename, callback){
   request.head(uri, function(err, res, body){
@@ -86,15 +89,29 @@ async function getFromData(uid) {
   }
 }
 
-async function getFromSocialWWW(socialtab, url) {
+async function getFromTwitter(twitter_link) {
+  let pathpart = new URL(twitter_link).pathname.split('/')
+  let username = pathpart[pathpart.length - 2].replace('@','');
+  const apiurl = `https://api.twitter.com/2/users/by/username/${username}?user.fields=public_metrics`
+  console.log("Requesting", apiurl)
+  const response = await axios.get(
+    apiurl,
+    {'headers': {'Authorization': `Bearer ${config.twitter_bearer}`}
+  });
+  return response.data.data
+}
+
+async function getFromSocialWWW(browser, socialtab, url) {
   let pathpart = new URL(url).pathname
   let links = await socialtab.evaluate(pathpart => {
     let td_name = document.querySelector(`a[href="${pathpart}"]`)
     if (td_name) {
       let tr = td_name.parentNode.parentNode
+      let facebook_link = tr.childNodes[3].firstChild?.href;
+      let twitter_link = tr.childNodes[5].firstChild?.href;
       return {
-        facebook_link: tr.childNodes[3].firstChild?.href,
-        twitter_link: tr.childNodes[5].firstChild?.href
+        facebook_link: facebook_link,
+        twitter_link: twitter_link,
       }
     } else {
       return {}
@@ -118,15 +135,17 @@ async function getdeputeData(browser, url, socialtab) {
 
   let src_www = await getFromWWW(browser, url)
   let src_data = await getFromData(uid)
-  let src_www_social = await getFromSocialWWW(socialtab, url)
+  let src_www_social = await getFromSocialWWW(browser, socialtab, url)
   let src_nosdepute = await getFromNosdeputes(src_data)
+  let src_twitter = src_www_social?.twitter_link && await getFromTwitter(src_www_social.twitter_link)
 
   let data = {
     uid: uid, official_link: url,
     ...src_www,
     ...src_data,
     ...src_www_social,
-    ...src_nosdepute
+    ...src_nosdepute,
+    twitter: src_twitter
   }
 
   if (downloadImg) {
