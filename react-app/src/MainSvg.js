@@ -6,10 +6,9 @@ class MainSvg extends React.Component {
 
   constructor(props) {
     super()
+    Object.assign(this, props)
     this.svgRef = React.createRef();
     this.transformRef = React.createRef();
-    this.showDetail = props.showDetail
-    this.pinDetail = props.pinDetail
     this.transform = {
       scale: 0.022727272727272728,
       pos_x: 0.16749712817409856,
@@ -98,7 +97,7 @@ class MainSvg extends React.Component {
       >
         <Border/>
         <Tribune/>
-        <Hemicycle showDetail={this.showDetail.bind(this)} pinDetail={this.pinDetail.bind(this)}/>
+        <Hemicycle app={this.app}/>
       </g>
     </svg>
     return html

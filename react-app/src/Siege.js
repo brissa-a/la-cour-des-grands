@@ -7,27 +7,22 @@ class Siege extends React.Component {
 
   constructor(props) {
     super();
-    this.showDetail = props.showDetail
-    this.pinDetail = props.pinDetail
-    this.removeDetail = props.removeDetail
-    this.state = {
-      ...props
-    }
+    Object.assign(this, props)
   }
 
   render() {
-    // console.log(this.state.img)
-    const warning = this.state.depute?.nom ? null : <g  transform="translate(-0.1, -0.7) scale(0.30)">
+    // console.log(this.siege.img)
+    const warning = this.siege.depute?.nom ? null : <g  transform="translate(-0.1, -0.7) scale(0.30)">
       <FontAwesomeIcon icon={faExclamation} color="red"/>
     </g>
 
 
     const imgsize = 1.2
-    if (this.state.depute) {
-      const color = groupes[this.state.depute.groupe].color
-      return <g data-id={this.state.siegeno} transform={`translate(${this.state.pos.x}, ${this.state.pos.y})`}>
+    if (this.siege.depute) {
+      const color = groupes[this.siege.depute.groupe].color
+      return <g data-id={this.siege.siegeno} transform={`translate(${this.siege.pos.x}, ${this.siege.pos.y})`}>
         <g  className="bloup">
-          <clipPath id={this.state.siegeid+"-clippath"}>
+          <clipPath id={this.siege.siegeid+"-clippath"}>
             <circle r="0.5"/>
           </clipPath>
           <circle
@@ -39,46 +34,39 @@ class Siege extends React.Component {
              r={0.5}
           />
           <image
-              href={`/img/nobg/${this.state.siegeno}.png`}
+              href={`/depute-pic/${this.siege.depute.uid}.png`}
               x={-imgsize/2}
               y={-imgsize/2}
               height={imgsize}
               width={imgsize}
-              onMouseEnter={this.showDetail}
-              onClick={this.pinDetail}
-              onMouseLeave={this.removeDetail}
-              clipPath={"url(#" + this.state.siegeid+"-clippath)"}
-              data-depute={JSON.stringify(this.state.depute)}
+              onMouseEnter={() => this.app.showDetail(this.siege)}
+              onClick={() => this.app.pinDetail(this.siege)}
+              clipPath={"url(#" + this.siege.siegeid+"-clippath)"}
+              data-json={JSON.stringify(this.siege.depute)}
           />
           {warning}
         </g>
       </g>
-    } else if (this.state.siegeno >= 4000 && this.state.siegeno < 5000) {
+    } else if (this.siege.siegeno >= 4000 && this.siege.siegeno < 5000) {
       return <circle
         style={{fillOpacity: 0, stroke: "#FFCC77", strokeWidth: 0.03}}
-         cx={this.state.pos.x}
-         cy={this.state.pos.y}
+         cx={this.siege.pos.x}
+         cy={this.siege.pos.y}
          r={0.5}
-         onMouseEnter={this.showDetail}
-         onMouseLeave={this.removeDetail}
       />
-    } else if (this.state.siegeno >= 3000 && this.state.siegeno < 4000) {
+    } else if (this.siege.siegeno >= 3000 && this.siege.siegeno < 4000) {
       return <circle
         style={{fillOpacity: 0, stroke: "#FFCC77", strokeWidth: 0}}
-         cx={this.state.pos.x}
-         cy={this.state.pos.y}
+         cx={this.siege.pos.x}
+         cy={this.siege.pos.y}
          r={0.5}
-         onMouseEnter={this.showDetail}
-         onMouseLeave={this.removeDetail}
       />
     } else {
       return <circle
         style={{fillOpacity: 0, stroke: "#ffffff", strokeWidth: 0.03}}
-         cx={this.state.pos.x}
-         cy={this.state.pos.y}
+         cx={this.siege.pos.x}
+         cy={this.siege.pos.y}
          r={0.5}
-         onMouseEnter={this.showDetail}
-         onMouseLeave={this.removeDetail}
       />
     }
   }

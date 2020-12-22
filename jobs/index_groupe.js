@@ -29,5 +29,8 @@ for (groupe in groupes)
   }
 }
 
-let jsonstr = JSON.stringify(groupes, null, ' ');
-fs.writeFileSync(program.outputFile, jsonstr);
+if (require.main === module) {
+  console.log("Running module main", module)
+  let jsonstr = JSON.stringify(groupes, null, ' ');
+  fs.writeFileSync(program.outputFile, jsonstr);
+}

@@ -14,7 +14,7 @@
   transition: height 0.5s;
 }
 
-.footer > button {
+.footer button {
   font-size: 1em;
   border: none;
   background-color: rgba(0,0,0,0);
@@ -22,8 +22,8 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
-.footer > button:focus {outline:0;}
-.footer > button:hover {
+.footer button:focus {outline:0;}
+.footer button:hover {
   cursor: pointer;
   text-decoration: underline;
 }

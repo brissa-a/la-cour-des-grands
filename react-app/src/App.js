@@ -4,13 +4,19 @@ import Legende from './Legende.js'
 import './App.css';
 import MainSvg from './MainSvg.js'
 import Footer  from './Footer.js'
+import sieges from './sieges.json'
+import Search  from './Search.js'
+
 
 class App extends React.Component {
 
   constructor() {
     super()
+    this.sieges = sieges
+    var randomDepute;
+    while (!randomDepute) randomDepute = sieges[Math.floor(Math.random() * sieges.length)];
     this.state = {
-      detail: null,
+      detail: randomDepute,
       pinned: null
     }
   }
@@ -20,22 +26,29 @@ class App extends React.Component {
   }
 
   pinDetail(siege) {
-    this.setState({pinned: siege})
+    if (siege === null) {
+      //unpin case
+      this.setState({
+        detail: this.state.pinned,
+        pinned: null
+      })
+    }  else {
+      this.setState({
+        pinned: siege
+      })
+    }
   }
 
   render() {
-    const siege = this.state.detail || this.state.pinned
-    const siegeispinned = (this.state.detail && this.state.pinned && this.state.detail.siegeno === this.state.pinned.siegeno)
-    const pinned =  (!this.state.detail && this.state.pinned) || (this.state.detail && this.state.pinned && this.state.detail.siegeno === this.state.pinned.siegeno)
-    return (
-      <div className="App">
-          <MainSvg showDetail={this.showDetail.bind(this)} pinDetail={this.pinDetail.bind(this)}/>
-          <SiegeDetail {...siege} pinned={pinned} siegeispinned={siegeispinned}
-          key={"s"+siege?.curSiege+"r"+siege?.curRowId + "detail" +  (pinned ? "-pinned" : "") + (siegeispinned ? "-siegeispinned" : "")}/>
-          <Legende/>
-          <Footer/>
-      </div>
-    );
+    const siege = this.state.pinned || this.state.detail
+    const key = siege.siegeid + "detail" + (this.state.pinned ? "-pinned" : "")
+    return <div className="App">
+      <MainSvg app={this}/>
+      <SiegeDetail app={this} {...siege} pinned={this.state.pinned} key={key}/>
+      <Search app={this}/>
+      <Legende/>
+      <Footer/>
+    </div>
   }
 }
 export default App;

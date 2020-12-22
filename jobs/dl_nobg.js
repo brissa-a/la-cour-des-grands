@@ -11,7 +11,7 @@ program
   .description(`Download depute pic without background thanks to https://wwww.remove.bg`)
   .option('-i, --input-file <deputes file>' , 'deputes.json input file path', 'dl/deputes.json')
   .option('-c, --config-file <file>' , 'config.json file path', 'config.json')
-  .option('-o, --output-folder <folder>' , 'download folder', "dl/img/nobg/")
+  .option('-o, --output-folder <folder>' , 'download folder', "dl/img-nobg/")
   .option('--override-img', 'override already download pic')
   .option('--only-one', 'download only the first depute for debugging purpose.')
 program.parse(process.argv);
@@ -36,7 +36,7 @@ async function downloadBackgroundLessPicCreateOutputFolderIfNotExistLOLSoLong(de
 }
 
 async function downloadBackgroundLessPic(depute) {
-  const filename = `${program.outputFolder}/${depute.nosiege}.png`
+  const filename = `${program.outputFolder}/${depute.uid}.png`
 
   if (program.overrideImg || !fs.existsSync(filename)) {
     console.log(`Downloading bgless ${depute.imgurl} `)
@@ -54,10 +54,10 @@ async function downloadBackgroundLessPic(depute) {
       if(error) return console.error('Request failed:', error);
       if(response.statusCode != 200) return console.error('Error:', response.statusCode, body.toString('utf8'));
       fs.writeFileSync(filename, body);
-      console.log(`Downloaded ${depute.nosiege}`)
+      console.log(`Downloaded ${depute.uid}`)
     });
   } else {
-    console.log(`File ${filename} already exist. Skipping ${depute.nosiege}`)
+    console.log(`File ${filename} already exist. Skipping ${depute.uid}`)
   }
 }
 

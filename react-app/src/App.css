@@ -82,6 +82,19 @@ svg.main {
    animation-name: slidein;
 }
 
+.show-more {
+  transform: translate(124px, 20px) scale(0.06);
+  transition: opacity 0.3s;
+}
+
+.show-more.hide {
+  opacity: 0
+}
+
+.show-more.show {
+  opacity: 1
+}
+
 
 @keyframes slidein {
   from {

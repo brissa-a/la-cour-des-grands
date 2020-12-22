@@ -1,0 +1,89 @@
+.search {
+  position: fixed;
+  top: 0;
+  left: 350px;
+  text-align: center;
+  color: white;
+  text-shadow: 1px 1px 2px black;
+  background-color: rgba(0,0,0,0.5);
+  box-shadow: rgba(0,0,0,0.6) 0px 0px 29px;
+  backdrop-filter: blur(5px) saturate(50%);
+  -webkit-backdrop-filter: blur(5px) saturate(50%);
+  transition: height 0.5s;
+}
+
+@-moz-document url-prefix() {
+  .search {
+       background-color: rgba(31,31,31,1);
+  }
+}
+
+.search .respelem {
+  padding: 5px;
+  cursor: pointer;
+  transition: background-color 0.8s;
+}
+
+.search .respelem:hover {
+  background-color: rgba(50,50,50,0.5);
+  transition: background-color 0.3s;
+}
+
+.search .input-container {
+  padding: 10px;
+}
+
+.search input, .search input:focus {
+  font-weight: lighter;
+  background: none;
+  border:none;
+  outline: none;
+  color: white;
+  width: 400px;
+  padding: 5px;
+  border-bottom: 1px white solid
+}
+
+.search .highlight {
+  font-weight: bolder;
+}
+
+.search .commune-list {
+  display: flex;
+  flex-direction: row;
+  font-size: 0.7em;
+  justify-content: space-evenly;
+  flex-wrap: wrap;
+}
+
+.search .commune-list .elem {
+  flex: 1 1 auto;
+}
+
+.search .respelem {
+  display: flex;
+  flex-direction: row;
+  width: 450px;
+}
+.search .respelem .pic {
+  margin-left: 20px;
+  width: 50px;
+}
+
+.search .respelem .text {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  width: 400px;
+}
+
+.search .respelem .text .head {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  margin-bottom: 5px
+}
+
+.search .respelem .text .head .circo {
+  font-size: 0.8em;
+}
