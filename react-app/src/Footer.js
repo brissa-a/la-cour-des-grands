@@ -21,19 +21,19 @@ class Footer extends React.Component {
   }
 
   render() {
-    return <div className={`footer ${this.state.open}`}>
+    return <div className={`footer ${this.state.open}  z-depth-3`}>
       <button onClick={this.toggle.bind(this)}>
-        <FontAwesomeIcon size="lg" icon={faAlignJustify}/> Mentions légales
+        <FontAwesomeIcon size="" icon={faAlignJustify}/> Mentions légales
       </button>
       &nbsp;&nbsp;&nbsp;
       <a href={config.github_link}>
-        <FontAwesomeIcon size="lg" icon={faGithub}/> Github
+        <FontAwesomeIcon size="" icon={faGithub}/> Github
       </a>
       &nbsp;&nbsp;&nbsp;
       <a href={config.donation_link}>
-        <FontAwesomeIcon size="lg" icon={faPaypal}/> Faire un don
+        <FontAwesomeIcon size="" icon={faPaypal}/> Faire un don
       </a>
-      <p style={{width: "330px"}}>Ce site est hébergé par Firebase, 188 King ST, San Francisco, CA 94107, United States, https://firebase.google.com/.</p>
+      <p style={{width: "290px"}}>Ce site est hébergé par Firebase, 188 King ST, San Francisco, CA 94107, United States, https://firebase.google.com/.</p>
     </div>
   }
 

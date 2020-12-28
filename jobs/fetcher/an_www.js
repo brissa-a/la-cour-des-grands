@@ -1,27 +1,8 @@
 const { program } = require('commander');
 const {buildBrowser, closeBrowser} = require('./misc/browser.js')
+const {isMissing} = require('./misc/isMissing.js')
 
 const url = 'http://www2.assemblee-nationale.fr/deputes/liste/alphabetique'
-
-function isMissing(obj, toTest, onMissing, name = "") {
-  if (!obj) {
-    onMissing('.' + name)
-    return true
-  } else if (toTest) {
-    var anyMissing = false
-    for (prop in toTest) {
-      missing = isMissing(
-        obj[prop],
-        toTest[prop],
-        onMissing,
-        `${name}.${prop}`
-      )
-      anyMissing = anyMissing || missing
-    }
-    return anyMissing
-  }
-  return false
-}
 
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));

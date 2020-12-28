@@ -1,6 +1,7 @@
 import React from 'react';
 import {Border, Tribune} from './SvgPath.js'
 import Hemicycle from './Hemicycle.js'
+import Caption from './Caption.js'
 
 class MainSvg extends React.Component {
 
@@ -10,17 +11,19 @@ class MainSvg extends React.Component {
     this.svgRef = React.createRef();
     this.transformRef = React.createRef();
     this.transform = {
-      scale: 0.022727272727272728,
-      pos_x: 0.16749712817409856,
-      pos_y: 0.24338615253986134
+      scale: 0.02066115702479339,
+      pos_x: 0.10770217072603083,
+      pos_y: 0.2730286050479743
     }
   }
 
   startDrag(e) {
-    this.draggedElement = this.transformRef.current;
-    this.offset = this.clientCordToSvgCord(e, this.svgRef);
-    this.offset.x -= this.transform.pos_x;
-    this.offset.y -= this.transform.pos_y;
+    if (!e.target.closest("foreignObject")) {
+      this.draggedElement = this.transformRef.current;
+      this.offset = this.clientCordToSvgCord(e, this.svgRef);
+      this.offset.x -= this.transform.pos_x;
+      this.offset.y -= this.transform.pos_y;
+    }
   }
 
   drag(e) {
@@ -78,7 +81,7 @@ class MainSvg extends React.Component {
   }
 
   render() {
-    const html = <svg className="main"
+    const html = <svg className="main" id="mainsvg" xmlns="http://www.w3.org/2000/svg"
       width="100%" height="100%" viewBox={this.getCurrentViewBoxStr()}
       ref={this.svgRef}
       onWheel={this.zoom.bind(this)}
@@ -98,6 +101,7 @@ class MainSvg extends React.Component {
         <Border/>
         <Tribune/>
         <Hemicycle app={this.app}/>
+        <Caption ref={this.app.captionRef} app={this.app}/>
       </g>
     </svg>
     return html

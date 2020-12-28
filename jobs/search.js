@@ -63,6 +63,7 @@ let fuse = new Fuse(list, options);
 const resp = fuse.search("44300") //nomcomplet threshold > 0.2 match trop
 const resp = fuse.search("rufin") //nomcomplet threshold > 0.2 match pas assez
 const resp = fuse.search("jean luc mélenchon") //!npmcomplet match pas
+const resp = fuse.search("75018") //!npmcomplet match pas
 console.log(JSON.stringify(resp, null, ' '))
 // respElemList = resp.slice(0, 10).map(oneresp => {
 //   const matchByKey = oneresp.matches.reduce((acc,i) => {

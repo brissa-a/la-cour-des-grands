@@ -1,6 +1,6 @@
 import {Component, Fragment, createRef} from 'react';
-import { FontAwesomeIcon,  } from '@fortawesome/react-fontawesome'
-import { faAlignJustify, faSearch} from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon} from '@fortawesome/react-fontawesome'
+import { faAlignJustify, faSearch, faFileExport} from '@fortawesome/free-solid-svg-icons'
 import { faPaypal, faGithub } from '@fortawesome/free-brands-svg-icons'
 import './Search.css'
 import config from './config.json'
@@ -29,7 +29,7 @@ class Search extends Component {
       findAllMatches: true,
       minMatchCharLength: 2,
       // location: 0,
-      threshold: 0.2,
+      threshold: 0.28,
       //distance: 100,
       useExtendedSearch: true,
       //ignoreLocation: true,
@@ -88,6 +88,36 @@ class Search extends Component {
       }
   }
 
+  exportSvg() {
+    var svgElement = document.getElementById("mainsvg").cloneNode(true);
+    svgElement.setAttribute("width", "1920");
+    svgElement.setAttribute("height", "1080");
+    svgElement.firstChild.setAttribute("transform", `translate(-0.04861094553469947, 0.26474552964222897) scale(0.02272727272727273)`);
+    var svgUrl = 'data:image/svg+xml; charset=utf8, ' + encodeURIComponent(new XMLSerializer().serializeToString(svgElement))
+    let bb = svgElement.getBoundingClientRect()
+
+    let image = new Image();
+    console.log({svgUrl, image})
+    image.onload = () => {
+       let canvas = document.createElement('canvas');
+       const width = image.naturalWidth
+       const height = image.naturalHeight
+       canvas.width = width;
+       canvas.height = height;
+       let ctx = canvas.getContext('2d');
+       ctx.drawImage(image, 0, 0, width, height);
+      let pngUrl = canvas.toDataURL();
+      console.log({width, height, image, ctx, pngUrl})
+      //https://stackoverflow.com/questions/27798126/how-to-open-the-newly-created-image-in-a-new-tab
+      var img = new Image();
+      img.src = pngUrl
+      img.style.backgroundColor = '#333333'
+      var w = window.open(pngUrl);
+      w.document.write(img.outerHTML);
+    };
+    image.src = svgUrl;
+  }
+
   render() {
     var respElemList;
 
@@ -104,7 +134,7 @@ class Search extends Component {
       })
       respElemList = respElemList.length ? respElemList : "..."
     }
-    return <div className="search" ref={this.wrapperRef}>
+    return <div className="search"  ref={this.wrapperRef}>
       <div className='input-container'>
         <FontAwesomeIcon size="lg" icon={faSearch}/> <input
           id="search" autocomplete="off" placeholder="Nom, Département, Code postale..."

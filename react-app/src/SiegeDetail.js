@@ -5,6 +5,15 @@ import { faBirthdayCake, faCouch, faThumbtack, faMap, faTimes } from '@fortaweso
 import { faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons'
 import "./SiegeDetail.css"
 
+function formatedFollowerCount(depute) {
+  if (depute?.twitter?.public_metrics?.followers_count) {
+    return new Intl.NumberFormat('fr-FR')
+      .format(depute?.twitter?.public_metrics?.followers_count)
+  } else {
+    return "Pas de compte twitter"
+  }
+}
+
 class SiegeDetail extends React.Component {
 
   constructor(props) {
@@ -73,7 +82,7 @@ class SiegeDetail extends React.Component {
       <div key="nosdeputes" className={ndpt ? "" : "desaturated"}><a  href={ndpt}target="_blank" rel="noreferrer"><img alt="logo nosdeputes.fr" src="/favicon_nosdeputes.ico" width="30px"/></a></div>
     )
 
-    return <div className="details">
+    return <div className="details z-depth-3">
     <div style={{color: "#FFFFFF", display: this.depute ? "block" : "none"}}>
       <svg width={svg.w} height={svg.h} onMouseEnter={() => this.showMore()} onMouseLeave={() => this.showLess()}>
         <image href={`colonnade-avec-les-drapeaux.jpg`} />
@@ -95,7 +104,7 @@ class SiegeDetail extends React.Component {
         {social}
       </div>
       <p style={{display: "none"}}>${JSON.stringify(this.state)}</p>
-      <h2>{this.depute?.nom || "Inconnue" }</h2>
+      <h5><span class="ident-civ">{this.depute?.ident?.civ}</span> {this.depute?.nom || "Inconnue" }</h5>
       <dl className="small-details">
         <dt><FontAwesomeIcon icon={faBirthdayCake}/></dt><dd>{birthdateStr || "Inconnue"} {age && `(${age} ans)`}</dd>
         <dt><FontAwesomeIcon icon={faCouch}/></dt><dd>{this.siegeno}</dd>
@@ -103,6 +112,8 @@ class SiegeDetail extends React.Component {
       <dl className="big-details">
         <dt>Circonscription</dt><dd>{this.depute?.circo.departement} ({this.depute?.circo.numDepartement}) circo n<sup>o</sup>{this.depute?.circo.numCirco}</dd>
         <dt>Groupe</dt><dd>{this.depute?.groupe}</dd>
+        <dt>Nombre de follower twitter</dt>
+          <dd>{formatedFollowerCount(this.depute)}</dd>
       </dl>
     </div>
     </div>

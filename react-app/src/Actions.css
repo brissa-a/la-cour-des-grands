@@ -1,0 +1,11 @@
+.actions {
+  position: fixed;
+  right: 40px;
+  bottom: 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+.actions a {
+  margin-top: 10px
+}

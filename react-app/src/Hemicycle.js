@@ -6,14 +6,14 @@ class Hemicycle extends React.Component {
   constructor(props) {
     super()
     Object.assign(this, props)
+    for (const siege of this.app.sieges) {
+      siege.hemicycleRef = React.createRef()
+      siege.hemicycleHtml = <Siege app={this.app} ref={siege.hemicycleRef} siege={siege} key={siege.siegeid}/>
+    }
   }
 
   render() {
-    const t = this
-    const siegeElems = this.app.sieges.map(siege => {
-      return <Siege app={this.app} siege={siege} key={siege.siegeid}/>
-    });
-    return siegeElems
+    return this.app.sieges.map(s => s.hemicycleHtml)
   }
 
 }

@@ -2,26 +2,7 @@ const { program } = require('commander');
 const fs = require('fs');
 const axios = require('axios');
 const {downloadFile} = require('./misc/downloader.js')
-
-function isMissing(obj, toTest, onMissing, name = "") {
-  if (!obj) {
-    onMissing('.' + name)
-    return true
-  } else if (toTest) {
-    var anyMissing = false
-    for (prop in toTest) {
-      missing = isMissing(
-        obj[prop],
-        toTest[prop],
-        onMissing,
-        `${name}.${prop}`
-      )
-      anyMissing = anyMissing || missing
-    }
-    return anyMissing
-  }
-  return false
-}
+const {isMissing} = require('./misc/isMissing.js')
 
 async function fetchPicOf(depute, opt) {
   const missing = isMissing(depute, {

@@ -1,0 +1,7 @@
+svg {
+    user-select: none;
+}
+
+svg foreignObject {
+    user-select: text;
+}

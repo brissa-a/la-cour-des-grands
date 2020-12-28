@@ -1,6 +1,15 @@
 const config = require("../config.json")
 const axios = require('axios');
 
+// {
+//  "name": "Jean-Luc Reitzer",
+//  "public_metrics": {
+//   "followers_count": 1428,
+//   "following_count": 242,
+//   "tweet_count": 157,
+//   "listed_count": 66
+//  }
+
 async function fetchTwitterOf(depute) {
   return depute?.twitter_link && fetchTwitter(depute?.twitter_link)
 }

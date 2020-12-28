@@ -1,13 +1,27 @@
-import React from 'react';
+import {Fragment, Component} from 'react';
 import groupes from './groupes.json'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExclamation } from '@fortawesome/free-solid-svg-icons'
+import visuals from "./visual/all.js"
 
-class Siege extends React.Component {
+class Siege extends Component {
 
   constructor(props) {
     super();
     Object.assign(this, props)
+    this.state = {
+      showPic: true,
+      visualname: visuals.default
+    }
+
+  }
+
+  showPic(showPic) {
+    this.setState({showPic})
+  }
+
+  setVisual(visualname) {
+    this.setState({visualname})
   }
 
   render() {
@@ -17,33 +31,38 @@ class Siege extends React.Component {
     </g>
 
 
-    const imgsize = 1.2
+    const imgsize = 1.4
     if (this.siege.depute) {
-      const color = groupes[this.siege.depute.groupe].color
-      return <g data-id={this.siege.siegeno} transform={`translate(${this.siege.pos.x}, ${this.siege.pos.y})`}>
+      const visual = visuals.all[this.state.visualname]
+      const color = visual.siegeColor(this.siege)
+
+      const Pic = () => this.state.showPic ? <Fragment><circle
+                 style={{fill: `hsl(${color.h},${color.s * 0.7}%,${color.v}%)`}}
+                 r={0.53}
+              />
+              <clipPath id={this.siege.siegeid+"-clippath"}>
+                <circle r="0.53"/>
+              </clipPath>
+              <image opacity={0.8}
+                  href={`/depute-pic/${this.siege.depute.uid}.png`}
+                  x={-imgsize/2}
+                  y={-imgsize/2}
+                  height={imgsize}
+                  width={imgsize}
+                  clipPath={"url(#" + this.siege.siegeid+"-clippath)"}
+              /></Fragment> : null
+
+      return <g data-id={this.siege.siegeno} data-color={JSON.stringify(color)}
+        transform={`translate(${this.siege.pos.x}, ${this.siege.pos.y})`}
+        onMouseEnter={() => this.app.showDetail(this.siege)}
+        onClick={() => this.app.pinDetail(this.siege)}
+      >
         <g  className="bloup">
-          <clipPath id={this.siege.siegeid+"-clippath"}>
-            <circle r="0.5"/>
-          </clipPath>
           <circle
-             style={{fill: `hsl(${color.h},${color.s}%,${color.v}%)`}}
+             style={{fill: `hsl(${color.h},${color.s * 0.7}%,${color.v}%)`}}
              r={0.53}
           />
-          <circle
-             style={{fill: `hsl(0, 0%, 0%, 0.6)`}}
-             r={0.5}
-          />
-          <image
-              href={`/depute-pic/${this.siege.depute.uid}.png`}
-              x={-imgsize/2}
-              y={-imgsize/2}
-              height={imgsize}
-              width={imgsize}
-              onMouseEnter={() => this.app.showDetail(this.siege)}
-              onClick={() => this.app.pinDetail(this.siege)}
-              clipPath={"url(#" + this.siege.siegeid+"-clippath)"}
-              data-json={JSON.stringify(this.siege.depute)}
-          />
+          <Pic/>
           {warning}
         </g>
       </g>

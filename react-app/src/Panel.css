@@ -1,0 +1,6 @@
+.panel {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  width: 275px
+}
