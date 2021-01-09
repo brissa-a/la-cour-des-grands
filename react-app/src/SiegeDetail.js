@@ -14,7 +14,7 @@ function formatedFollowerCount(depute) {
   }
 }
 
-class SiegeDetail extends React.Component {
+class SiegeDetail extends React.PureComponent {
 
   constructor(props) {
     super();

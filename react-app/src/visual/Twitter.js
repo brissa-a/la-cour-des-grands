@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import sieges from '../sieges.json'
+import Chart from '../chart/TwitterChart.js'
+const {log, ceil, floor, round} = Math
 
 function groupBy(get) {
   return (acc,x) => {
@@ -10,50 +12,57 @@ function groupBy(get) {
   }
 }
 
+const params = new URLSearchParams(window.location.search)
+const significantFigures = params.has("sf") ? Number.parseInt(params.get("sf")) : 3
+const base = params.has("sf") ? Number.parseInt(params.get("base")) : 3
+
 class TwitterVisual {
 
   constructor() {
     const f = s => s.depute?.twitter?.public_metrics?.followers_count || 0
     const followers_counts = sieges.map(s => f(s))
-    //const sorted = sieges.sort((a,b) => f(b) - f(a))
-    this.global = {
-      avg: followers_counts.reduce((acc, x) => acc + x) / sieges.length,
-      max: followers_counts.reduce((acc, x) => Math.max(acc, x)),
-      //sorted,
-    }
-    // p < 1 more color for low values
-    // p == 1 linéaire
-    // p > 1 more color for high values
-    //auto determinated to get half the values at 0.5
-    const uniquevalues = [...new Set(followers_counts)]
-    const weirdmediane = uniquevalues[Math.round(uniquevalues.length/2)]
-    this.p = Math.log(0.5)/Math.log(weirdmediane/this.global.max)
+    const max = followers_counts.reduce((acc, x) => Math.max(acc, x))
 
+    const powMax = floor(log(max)/log(base)) - significantFigures + 1
+    const sfMax = ceil(max/(base**powMax))
+    const roundedMax = sfMax * base ** powMax
+
+    this.global = {
+      base,
+      avg: followers_counts.reduce((acc, x) => acc + x) / sieges.length,
+      roundedMax, powMax, sfMax
+    }
     this.f = f
+    window.twitter_visual = this;
   }
 
   //Get a number between 0 and 1
   t(twitterFollowerCount) {
-    const {global, p} = this
-    return (twitterFollowerCount/global.max) ** p
+    if (twitterFollowerCount == 0) return 0
+    const {roundedMax} = this.global
+    return log(twitterFollowerCount)/log(roundedMax)
   }
 
   //reverse t to original value
   tToValue(t) {
-    const {global,p} = this
-    return t ** (1/(p)) * global.max
+    const {roundedMax} = this.global
+    return roundedMax ** t
   }
 
   color(t) {
     return {
        h: 203,
-       s: t * 88.0,
-       v: t * 94.9 * 0.5
+       s: t * 70.0,
+       v: (t + 0.1) * 94.9 * 0.5
      }
    }
 
    siegeColor(siege) {
      return this.color(this.t(this.f(siege)))
+   }
+
+   chart(props) {
+     return <Chart app={props.app} visual={this} color={this.color}/>
    }
 
    caption() {
@@ -69,16 +78,19 @@ class TwitterVisual {
        samples.push(<text x={w + 5} y={h * (1-rate) + 5} fill="rgba(255, 255, 255, 0.9)">{value}</text>);
      }
 
+     const stops = [];
+     for (let stop = 0; stop <= h; stop++) {
+       const c = this.color((h-stop)/h)
+       stops.push(<stop offset={stop/h} stop-color={`hsl(${c.h},${c.s}%,${c.v}%)`}/>);
+     }
+
+
      return <Fragment>
-       <style>{`
-         .twitterblue { stop-color: rgb(46, 138, 196); }
-       `}</style>
        <div className="caption"  xmlns="http://www.w3.org/1999/xhtml">
          <svg className="img" width={350} height={400}>
            <defs>
              <linearGradient id="Gradient1" x1="0" x2="0" y1="0" y2="1">
-               <stop offset="0%" class="twitterblue"/>
-               <stop offset="100%" stop-color="black"/>
+               {stops}
              </linearGradient>
            </defs>
            <g transform="translate(10, 10)">

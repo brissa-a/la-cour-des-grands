@@ -5,7 +5,7 @@ import { faPaypal, faGithub } from '@fortawesome/free-brands-svg-icons'
 import './Footer.css'
 import config from './config.json'
 
-class Footer extends React.Component {
+class Footer extends React.PureComponent {
 
   constructor() {
     super()

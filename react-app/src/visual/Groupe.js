@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import groupes from '../groupes.json'
+import Chart from '../chart/GroupeChart.js'
 
 class GroupeVisual {
 
@@ -11,6 +12,10 @@ class GroupeVisual {
     return  {
       h, s: s * 0.8, v
     }
+  }
+
+  chart(props) {
+    return <Chart app={props.app} color={this.color}/>
   }
 
   caption(props) {

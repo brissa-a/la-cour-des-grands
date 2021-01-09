@@ -39,7 +39,7 @@ class Actions extends Component {
 
   render() {
     return <div class="actions">
-    <a class="btn-floating btn-large waves-effect waves-light" onClick={() => this.app.panelRef.current.toggle()}>
+    <a class="btn-floating btn-large waves-effect waves-light" onClick={() => this.app.togglePanel()}>
       <FontAwesomeIcon size="lg" icon={faCog} />
     </a>
     <a style={{display: "none"}} class="btn-floating btn-large waves-effect waves-light" onClick={() => this.exportSvg()}>

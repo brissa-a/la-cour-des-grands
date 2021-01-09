@@ -1,90 +1,87 @@
-import {Fragment, Component} from 'react';
+import {Fragment, PureComponent} from 'react';
 import groupes from './groupes.json'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExclamation } from '@fortawesome/free-solid-svg-icons'
 import visuals from "./visual/all.js"
+import "./Siege.css"
 
-class Siege extends Component {
+class Siege extends PureComponent {
 
-  constructor(props) {
+  constructor() {
     super();
-    Object.assign(this, props)
-    this.state = {
-      showPic: true,
-      visualname: visuals.default
-    }
-
-  }
-
-  showPic(showPic) {
-    this.setState({showPic})
-  }
-
-  setVisual(visualname) {
-    this.setState({visualname})
   }
 
   render() {
-    // console.log(this.siege.img)
-    const warning = this.siege.depute?.nom ? null : <g  transform="translate(-0.1, -0.7) scale(0.30)">
+    // console.log(siege.img)
+    const {visualname, siege, showPic, app, highlight} = this.props
+    const warning = siege.depute?.nom ? null : <g  transform="translate(-0.1, -0.7) scale(0.30)">
       <FontAwesomeIcon icon={faExclamation} color="red"/>
     </g>
 
-
     const imgsize = 1.4
-    if (this.siege.depute) {
-      const visual = visuals.all[this.state.visualname]
-      const color = visual.siegeColor(this.siege)
-
-      const Pic = () => this.state.showPic ? <Fragment><circle
-                 style={{fill: `hsl(${color.h},${color.s * 0.7}%,${color.v}%)`}}
-                 r={0.53}
-              />
-              <clipPath id={this.siege.siegeid+"-clippath"}>
+    if (siege.depute) {
+      const visual = visuals.all[visualname]
+      const color = visual.siegeColor(siege)
+      const hoverClass = highlight ? "hover" : ""
+      // const filter = highlight ? "url(#f3)" : ""
+      const stroke = highlight ? "hsla(31, 50%, 100%, 1)" : ""
+      const Pic = () => showPic ? <Fragment>
+              <clipPath id={siege.siegeid+"-clippath"}>
                 <circle r="0.53"/>
               </clipPath>
               <image opacity={0.8}
-                  href={`/depute-pic/${this.siege.depute.uid}.png`}
+                  href={`/depute-pic/${siege.depute.uid}.png`}
                   x={-imgsize/2}
                   y={-imgsize/2}
                   height={imgsize}
                   width={imgsize}
-                  clipPath={"url(#" + this.siege.siegeid+"-clippath)"}
+                  clipPath={"url(#" + siege.siegeid+"-clippath)"}
               /></Fragment> : null
 
-      return <g data-id={this.siege.siegeno} data-color={JSON.stringify(color)}
-        transform={`translate(${this.siege.pos.x}, ${this.siege.pos.y})`}
-        onMouseEnter={() => this.app.showDetail(this.siege)}
-        onClick={() => this.app.pinDetail(this.siege)}
+      return <g data-id={siege.siegeno} data-color={JSON.stringify(color)}
+        transform={`translate(${siege.pos.x}, ${siege.pos.y})`}
+        onMouseEnter={() => app.showDetail(siege)}
+        onClick={() => app.pinDetail(siege)}
       >
-        <g  className="bloup">
-          <circle
+        <g  className={`bloup ${hoverClass}`}>
+          <defs>
+            <filter id="f3" x="-1" y="-1" width="300%" height="300%">
+              <feGaussianBlur result="blurOut" in="SourceGraphic" stdDeviation="0.2" />
+              <feColorMatrix result="matrixOut" in="blurOut" type="matrix"
+              values="10 0 0 0 0 0 10 0 0 0 0 0 10 0 0 0 0 0 1 0" />
+              <feBlend in="SourceGraphic" in2="matrixOut" mode="normal" />
+            </filter>
+            <filter id="blurMe">
+             <feGaussianBlur in="SourceGraphic" stdDeviation="0.1"/>
+            </filter>
+          </defs>
+          <circle className="color-transition"
              style={{fill: `hsl(${color.h},${color.s * 0.7}%,${color.v}%)`}}
-             r={0.53}
+             r={0.53} strokeWidth="0.05" fillOpacity="1" stroke={stroke}
           />
           <Pic/>
           {warning}
         </g>
       </g>
-    } else if (this.siege.siegeno >= 4000 && this.siege.siegeno < 5000) {
+    } else if (siege.siegeno >= 4000 && siege.siegeno < 5000) {
       return <circle
         style={{fillOpacity: 0, stroke: "#FFCC77", strokeWidth: 0.03}}
-         cx={this.siege.pos.x}
-         cy={this.siege.pos.y}
+         cx={siege.pos.x}
+         cy={siege.pos.y}
          r={0.5}
       />
-    } else if (this.siege.siegeno >= 3000 && this.siege.siegeno < 4000) {
+    } else if (siege.siegeno >= 3000 && siege.siegeno < 4000) {
       return <circle
         style={{fillOpacity: 0, stroke: "#FFCC77", strokeWidth: 0}}
-         cx={this.siege.pos.x}
-         cy={this.siege.pos.y}
+         cx={siege.pos.x}
+         cy={siege.pos.y}
          r={0.5}
       />
     } else {
       return <circle
         style={{fillOpacity: 0, stroke: "#ffffff", strokeWidth: 0.03}}
-         cx={this.siege.pos.x}
-         cy={this.siege.pos.y}
+         cx={siege.pos.x}
+         cy={siege.pos.y}
          r={0.5}
       />
     }

@@ -48,17 +48,6 @@ svg.main {
   background-color: #333333;
 }
 
-.bloup {
-  transition: transform 0.5s;
-  will-change: transform;
-  cursor: pointer;
-}
-
-.bloup:hover {
-  transform: scale(1.3);
-  transition: transform 0s;
-}
-
 .social-bar {
     position: absolute;
     top: 15px;

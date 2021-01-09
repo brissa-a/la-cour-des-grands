@@ -1,4 +1,4 @@
-import {Component, Fragment, createRef} from 'react';
+import {PureComponent, Fragment, createRef} from 'react';
 import { FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import { faAlignJustify, faSearch, faFileExport} from '@fortawesome/free-solid-svg-icons'
 import { faPaypal, faGithub } from '@fortawesome/free-brands-svg-icons'
@@ -9,7 +9,7 @@ import Fuse from 'fuse.js'
 import diacritics from 'diacritics'
 import SearchResponse from './SearchResponse.js'
 
-class Search extends Component {
+class Search extends PureComponent {
 
   constructor(props) {
     super()
@@ -66,9 +66,7 @@ class Search extends Component {
   }
 
   onChange(evt) {
-    console.log(evt.target.value)
     let cleanQuery = diacritics.remove(evt.target.value).split(" ").join(" | ")
-    console.log({cleanQuery})
 
     this.setState({
       text: evt.target.value
@@ -77,7 +75,6 @@ class Search extends Component {
     this.searchto = setTimeout(() => {
       const resp = this.fuse.search(cleanQuery)
       const respDate = Date.now()
-      console.log({resp,respDate})
       this.setState({resp,respDate});
     }, 300)
   }
@@ -124,6 +121,7 @@ class Search extends Component {
     if (this.state.resp) {
       let i = 0
       let top10 = this.state.resp.slice(0, 10);
+      this.app.setHighlightSiegeIds(top10.map(x => x.item.siegeid))
       respElemList = top10.map(x => {
         const color = {
           h: 360 / top10.length * ++i,

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import Chart from '../chart/SexeChart.js'
 
 const womanColor = {
   h:299, s:37, v:46
@@ -30,6 +31,10 @@ class SexeVisual {
 
   siegeColor(siege) {
     return siege.depute.femme ? womanColor : menColor
+  }
+
+  chart(props) {
+    return <Chart app={props.app} color={this.color}/>
   }
 
   caption(props) {

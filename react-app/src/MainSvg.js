@@ -1,19 +1,19 @@
 import React from 'react';
 import {Border, Tribune} from './SvgPath.js'
-import Hemicycle from './Hemicycle.js'
 import Caption from './Caption.js'
+import AgeChart from './chart/AgeChart.js'
 
-class MainSvg extends React.Component {
+class MainSvg extends React.PureComponent {
 
   constructor(props) {
     super()
-    Object.assign(this, props)
+    //USe ref for perfomance purpose
     this.svgRef = React.createRef();
     this.transformRef = React.createRef();
     this.transform = {
-      scale: 0.02066115702479339,
-      pos_x: 0.10770217072603083,
-      pos_y: 0.2730286050479743
+      scale: 0.020661157024793396,
+      pos_x: -0.26990199594063585,
+      pos_y: 0.23657027171464123
     }
   }
 
@@ -45,7 +45,7 @@ class MainSvg extends React.Component {
       const x = (cursor.x - this.transform.pos_x)
       const y = (cursor.y - this.transform.pos_y)
       const newscale = this.transform.scale * scalefactor
-      if (newscale <= 0.5 && newscale >= 0.022 * 0.80) {
+      if (newscale <= 0.5 && newscale >= 0.022 * 0.50) {
         this.transform.scale = newscale
         this.transform.pos_x = -x * scalefactor + cursor.x
         this.transform.pos_y = -y * scalefactor + cursor.y
@@ -81,6 +81,7 @@ class MainSvg extends React.Component {
   }
 
   render() {
+    const {app, visualname, showPic, highlightIds} =  this.props
     const html = <svg className="main" id="mainsvg" xmlns="http://www.w3.org/2000/svg"
       width="100%" height="100%" viewBox={this.getCurrentViewBoxStr()}
       ref={this.svgRef}
@@ -98,10 +99,13 @@ class MainSvg extends React.Component {
         transform={this.getTransformString()}
         style={{transition: "transform 0.1s"}}
       >
-        <Border/>
-        <Tribune/>
-        <Hemicycle app={this.app}/>
-        <Caption ref={this.app.captionRef} app={this.app}/>
+        <g>
+          <Border/>
+          <Tribune/>
+        </g>
+        <g>
+          {this.props.children}
+        </g>
       </g>
     </svg>
     return html

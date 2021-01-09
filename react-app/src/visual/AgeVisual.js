@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import sieges from '../sieges.json'
+import AgeChart from '../chart/AgeChart.js'
 
 const youngColor = {
-  h: 31,
+  h: 31 ,
   s: 23.0,
   v: 150 * 0.5
 }
@@ -66,6 +67,10 @@ class AgeVisual {
 
    siegeColor(siege) {
      return this.color(this.t(this.f(siege)))
+   }
+
+   chart(props) {
+     return <AgeChart app={props.app} color={this.color}/>
    }
 
    caption() {

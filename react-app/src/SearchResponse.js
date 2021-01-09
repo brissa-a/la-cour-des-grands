@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {PureComponent, Fragment} from 'react';
 import groupes from './groupes.json'
 
 //TODO move to a misc module
@@ -11,7 +11,7 @@ function groupBy(get) {
   }
 }
 
-class Search extends Component {
+class Search extends PureComponent {
 
   constructor(props) {
     super()
