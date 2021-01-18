@@ -1,27 +1,58 @@
-import {Fragment, PureComponent} from 'react';
+import {Fragment, PureComponent, Component} from 'react';
 import groupes from './groupes.json'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExclamation } from '@fortawesome/free-solid-svg-icons'
-import visuals from "./visual/all.js"
 import "./Siege.css"
+
+export class EmptySiege extends PureComponent {
+
+  constructor(props) {
+    super();
+  }
+
+  render() {
+    const {siege} = this.props
+    if (siege.siegeno >= 4000 && siege.siegeno < 5000) {
+     return <circle
+       style={{fillOpacity: 0, stroke: "#FFCC77", strokeWidth: 0.03}}
+        cx={siege.pos.x}
+        cy={siege.pos.y}
+        r={0.5}
+     />
+   } else if (siege.siegeno >= 3000 && siege.siegeno < 4000) {
+     return <circle
+       style={{fillOpacity: 0, stroke: "#FFCC77", strokeWidth: 0}}
+        cx={siege.pos.x}
+        cy={siege.pos.y}
+        r={0.5}
+     />
+   } else {
+     return <circle
+       style={{fillOpacity: 0, stroke: "#ffffff", strokeWidth: 0.03}}
+        cx={siege.pos.x}
+        cy={siege.pos.y}
+        r={0.5}
+     />
+   }
+  }
+}
 
 class Siege extends PureComponent {
 
-  constructor() {
+  constructor(props) {
     super();
   }
 
   render() {
     // console.log(siege.img)
-    const {visualname, siege, showPic, app, highlight} = this.props
+    const {siege, showPic, app, highlight, x, y, h,s,v, sIdx, colIdx} = this.props
+    const color = {h,s,v}
     const warning = siege.depute?.nom ? null : <g  transform="translate(-0.1, -0.7) scale(0.30)">
       <FontAwesomeIcon icon={faExclamation} color="red"/>
     </g>
 
     const imgsize = 1.4
     if (siege.depute) {
-      const visual = visuals.all[visualname]
-      const color = visual.siegeColor(siege)
       const hoverClass = highlight ? "hover" : ""
       // const filter = highlight ? "url(#f3)" : ""
       const stroke = highlight ? "hsla(31, 50%, 100%, 1)" : ""
@@ -37,11 +68,14 @@ class Siege extends PureComponent {
                   width={imgsize}
                   clipPath={"url(#" + siege.siegeid+"-clippath)"}
               /></Fragment> : null
-
-      return <g data-id={siege.siegeno} data-color={JSON.stringify(color)}
-        transform={`translate(${siege.pos.x}, ${siege.pos.y})`}
+      const style = {
+        transition: `transform ${Math.random() * 0.65 + 0.65}s ease ${Math.random()*0.3 + 0.3}s`,
+        transform: `translate(${x}px, ${y}px)`
+      }
+      const debugpos = <text fontSize={0.2}>{sIdx + ":" + colIdx}</text>
+      return <g style={style}
+        data-id={siege.siegeno} data-color={JSON.stringify(color)}
         onMouseEnter={() => app.showDetail(siege)}
-        onClick={() => app.pinDetail(siege)}
       >
         <g  className={`bloup ${hoverClass}`}>
           <defs>
@@ -61,31 +95,14 @@ class Siege extends PureComponent {
           />
           <Pic/>
           {warning}
+
         </g>
       </g>
-    } else if (siege.siegeno >= 4000 && siege.siegeno < 5000) {
-      return <circle
-        style={{fillOpacity: 0, stroke: "#FFCC77", strokeWidth: 0.03}}
-         cx={siege.pos.x}
-         cy={siege.pos.y}
-         r={0.5}
-      />
-    } else if (siege.siegeno >= 3000 && siege.siegeno < 4000) {
-      return <circle
-        style={{fillOpacity: 0, stroke: "#FFCC77", strokeWidth: 0}}
-         cx={siege.pos.x}
-         cy={siege.pos.y}
-         r={0.5}
-      />
     } else {
-      return <circle
-        style={{fillOpacity: 0, stroke: "#ffffff", strokeWidth: 0.03}}
-         cx={siege.pos.x}
-         cy={siege.pos.y}
-         r={0.5}
-      />
+      return <EmptySiege siege={siege}/>
     }
   }
+
 
 }
 

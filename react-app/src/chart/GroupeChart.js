@@ -1,30 +1,9 @@
 import React, {PureComponent} from 'react';
-import * as d3 from "d3";
 import sieges from '../sieges.json'
 import popfr from './popfrByAge.json'
 import "./DefaultChart.css"
 import groupes from '../groupes.json'
-
-function groupBy(get) {
-  return (acc,x) => {
-    acc = acc || {}
-    const by = get(x)
-    const list = acc[by] || []
-    acc[by] = [x, ...list]
-    return acc
-  }
-}
-
-Object.prototype.let = function(f) {return f(this)}
-Object.prototype.also = function(f) {f(this); return this}
-//usage
-//{a: "A"}.copy({a: 'B'}) => {a: 'B'}
-//{a: "A"}.copy(old => ({a: old.a + "C"})) => {a: 'AC'}
-Object.prototype.copy = function(update) {
-  if (!update) return Object.assign({}, this)
-  if (typeof update === 'function') update = update(this)//update function to update object
-  return Object.assign({}, this, update)
-}
+import {groupBy, copy} from '../functional.js'
 
 function minMaxRange(list, getter) {
   if (getter) list = list.map(getter)
@@ -44,16 +23,16 @@ class Chart extends PureComponent {
   constructor(props) {
     super()
     const groupByGroupe = groupBy(s => s.depute.groupe)
-    const columns = sieges
+    const groupedByGroup = sieges
       .filter(s => s.depute)
       .reduce(groupByGroupe, {})
-      .let(Object.entries)
+    const columns = Object.entries(groupedByGroup)
       .map(([key, value]) => ({
         groupeName: key, count: value.length, siegeids: value.map(s=>s.siegeid)
       }))
       .map(({groupeName, count, siegeids}) => ({
           x: groupeName, y: count, siegeids,
-          color: groupes[groupeName].color.copy(old => ({s: old.s * 0.70})),
+          color: copy(groupes[groupeName].color, old => ({s: old.s * 0.70})),
       }))
       .sort((a,b) => b.y - a.y)
     this.columns = columns

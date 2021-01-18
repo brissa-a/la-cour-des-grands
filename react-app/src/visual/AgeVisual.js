@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import sieges from '../sieges.json'
 import AgeChart from '../chart/AgeChart.js'
+import {groupBy} from '../functional.js'
 
 const youngColor = {
   h: 31 ,
@@ -13,10 +14,32 @@ const oldColor = {
   v: 30 * 0.5
 }
 
+function getAge(dateNais) {
+    var today = new Date();
+    const birthDate = new Date(dateNais)
+    var age = today.getFullYear() - birthDate.getFullYear();
+    var m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+}
+const f = s => s.depute?.dateNais ? getAge(s.depute.dateNais) : 0
+const groupByAge = groupBy(s => getAge(s.depute.dateNais))
+
+function minMaxRange(list, getter) {
+  if (getter) list = list.map(getter)
+  const min = Math.min(...list)
+  const max = Math.max(...list)
+  const range = max - min
+  const avg = list.reduce((a, b) => a + b, 0) / list.length
+  return {min,max,range, avg}
+}
+
 class AgeVisual {
 
   constructor() {
-    const f = s => s.depute?.dateNais ? this.getAge(s.depute.dateNais) : 0
+
 
     //const f = s => s.depute?.twitter?.public_metrics?.followers_count || 0
     const ages = sieges.filter(s => s.depute?.dateNais).map(s => f(s))
@@ -31,17 +54,6 @@ class AgeVisual {
     }
     //no this.p because linear
     this.f = f
-  }
-
-  getAge(dateNais) {
-      var today = new Date();
-      const birthDate = new Date(dateNais)
-      var age = today.getFullYear() - birthDate.getFullYear();
-      var m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-      }
-      return age;
   }
 
   //color rate Get a number between 0 and 1
@@ -72,6 +84,28 @@ class AgeVisual {
    chart(props) {
      return <AgeChart app={props.app} color={this.color}/>
    }
+
+   sort(sa, sb) {
+     return f(sb) - f(sa)
+   }
+
+   group(sieges) {
+     const ages = sieges.filter(s => s.depute).map(s => getAge(s.depute.dateNais))
+     const mmrAges = minMaxRange(ages)
+     const agesGroup = {}
+     for (let i = mmrAges.min; i <= mmrAges.max; i++) {
+       agesGroup[i] = []
+     }
+     const groupes = Object.entries(sieges.filter(s => s.depute)
+       .reduce(groupByAge, agesGroup))
+     return {groupes, maxColSize: 1}
+   }
+
+   formatGroupeName(groupeName) {
+     return groupeName
+   }
+
+   xAxisName() {return "ans"}
 
    caption() {
      const txt = 14

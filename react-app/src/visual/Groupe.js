@@ -1,6 +1,18 @@
 import {Fragment} from 'react';
 import groupes from '../groupes.json'
 import Chart from '../chart/GroupeChart.js'
+import {groupBy} from '../functional.js'
+
+const groupByGroupe = groupBy(s => s.depute.groupe)
+
+function minMaxRange(list, getter) {
+  if (getter) list = list.map(getter)
+  const min = Math.min(...list)
+  const max = Math.max(...list)
+  const range = max - min
+  const avg = list.reduce((a, b) => a + b, 0) / list.length
+  return {min,max,range, avg}
+}
 
 class GroupeVisual {
 
@@ -16,6 +28,26 @@ class GroupeVisual {
 
   chart(props) {
     return <Chart app={props.app} color={this.color}/>
+  }
+
+  sort(sa, sb) {
+    return sa.depute.groupe.localeCompare(sb.depute.groupe)
+  }
+
+  formatGroupeName(groupeName) {
+    return groupeName
+  }
+
+  xAxisName() {return null}
+
+  group(sieges) {
+    const groupByGroupe = groupBy(s => s.depute.groupe)
+    const groupes = Object.entries(sieges
+        .filter(s => s.depute)
+        .reduce(groupByGroupe, {})
+      )
+      .sort(([gna, sa], [gnb, sb]) => sb.length - sa.length)
+    return {groupes, maxColSize: 9}
   }
 
   caption(props) {

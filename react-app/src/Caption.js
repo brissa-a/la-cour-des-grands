@@ -9,11 +9,11 @@ class Caption extends PureComponent {
   }
 
   render() {
-    const visual = visuals.all[this.props.visualname]
-    const Caption = visual.caption.bind(visual)
+    const {visualColor} = this.props
+    const VisualCaption = props => visualColor.caption()
     return <g transform="translate(28,-33)">
       <foreignObject transform="scale(0.05)" width="350" height="400">
-        <Caption app={this.app}/>
+        <VisualCaption app={this.app}/>
       </foreignObject>
     </g>
   }

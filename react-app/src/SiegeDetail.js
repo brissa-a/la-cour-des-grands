@@ -4,6 +4,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBirthdayCake, faCouch, faThumbtack, faMap, faTimes } from '@fortawesome/free-solid-svg-icons'
 import { faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons'
 import "./SiegeDetail.css"
+import Box from "@material-ui/core/Box";
+import Typography from '@material-ui/core/Typography';
 
 function formatedFollowerCount(depute) {
   if (depute?.twitter?.public_metrics?.followers_count) {
@@ -82,7 +84,7 @@ class SiegeDetail extends React.PureComponent {
       <div key="nosdeputes" className={ndpt ? "" : "desaturated"}><a  href={ndpt}target="_blank" rel="noreferrer"><img alt="logo nosdeputes.fr" src="/favicon_nosdeputes.ico" width="30px"/></a></div>
     )
 
-    return <div className="details z-depth-3">
+    return <div className="details"><Box style={{height: "100%"}} m={0} p={0} boxShadow={2} bgcolor="background.paper">
     <div style={{color: "#FFFFFF", display: this.depute ? "block" : "none"}}>
       <svg width={svg.w} height={svg.h} onMouseEnter={() => this.showMore()} onMouseLeave={() => this.showLess()}>
         <image href={`colonnade-avec-les-drapeaux.jpg`} />
@@ -104,7 +106,11 @@ class SiegeDetail extends React.PureComponent {
         {social}
       </div>
       <p style={{display: "none"}}>${JSON.stringify(this.state)}</p>
-      <h5><span class="ident-civ">{this.depute?.ident?.civ}</span> {this.depute?.nom || "Inconnue" }</h5>
+      <h5>
+        <Typography gutterBottom variant="h5" component="h2">
+          <span class="ident-civ">{this.depute?.ident?.civ}</span> {this.depute?.nom || "Inconnue" }
+        </Typography>
+      </h5>
       <dl className="small-details">
         <dt><FontAwesomeIcon icon={faBirthdayCake}/></dt><dd>{birthdateStr || "Inconnue"} {age && `(${age} ans)`}</dd>
         <dt><FontAwesomeIcon icon={faCouch}/></dt><dd>{this.siegeno}</dd>
@@ -116,7 +122,7 @@ class SiegeDetail extends React.PureComponent {
           <dd>{formatedFollowerCount(this.depute)}</dd>
       </dl>
     </div>
-    </div>
+    </Box></div>
   }
 }
 

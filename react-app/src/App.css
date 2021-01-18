@@ -83,7 +83,6 @@ svg.main {
   opacity: 1
 }
 
-
 @keyframes slidein {
   from {
     transform: translate(125px, 9px) scale(0.8) rotate(35deg);

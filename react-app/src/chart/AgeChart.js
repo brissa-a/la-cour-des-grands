@@ -1,8 +1,8 @@
 import React, {PureComponent} from 'react';
-import * as d3 from "d3";
 import sieges from '../sieges.json'
 import popfr from './popfrByAge.json'
 import "./DefaultChart.css"
+import {groupBy} from '../functional.js'
 
 function getAge(dateNais) {
     var today = new Date();
@@ -14,18 +14,6 @@ function getAge(dateNais) {
     }
     return age;
 }
-
-function groupBy(get) {
-  return (acc,x) => {
-    acc = acc || {}
-    const by = get(x)
-    const list = acc[by] || []
-    acc[by] = [x, ...list]
-    return acc
-  }
-}
-
-Object.prototype.let = function(f) {return f(this)}
 
 const groupByAge = groupBy(s => getAge(s.depute.dateNais))
 
@@ -48,9 +36,9 @@ class Chart extends PureComponent {
     for (let i = mmrAges.min; i <= mmrAges.max; i++) {
       agesGroup[i] = []
     }
-    const columns = sieges.filter(s => s.depute)
+    const groupedByAge = sieges.filter(s => s.depute)
       .reduce(groupByAge, agesGroup)
-      .let(Object.entries)
+    const columns = Object.entries(groupedByAge)
       .map(([key, value]) => ({age: Number.parseInt(key), count: value.length, siegeids: value.map(s=>s.siegeid)}))
       .map(({age, count, siegeids}) => ({x: age, y: count, siegeids}))
     this.columns = columns

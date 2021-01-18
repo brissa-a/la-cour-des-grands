@@ -4,6 +4,7 @@ import { faAlignJustify} from '@fortawesome/free-solid-svg-icons'
 import { faPaypal, faGithub } from '@fortawesome/free-brands-svg-icons'
 import './Footer.css'
 import config from './config.json'
+import Box from "@material-ui/core/Box";
 
 class Footer extends React.PureComponent {
 
@@ -21,7 +22,7 @@ class Footer extends React.PureComponent {
   }
 
   render() {
-    return <div className={`footer ${this.state.open}  z-depth-3`}>
+    return <div className={`footer ${this.state.open}`}><Box m={0} p={1} boxShadow={2} bgcolor="background.paper">
       <button onClick={this.toggle.bind(this)}>
         <FontAwesomeIcon size="" icon={faAlignJustify}/> Mentions légales
       </button>
@@ -34,7 +35,7 @@ class Footer extends React.PureComponent {
         <FontAwesomeIcon size="" icon={faPaypal}/> Faire un don
       </a>
       <p style={{width: "290px"}}>Ce site est hébergé par Firebase, 188 King ST, San Francisco, CA 94107, United States, https://firebase.google.com/.</p>
-    </div>
+    </Box></div>
   }
 
 }

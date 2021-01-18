@@ -1,22 +1,9 @@
 import React, {PureComponent} from 'react';
-import * as d3 from "d3";
 import sieges from '../sieges.json'
 import popfr from './popfrByAge.json'
 import "./DefaultChart.css"
+import {groupBy} from '../functional.js'
 const {log, ceil, floor, round} = Math
-
-function groupBy(get) {
-  return (acc,x) => {
-    acc = acc || {}
-    const by = get(x)
-    const list = acc[by] || []
-    acc[by] = [x, ...list]
-    return acc
-  }
-}
-
-Object.prototype.let = function(f) {return f(this)}
-Object.prototype.also = function(f) {f(this); return this}
 
 function minMaxRange(list, getter) {
   if (getter) list = list.map(getter)
@@ -69,13 +56,16 @@ class Chart extends PureComponent {
       return followerGroupsName[groupIndex]
     })
     const followerGroups = followerGroupsName.reduce(
-      (acc, name) => acc.also(x => x[name] = []),
+      (acc, name) => {
+        acc[name] = []
+        return acc
+      },
       {}
     )
-    const columns = sieges
+    const groupedByFollower = sieges
       .filter(s => s.depute)
       .reduce(groupByFollower, followerGroups)
-      .let(Object.entries)
+    const columns = Object.entries(groupedByFollower)
       .map(([key, value]) => ({
         follower_range: JSON.parse(key), count: value.length, siegeids: value.map(s=>s.siegeid)
       }))

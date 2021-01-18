@@ -1,7 +1,7 @@
 import React, {PureComponent} from 'react';
-import * as d3 from "d3";
 import sieges from '../sieges.json'
 import "./DefaultChart.css"
+import {groupBy} from '../functional.js'
 
 function getAge(dateNais) {
     var today = new Date();
@@ -13,18 +13,6 @@ function getAge(dateNais) {
     }
     return age;
 }
-
-function groupBy(get) {
-  return (acc,x) => {
-    acc = acc || {}
-    const by = get(x)
-    const list = acc[by] || []
-    acc[by] = [x, ...list]
-    return acc
-  }
-}
-
-Object.prototype.let = function(f) {return f(this)}
 
 const groupBySexe = groupBy(s => s.depute.femme ?  "femme" : "homme")
 

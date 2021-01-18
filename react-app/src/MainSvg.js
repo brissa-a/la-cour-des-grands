@@ -1,8 +1,4 @@
 import React from 'react';
-import {Border, Tribune} from './SvgPath.js'
-import Caption from './Caption.js'
-import AgeChart from './chart/AgeChart.js'
-
 class MainSvg extends React.PureComponent {
 
   constructor(props) {
@@ -11,9 +7,9 @@ class MainSvg extends React.PureComponent {
     this.svgRef = React.createRef();
     this.transformRef = React.createRef();
     this.transform = {
-      scale: 0.020661157024793396,
-      pos_x: -0.26990199594063585,
-      pos_y: 0.23657027171464123
+      scale: 0.012828952955767671,
+      pos_x: 0.23271609882570168,
+      pos_y: 0.18932110016807063
     }
   }
 
@@ -99,10 +95,6 @@ class MainSvg extends React.PureComponent {
         transform={this.getTransformString()}
         style={{transition: "transform 0.1s"}}
       >
-        <g>
-          <Border/>
-          <Tribune/>
-        </g>
         <g>
           {this.props.children}
         </g>

@@ -9,7 +9,7 @@ class Chart extends PureComponent {
   }
 
   render() {
-    const visual = visuals.all[this.props.visualname]
+    const visual = visuals.colors[this.props.visualname]
     const VisualChart = visual.chart.bind(visual)
     return <g transform={`translate(${35}, ${-30})`} >
       <VisualChart app={this.props.app}/>

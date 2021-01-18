@@ -1,5 +1,9 @@
 .color-transition {
-  transition: fill 0.4s;
+  transition: fill 0.3s;
+}
+
+.smooth-transform {
+    transition: transform 3s;
 }
 
 .bloup {

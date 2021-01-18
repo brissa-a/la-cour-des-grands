@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import Chart from '../chart/SexeChart.js'
+import {groupBy} from '../functional.js'
 
 const womanColor = {
   h:299, s:37, v:46
@@ -23,6 +24,17 @@ const CaptionElem = (props) => {
   </div>
 }
 
+const groupBySexe = groupBy(s => s.depute.femme ?  "femme" : "homme")
+
+function minMaxRange(list, getter) {
+  if (getter) list = list.map(getter)
+  const min = Math.min(...list)
+  const max = Math.max(...list)
+  const range = max - min
+  const avg = list.reduce((a, b) => a + b, 0) / list.length
+  return {min,max,range, avg}
+}
+
 class SexeVisual {
 
   constructor() {
@@ -36,6 +48,24 @@ class SexeVisual {
   chart(props) {
     return <Chart app={props.app} color={this.color}/>
   }
+
+  sort(sa, sb) {
+    return sb.depute.femme - sa.depute.femme
+  }
+
+  group(sieges) {
+    const groupes = Object.entries(sieges
+      .filter(s => s.depute)
+      .reduce(groupBySexe, {"homme": [], "femme": []})
+    )
+    return {groupes, maxColSize: 10}
+  }
+
+  formatGroupeName(groupeName) {
+    return groupeName
+  }
+
+  xAxisName() {return null}
 
   caption(props) {
     return <Fragment>

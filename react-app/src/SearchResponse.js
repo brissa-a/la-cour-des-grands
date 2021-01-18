@@ -1,15 +1,6 @@
 import {PureComponent, Fragment} from 'react';
 import groupes from './groupes.json'
-
-//TODO move to a misc module
-function groupBy(get) {
-  return (acc,x) => {
-    acc = acc || {}
-    const list = acc[get(x)] || []
-    acc[get(x)] = [x, ...list]
-    return acc
-  }
-}
+import {groupBy} from './functional.js'
 
 class Search extends PureComponent {
 
