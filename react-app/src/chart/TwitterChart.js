@@ -46,7 +46,7 @@ class Chart extends PureComponent {
       followerGroupsName.push(`{"from":${from}, "to":${to}}`)
     }
     const groupByFollower = groupBy(s => {
-      const follower =  s.depute?.twitter?.public_metrics?.followers_count || 0
+      const follower =  s.depute?.twitterByUsername?.public_metrics?.followers_count || 0
       let groupIndex;
       if (follower != 0) {
          groupIndex = ceil(log(follower/sfMax)/log(base) + 1)

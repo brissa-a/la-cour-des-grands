@@ -76,6 +76,7 @@ class Siege extends PureComponent {
       return <g style={style}
         data-id={siege.siegeno} data-color={JSON.stringify(color)}
         onMouseEnter={() => app.showDetail(siege)}
+        onClick={() => app.pinDetail(siege)}
       >
         <g  className={`bloup ${hoverClass}`}>
           <defs>

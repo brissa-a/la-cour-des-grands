@@ -38,3 +38,4 @@ jobs/config.json
 react-app/src/config.json
 react-app/.firebaserc
 jobs/dl_old/
+test_*.js

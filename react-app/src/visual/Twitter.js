@@ -7,7 +7,7 @@ const {log, ceil, floor, round} = Math
 const params = new URLSearchParams(window.location.search)
 const significantFigures = params.has("sf") ? Number.parseInt(params.get("sf")) : 3
 const base = params.has("sf") ? Number.parseInt(params.get("base")) : 3
-const f = s => s.depute?.twitter?.public_metrics?.followers_count || 0
+const f = s => s.depute?.twitterByUsername?.public_metrics?.followers_count || 0
 
 function minMaxRange(list, getter) {
   if (getter) list = list.map(getter)
@@ -93,10 +93,13 @@ class TwitterVisual {
       followerGroupsName.push(`{"from":${from}, "to":${to}}`)
     }
     const groupByFollower = groupBy(s => {
-      const follower =  s.depute?.twitter?.public_metrics?.followers_count || 0
+      //if (s.depute.nom === "Karine Lebon") debugger;
+      const follower =  s.depute?.twitterByUsername?.public_metrics?.followers_count || 0
       let groupIndex;
       if (follower != 0) {
-        groupIndex = ceil(log(follower/sfMax)/log(base) + 1)
+        groupIndex = log(follower/sfMax)/log(base)
+        groupIndex = groupIndex < 0 ? 0 : ceil(groupIndex)
+        groupIndex = groupIndex + 1
       } else {
         groupIndex = 0
       }

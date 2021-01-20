@@ -8,9 +8,9 @@ import Box from "@material-ui/core/Box";
 import Typography from '@material-ui/core/Typography';
 
 function formatedFollowerCount(depute) {
-  if (depute?.twitter?.public_metrics?.followers_count) {
+  if (depute?.twitterByUsername?.public_metrics?.followers_count) {
     return new Intl.NumberFormat('fr-FR')
-      .format(depute?.twitter?.public_metrics?.followers_count)
+      .format(depute?.twitterByUsername?.public_metrics?.followers_count)
   } else {
     return "Pas de compte twitter"
   }
@@ -75,7 +75,7 @@ class SiegeDetail extends React.PureComponent {
     social.push(
       <div key="fb" className={fb ? "" : "desaturated"}><a href={fb} target="_blank" rel="noreferrer"><FontAwesomeIcon  style={{color: "#4267B2"}} icon={faFacebook}/></a></div>
     )
-    const twitter = this.depute?.twitter_link
+    const twitter = this.depute?.nd_twitter?.twitter && ("https://twitter.com/" + this.depute?.twitter_username)
     social.push(
       <div key="twitter" className={twitter ? "" : "desaturated"}><a href={twitter} target="_blank" rel="noreferrer"><FontAwesomeIcon style={{color: "#1DA1F2"}} icon={faTwitter}/></a></div>
     )

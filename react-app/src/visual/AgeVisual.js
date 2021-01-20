@@ -41,7 +41,7 @@ class AgeVisual {
   constructor() {
 
 
-    //const f = s => s.depute?.twitter?.public_metrics?.followers_count || 0
+    //const f = s => s.depute?.twitterByUsername?.public_metrics?.followers_count || 0
     const ages = sieges.filter(s => s.depute?.dateNais).map(s => f(s))
     //const sorted = sieges.sort((a,b) => f(b) - f(a))
     const max = ages.reduce((acc, x) => Math.max(acc, x))

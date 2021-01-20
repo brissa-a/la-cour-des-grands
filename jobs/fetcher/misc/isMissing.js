@@ -1,5 +1,3 @@
-
-
 function isMissing(obj, toTest, onMissing, name = "") {
   if (!obj) {
     onMissing('.' + name)
@@ -33,3 +31,5 @@ async function main() {
 }
 
 if (require.main === module) main()
+
+module.exports = {isMissing}

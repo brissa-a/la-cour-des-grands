@@ -104,7 +104,7 @@ export const chart = (visualLayout) => (visualColor) => (sieges) => {
 export const hemicycle = (visualLayout) => (visualColor) => (sieges) => {
   const Blueprint = props => {
     return <g>
-    {sieges.filter(s => !s.depute).map(s => <EmptySiege siege={s}/>)}
+    {sieges.filter(s => !s.depute).map(s => <EmptySiege key={s.siegeid} siege={s}/>)}
     <Border/><Tribune/>
     </g>
   }

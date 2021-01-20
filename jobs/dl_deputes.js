@@ -5,30 +5,35 @@ const Bottleneck = require('bottleneck');
 const {getdeputeData} = require('./dl_depute.js')
 const {fetchUrls} = require("./fetcher/an_www.js")
 const {closeBrowser} = require("./fetcher/misc/browser.js")
+const glob = require('fast-glob');
 
 async function getDeputesData(opt) {
   var datum;
   try {
       var urls;
-      if (opt.onlyOne === true) {
+      if (opt.only === true) {
         urls=[`http://www2.assemblee-nationale.fr/deputes/fiche/OMC_PA605036`]
-      } else if(opt.onlyOne) {
-        urls=[`http://www2.assemblee-nationale.fr/deputes/fiche/OMC_${opt.onlyOne}`]
+      } else if(opt.only) {
+        urls = opt.only.split(";").map(uid => `http://www2.assemblee-nationale.fr/deputes/fiche/OMC_${uid}`)
       } else {
         urls = await fetchUrls(opt)
       }
       console.log(`Found ${urls.length} urls`, urls.slice(0, 10));
-      const limiter = new Bottleneck({ maxConcurrent: 20 });
+      const limiter = new Bottleneck({ maxConcurrent: 1 });
       var i= 0
       async function counted(url) {
         const data = await getdeputeData(url, opt)
-        opt.verbose && console.log(`${i++}/${urls.length}`)
-        opt.verbose && console.log(data)
+        opt.verbose && console.log(`${++i}/${urls.length}`)
+        //opt.verbose && console.log(data)
         return data
       }
       const tasks = urls.map((url) => limiter.schedule(() => counted(url)));
-      datum = await Promise.all(tasks)
+      await Promise.all(tasks)
+      datum = (await glob(`./${opt.dlfolder}/depute/*.json`))
+        .map(filename => fs.readFileSync(filename))
+        .map(str =>  JSON.parse(str))
       let jsonstr = JSON.stringify(datum, null, ' ');
+      console.log(`saving ./${opt.dlfolder}/depute/*.json in ${opt.dlfolder}/deputes.json`)
       fs.writeFileSync(`${opt.dlfolder}/deputes.json`, jsonstr);
   } catch (err) {
       console.log("Error while fetching deputes", err);
@@ -43,7 +48,7 @@ async function main() {
     .option('-i, --dl-img', 'download depute pic')
     .option('-d, --debug', 'run puppeteer headless')
     .option('-c, --config-file <file>' , 'config.json file path', 'config.json')
-    .option('--only-one [uid]', 'download only the one depute for debugging purpose. depute uid ex: PA722170')
+    .option('--only [uid]', 'download only the one depute for debugging purpose. depute uid ex: PA722170')
     .option('-v, --verbose', 'log what\'s happening')
     .option('--no-mkdir')
     .option('--override')

@@ -59,7 +59,7 @@ async function main() {
     .option('-i, --dl-img', 'download depute pic')
     .option('-d, --debug', 'run puppeteer headless')
     .option('-c, --config-file <file>' , 'config.json file path', 'config.json')
-    .option('--only-one [uid]', 'download only the one depute for debugging purpose. depute uid ex: PA722170')
+    .option('--only [uid]', 'download only the one depute for debugging purpose. depute uid ex: PA722170')
     .option('-v, --verbose', 'log what\'s happening')
     .option('--no-mkdir')
     .option('--override')

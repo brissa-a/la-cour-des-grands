@@ -1,6 +1,14 @@
 const { program } = require('commander');
 const fs = require('fs');
-const {fetchTwitterOf} = require("./fetcher/twitter.js")
+const {
+  findTwitterUsernameByNameOf,
+  findTwitterUsernameByName,
+  fetchTwitterOfByLink,
+  fetchTwitterOfByUsername,
+  fetchTwitterByLink,
+  fetchTwitterByUsername
+} = require("./fetcher/twitter.js")
+const {fetchNdTwitterOf} = require("./fetcher/nd_twitter.js")
 const {fetchPicOf} = require("./fetcher/pic.js")
 const path = require('path')
 
@@ -15,7 +23,7 @@ async function getdeputeData(url,  opt) {
   const dir = path.dirname(destfile)
   opt.mkdir && await fs.promises.mkdir(dir, { recursive: true })
   let depute;
-  if (!opt.override && fs.existsSync(destfile)) {
+  if (fs.existsSync(destfile)) {
       opt.verbose && console.log(`${destfile} already exist, loading`)
       let str = fs.readFileSync(destfile);
       depute = JSON.parse(str);
@@ -44,8 +52,20 @@ async function getdeputeData(url,  opt) {
     async () => depute.nosdeputes_link = `https://www.nosdeputes.fr/${depute.ident.prenom}-${depute.ident.nom}`
   )
   await step(
-    ["twitter", "default"], stepParam,
-    async () => depute.twitter = await fetchTwitterOf(depute)
+    ["auto_twitter", "default"], stepParam,
+    async () => depute.twitter_username = await findTwitterUsernameByNameOf(depute, opt)
+  )
+  await step(
+    ["twitter_byusername", "default"], stepParam,
+    async () => depute.twitterByUsername = await fetchTwitterOfByUsername(depute, opt)
+  )
+  // await step(
+  //   ["auto_twitter", "default"], stepParam,
+  //   async () => depute.twitter = await fetchTwitterOfByUsername(depute, opt)
+  // )
+  await step(
+    ["nd_twitter", "default"], stepParam,
+    async () => depute.nd_twitter = await fetchNdTwitterOf(depute)
   )
   await step(
     ["an_www_search", "default"], stepParam,
@@ -56,6 +76,7 @@ async function getdeputeData(url,  opt) {
     async () => await fetchPicOf(depute, opt)
   )
   let jsonstr = JSON.stringify(depute, null, ' ');
+  console.log(`saving in ${destfile}`)
   fs.writeFileSync(destfile, jsonstr);
   return depute
 }
