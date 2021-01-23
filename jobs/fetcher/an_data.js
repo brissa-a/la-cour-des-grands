@@ -1,6 +1,7 @@
 const { program } = require('commander');
 const fs = require('fs');
 const {downloadUnzip} = require('./misc/downloader.js')
+const {isMissingThrow} = require('./misc/isMissing.js')
 
 const data_link = "http://data.assemblee-nationale.fr/static/openData/repository/15/amo/deputes_actifs_mandats_actifs_organes/AMO10_deputes_actifs_mandats_actifs_organes_XV.json.zip"
 
@@ -22,11 +23,8 @@ async function downloadOnce(dlfolder, opt) {
 }
 
 async function fetchAnDataOf(depute, opt) {
-  if (depute?.uid) {
-    return fetchAnData(depute.uid, opt)
-  } else {
-    console.log("missing required depute.uid to fetch AnData")
-  }
+  isMissingThrow(depute, {uid: true})
+  return fetchAnData(depute.uid, opt)
 }
 
 async function fetchAnData(uid, opt) {

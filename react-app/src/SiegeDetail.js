@@ -6,6 +6,7 @@ import { faTwitter, faFacebook } from '@fortawesome/free-brands-svg-icons'
 import "./SiegeDetail.css"
 import Box from "@material-ui/core/Box";
 import Typography from '@material-ui/core/Typography';
+import Grid from '@material-ui/core/Grid';
 
 function formatedFollowerCount(depute) {
   if (depute?.twitterByUsername?.public_metrics?.followers_count) {
@@ -69,7 +70,9 @@ class SiegeDetail extends React.PureComponent {
     let social = []
     const of = this.depute?.official_link
     social.push(
-      <div key="official" className={of ? "" : "desaturated"}><a href={of} target="_blank" rel="noreferrer"><img alt="logo assemblée nationale" src="/asbntn.png" width="30px"/></a></div>
+      <div key="official" className={of ? "" : "desaturated"}>
+        <a href={of} target="_blank" rel="noreferrer"><img alt="logo assemblée nationale" src="/asbntn.png" width="30px"/></a>
+      </div>
     )
     const fb = this.depute?.facebook_link
     social.push(
@@ -83,8 +86,17 @@ class SiegeDetail extends React.PureComponent {
     social.push(
       <div key="nosdeputes" className={ndpt ? "" : "desaturated"}><a  href={ndpt}target="_blank" rel="noreferrer"><img alt="logo nosdeputes.fr" src="/favicon_nosdeputes.ico" width="30px"/></a></div>
     )
+    //https://datan.fr/deputes/somme-80/depute_francois-ruffin
+    const nomDep = this.depute?.circo.departement.toLowerCase()
+    const numDep = this.depute?.circo.numDepartement
+    const datan = this.depute?.datan
+    social.push(
+      <div key="datan" className={ndpt ? "" : "desaturated"}>
+        <a  href={datan} target="_blank" rel="noreferrer"><img alt="logo nosdeputes.fr" src="/datan_favicon.ico" width="30px"/></a>
+      </div>
+    )
 
-    return <div className="details"><Box style={{height: "100%"}} m={0} p={0} boxShadow={2} bgcolor="background.paper">
+    return <div className="details backdrop"><Box style={{height: "100%"}} m={0} p={0} boxShadow={2} bgcolor="none">
     <div style={{color: "#FFFFFF", display: this.depute ? "block" : "none"}}>
       <svg width={svg.w} height={svg.h} onMouseEnter={() => this.showMore()} onMouseLeave={() => this.showLess()}>
         <image href={`colonnade-avec-les-drapeaux.jpg`} />
@@ -102,9 +114,6 @@ class SiegeDetail extends React.PureComponent {
            {pin}
         </g>
       </svg>
-      <div className="social-bar">
-        {social}
-      </div>
       <p style={{display: "none"}}>${JSON.stringify(this.state)}</p>
       <h5>
         <Typography gutterBottom variant="h5" component="h2">
@@ -121,6 +130,16 @@ class SiegeDetail extends React.PureComponent {
         <dt>Nombre de follower twitter</dt>
           <dd>{formatedFollowerCount(this.depute)}</dd>
       </dl>
+      <div className="social-bar">
+        <Grid
+          container
+          direction="row"
+          justify="space-evenly"
+          alignItems="center"
+        >
+          {social}
+        </Grid>
+      </div>
     </div>
     </Box></div>
   }

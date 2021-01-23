@@ -1,6 +1,6 @@
 const { program } = require('commander');
 const {buildBrowser, closeBrowser} = require('./misc/browser.js')
-const {isMissing} = require('./misc/isMissing.js')
+const {isMissingThrow} = require('./misc/isMissing.js')
 
 const url = 'http://www2.assemblee-nationale.fr/deputes/liste/alphabetique'
 
@@ -9,14 +9,8 @@ function timeout(ms) {
 }
 
 async function fetchSearchOf(depute, opt) {
-  const missing = isMissing(depute, {
-    uid: true,
-  }, fieldname => console.log(`fetchSearchOf: depute${fieldname} is missing`))
-  if (missing) {
-    console.log('Skipping fetchSearchOf')
-    return
-  }
-  return fetchSearch(depute.uid, opt)
+    isMissingThrow(depute, {uid: true})
+    return await fetchSearch(depute.uid, opt)
 }
 
 
@@ -39,14 +33,13 @@ var searchData;
 async function fetchSearch(uid, opt) {
   const {searchtab} = await buildBrowser(opt);
   const v = opt.verbose;
-
   while (!searchData) {
     await timeout(100) //TODO Better solution ?
     searchData = await searchtab.evaluate(() => JSON.parse(sessionStorage.getItem("dataDeputesList")));
     for (one of searchData) {
       one.communes = one.communes.split(',').map(commune => commune.trim())
     }
-    searchData && v && console.log({searchData})
+    //searchData && v && console.log({searchData})
   }
   [head, ...tail] = searchData.filter(searchResp => searchResp.acteurId === `OMC_${uid}`)
   return head

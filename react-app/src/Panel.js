@@ -8,7 +8,6 @@ import Select from '@material-ui/core/Select';
 import Switch from '@material-ui/core/Switch';
 import Box from "@material-ui/core/Box";
 import Typography from '@material-ui/core/Typography';
-import ScopedCssBaseline from '@material-ui/core/ScopedCssBaseline';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import Grid from '@material-ui/core/Grid';
 
@@ -40,7 +39,7 @@ class Panel extends PureComponent {
   render() {
       if (!this.props.open) return null
       const { classes } = this.props;
-      return <div className={classes.root}><ScopedCssBaseline><Box m={0} p={1} boxShadow={2} bgcolor="background.paper" color="color">
+      return <div className={[classes.root, "backdrop"].join(' ')}><Box m={0} p={1} boxShadow={2} bgcolor="none">
       <Grid
         container
         direction="row"
@@ -53,10 +52,10 @@ class Panel extends PureComponent {
           labelId="demo-simple-select-label"
           id="demo-simple-select"
           value={this.props.visualLayoutName}
-           onChange={e => this.props.app.setVisualLayout(e.target.value, true)}
+           onChange={e => e.target.value && this.props.app.setVisualLayout(e.target.value, true)}
         >
           <MenuItem value={"hemicycle"}>Hemicycle</MenuItem>
-          <ListSubheader>Graphique</ListSubheader>
+          <ListSubheader value={"pergroupe"}>Graphique</ListSubheader>
           <MenuItem value={"pergroupe"}>Par groupe politique</MenuItem>
           <MenuItem value={"perfollower"}>Par twitter follower</MenuItem>
           <MenuItem value={"persexe"}>Par sexe</MenuItem>
@@ -88,7 +87,7 @@ class Panel extends PureComponent {
         }
         label="Afficher photos"
       />
-      </Grid></Box></ScopedCssBaseline></div>
+      </Grid></Box></div>
   }
 }
 

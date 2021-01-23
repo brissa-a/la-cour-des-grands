@@ -6,7 +6,7 @@ const {log, ceil, floor, round} = Math
 
 const params = new URLSearchParams(window.location.search)
 const significantFigures = params.has("sf") ? Number.parseInt(params.get("sf")) : 3
-const base = params.has("sf") ? Number.parseInt(params.get("base")) : 3
+const base = params.has("base") ? Number.parseInt(params.get("base")) : 3
 const f = s => s.depute?.twitterByUsername?.public_metrics?.followers_count || 0
 
 function minMaxRange(list, getter) {
@@ -28,7 +28,7 @@ function rangeName({from, to}) {
   if (from - to  == 0) {
     return `${n(from)}`
   }
-  return `de  ${n(from)}  à  ${n(to)}`
+  return `de\u00a0${n(from)}  à\u00a0${n(to)}`
 }
 
 class TwitterVisual {
@@ -135,7 +135,7 @@ class TwitterVisual {
       const rate = i/(sampleCount - 1)
       //const value = Math.round(this.tToValue(rate) / 100) * 100
       const value = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 3 }).format(this.tToValue(rate))
-      samples.push(<text x={w + 5} y={h * (1-rate) + 5} fill="rgba(255, 255, 255, 0.9)">{value}</text>);
+      samples.push(<text x={w + 5} y={h * (1-rate) + 5} fill="rgba(255, 255, 255, 0.9)" style={{textAnchor: "start"}}>{value}</text>);
     }
 
     const stops = [];

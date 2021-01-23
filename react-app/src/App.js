@@ -1,7 +1,7 @@
 import React from 'react';
 import SiegeDetail from './SiegeDetail.js'
 import './App.css';
-import MainSvg from './MainSvg.js'
+import DraggableSvg from './DraggableSvg.js'
 import Footer  from './Footer.js'
 import sieges from './sieges.json'
 import Search  from './Search.js'
@@ -15,6 +15,10 @@ import {Transition, TransitionGroup} from 'react-transition-group';
 import {SvgOpacityTransition} from './SvgOpacityTransition.js'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import blue from '@material-ui/core/colors/blue';
+import grey from '@material-ui/core/colors/grey';
+import blueGrey from '@material-ui/core/colors/blueGrey';
+import green from '@material-ui/core/colors/green';
+import CssBaseline from '@material-ui/core/CssBaseline';
 
 function handleDarkMode() {
   const favicons = document.querySelectorAll('head > link[rel="icon"][media]')
@@ -31,8 +35,14 @@ const theme = createMuiTheme({
   palette: {
     type: 'dark',
     primary: blue,
+    background: {
+      default: grey[900],
+      paper: grey[900]
+    },
   },
 })
+
+//#212121
 
 class App extends React.PureComponent {
 
@@ -134,8 +144,8 @@ class App extends React.PureComponent {
     //SiegeRenderer to avoid react add/remove siege from DOM
 
     return <ThemeProvider theme={theme}><div className="App">
-
-      <MainSvg app={app}>
+      <CssBaseline/>
+      <DraggableSvg app={app}>
         <TransitionGroup component={null}><SvgOpacityTransition key={visualLayoutName}>
             <Blueprint />
         </SvgOpacityTransition></TransitionGroup>
@@ -150,7 +160,7 @@ class App extends React.PureComponent {
              {...visualProps}
            />}
         </SiegesRenderer>
-      </MainSvg>
+      </DraggableSvg>
       <SiegeDetail app={app} {...siege} pinned={pinned} key={key}/>
       <Search app={app}/>
       <Footer/>

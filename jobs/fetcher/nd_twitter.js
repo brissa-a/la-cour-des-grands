@@ -1,6 +1,7 @@
 const  _ = require('lodash');
 const config = require("../config.json")
 const axios = require('axios');
+const {isMissingThrow} = require('./misc/isMissing.js')
 
 const ndTwitterUrl = "https://raw.githubusercontent.com/regardscitoyens/twitter-parlementaires/master/data/deputes.json"
 
@@ -23,7 +24,6 @@ async function init() {
     const response = await axios.get(ndTwitterUrl);
     const data = response.data
     const groupedByUrlAn = _.groupBy(data, x=> uidFromAnUrl(x.url_an))
-    console.log(Object.entries(groupedByUrlAn).length)
     return {data, groupedByUrlAn}
   } catch(e) {
     const data = {
@@ -37,8 +37,9 @@ async function init() {
   }
 }
 
-async function fetchNdTwitterOf(depute) {
-  return depute?.uid && fetchNdTwitter(depute?.uid)
+async function fetchNdTwitterOf(depute, opt) {
+    isMissingThrow(depute, {uid: true})
+    return await fetchNdTwitter(depute.uid)
 }
 
 async function fetchNdTwitter(uid) {

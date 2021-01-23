@@ -2,18 +2,12 @@ const { program } = require('commander');
 const fs = require('fs');
 const axios = require('axios');
 const {downloadFile} = require('./misc/downloader.js')
-const {isMissing} = require('./misc/isMissing.js')
+const {isMissingThrow} = require('./misc/isMissing.js')
 
 async function fetchPicOf(depute, opt) {
-  const missing = isMissing(depute, {
-    imgurl: true,
-    uid: true,
-  }, fieldname => console.log(`fetchPicOf: depute${fieldname} is missing`))
-  if (missing) {
-    console.log('Skipping fetchPicOf')
-    return
-  }
-  return fetchPic(depute.uid, depute.imgurl, "dl/", opt)
+  isMissingThrow(depute, {imgurl: true, uid: true})
+  fetchPic(depute.uid, depute.imgurl, "dl/", opt)
+  return {}
 }
 
 async function fetchPic(uid, imgurl, dlfolder, opt = {}) {

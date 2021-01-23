@@ -3,6 +3,7 @@ import {Border, Tribune} from '../SvgPath.js'
 import {Transition, TransitionGroup} from 'react-transition-group';
 import {EmptySiege} from '../Siege.js'
 import SvgCaption from '../Caption.js'
+import Typography from '@material-ui/core/Typography';
 
 const rand = Math.round(Math.random() * 300)
 
@@ -47,7 +48,7 @@ export const chart = (visualLayout) => (visualColor) => (sieges) => {
     }
   }
   const Blueprint = props => {
-    const fontSize = 0.5
+    const fontSize = 1
     const yAxis = minMaxRange(columns, c => c.y)
     const xAxis = minMaxRange(columns, c => c.x)
     const lastCol = columns[columns.length - 1]
@@ -55,18 +56,19 @@ export const chart = (visualLayout) => (visualColor) => (sieges) => {
     const siegeSize = 1
     const stroke = "hsla(31, 0%, 100%, 0.2)"
     const strokeWidth = "0.05"
-    const xAxisElems = columns.map (col => <g>
-      <line x1={col.x-siegeSize/2} y1={siegeSize} x2={col.x-siegeSize/2} y2={siegeSize - 0.5} stroke={stroke} strokeWidth={strokeWidth} />
-      <line x1={col.x+col.width-siegeSize/2} y1={siegeSize} x2={col.x+col.width-siegeSize/2} y2={siegeSize - 0.5} stroke={stroke} strokeWidth={strokeWidth} />
-
-      <line x1={col.x-siegeSize/2} y1={siegeSize} x2={col.x+col.width-siegeSize/2} y2={siegeSize} stroke={stroke} strokeWidth={strokeWidth} />
-      <text fill="rgba(255, 255, 255, 0.9)" x={col.x-siegeSize/2+col.width/2} y={siegeSize * 2} fontSize={fontSize}>
-        {visualLayout.formatGroupeName(col.name)}
-      </text>
+    const xAxisElems = columns.map (col => <g transform={`translate(${col.x}, 0)`}>
+      <line x1={-siegeSize/2} y1={siegeSize} x2={-siegeSize/2} y2={siegeSize - 0.5} stroke={stroke} strokeWidth={strokeWidth} />
+      <line x1={col.width-siegeSize/2} y1={siegeSize} x2={col.width-siegeSize/2} y2={siegeSize - 0.5} stroke={stroke} strokeWidth={strokeWidth} />
+      <line x1={-siegeSize/2} y1={siegeSize} x2={col.width-siegeSize/2} y2={siegeSize} stroke={stroke} strokeWidth={strokeWidth} />
+      <g transform={`translate(${-siegeSize/2}, ${siegeSize * 2})`}>
+        <foreignObject transform="scale(0.05)" width={(col.width * siegeSize)/0.05} height="5rem">
+          <Typography><div style={{textAlign: "center"}}>{visualLayout.formatGroupeName(col.name)}</div></Typography>
+        </foreignObject>
+      </g>
     </g>)
     const xAxisNameElem = <text
-      fill="rgba(255, 255, 255, 0.9)" text-anchor="left"
-      x={lastCol.x+lastCol.width+3} y={siegeSize*2} fontSize={fontSize}
+      fill="rgba(255, 255, 255, 0.9)" style={{"text-anchor": "start"}}
+      x={lastCol.x+lastCol.width} y={siegeSize*3} fontSize={fontSize}
     >
       {visualLayout.xAxisName()}
     </text>

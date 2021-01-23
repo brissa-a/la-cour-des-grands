@@ -22,7 +22,7 @@ class Footer extends React.PureComponent {
   }
 
   render() {
-    return <div className={`footer ${this.state.open}`}><Box m={0} p={1} boxShadow={2} bgcolor="background.paper">
+    return <div className={`footer ${this.state.open} backdrop`}><Box m={0} p={1} boxShadow={2} bgcolor="">
       <button onClick={this.toggle.bind(this)}>
         <FontAwesomeIcon size="" icon={faAlignJustify}/> Mentions légales
       </button>

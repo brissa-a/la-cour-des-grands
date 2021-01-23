@@ -2,6 +2,7 @@ const config = require("../config.json")
 const axios = require('axios');
 const fetch = require('node-fetch');
 const  _ = require('lodash');
+const {isMissingThrow} = require('./misc/isMissing.js')
 
 // {
 //  "name": "Jean-Luc Reitzer",
@@ -36,14 +37,8 @@ const correction = {
 }
 
 async function findTwitterUsernameByNameOf(depute, opt) {
-  if (!depute.twitter_username || opt.override) {
-    console.log("Twitter username not found requesting")
-    console.log(depute)
-    return depute?.nom && (correction[depute?.nom] || (await findTwitterUsernameByName(depute?.nom)))
-  } else {
-    console.log("Twitter username already found")
-    return depute.twitter_username
-  }
+    isMissingThrow(depute, {nom: true})
+    return correction[depute?.nom] || (await findTwitterUsernameByName(depute?.nom));
 }
 
 async function searchUser(name) {
@@ -90,13 +85,8 @@ async function fetchTwitterOfByLink(depute) {
 }
 
 async function fetchTwitterOfByUsername(depute, opt) {
-  if (!depute.twitterByUsername || opt.override) {
-    console.log("twitterByUsername not found requesting")
-    return depute?.twitter_username && await fetchTwitterByUsername(depute?.twitter_username)
-  } else {
-    console.log("twitterByUsername already found")
-    return depute.twitterByUsername
-  }
+    isMissingThrow(depute, {twitter_username: true})
+    return depute?.twitter_username && await fetchTwitterByUsername(depute.twitter_username)
 }
 
 async function fetchTwitterByLink(twitter_link) {
