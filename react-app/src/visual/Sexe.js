@@ -68,13 +68,13 @@ class SexeVisual {
   xAxisName() {return null}
 
   caption(props) {
-    return <Fragment>
+    return       <foreignObject transform="scale(0.07)" width="125" height="450">
+    <div className="undraggable">
       <style>{`
         .caption {
           color: white;
           padding: 10px;
           text-align: left;
-          font-family: 'Segoe UI'
         }
 
         .caption .elem {
@@ -98,7 +98,8 @@ class SexeVisual {
         <CaptionElem name="Homme" color={menColor}/>
         <CaptionElem name="Femme" color={womanColor}/>
       </div>
-    </Fragment>
+      </div>
+    </foreignObject >
   }
 
 }

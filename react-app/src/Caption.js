@@ -1,4 +1,4 @@
-import {PureComponent, Fragment, createRef} from "react"
+import { PureComponent, Fragment, createRef } from "react"
 import visuals from "./visual/all.js"
 
 class Caption extends PureComponent {
@@ -8,12 +8,10 @@ class Caption extends PureComponent {
   }
 
   render() {
-    const {visualColor} = this.props
+    const { visualColor } = this.props
     const VisualCaption = props => visualColor.caption()
     return <g transform="translate(28,-33)">
-      <foreignObject transform="scale(0.07)" width="350" height="400">
-        <VisualCaption app={this.app}/>
-      </foreignObject>
+      <VisualCaption app={this.app} />
     </g>
   }
 

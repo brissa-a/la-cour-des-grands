@@ -13,7 +13,7 @@ const {fetchPicOf} = require("./fetcher/pic.js")
 const path = require('path')
 
 const {fetchDepute, fetchSocial, fetchSearchOf} = require("./fetcher/an_www.js")
-const {fetchAnDataOf} = require("./fetcher/an_data.js")
+const {fetchAnDataOf, fetchVoteOf} = require("./fetcher/an_data.js")
 const {fetchDatanUrlOf} = require("./fetcher/datan.js")
 
 async function getdeputeData(url,  opt) {
@@ -78,6 +78,11 @@ async function getdeputeData(url,  opt) {
     ["datan", "default"], depute, opt,
     async () => fetchDatanUrlOf(depute, opt),
     "datan"
+  )
+  depute = await step(
+    ["scrutins", "default"], depute, opt,
+    async () => fetchVoteOf(depute, opt),
+    "scrutins"
   )
   let jsonstr = JSON.stringify(depute, null, ' ');
   console.log(`saving in ${destfile}`)

@@ -1,7 +1,7 @@
-import {Fragment} from 'react';
+import { Fragment } from 'react';
 import groupes from '../groupes.json'
 import Chart from '../chart/GroupeChart.js'
-import {groupBy} from '../functional.js'
+import { groupBy } from '../functional.js'
 
 const groupByGroupe = groupBy(s => s.depute.groupe)
 
@@ -11,7 +11,7 @@ function minMaxRange(list, getter) {
   const max = Math.max(...list)
   const range = max - min
   const avg = list.reduce((a, b) => a + b, 0) / list.length
-  return {min,max,range, avg}
+  return { min, max, range, avg }
 }
 
 class GroupeVisual {
@@ -20,14 +20,14 @@ class GroupeVisual {
   }
 
   siegeColor(siege) {
-    const {h,s,v} = groupes[siege.depute.groupe].color
-    return  {
+    const { h, s, v } = groupes[siege.depute.groupe].color
+    return {
       h, s: s * 0.8, v
     }
   }
 
   chart(props) {
-    return <Chart app={props.app} color={this.color}/>
+    return <Chart app={props.app} color={this.color} />
   }
 
   sort(sa, sb) {
@@ -38,16 +38,16 @@ class GroupeVisual {
     return groupeName
   }
 
-  xAxisName() {return null}
+  xAxisName() { return null }
 
   group(sieges) {
     const groupByGroupe = groupBy(s => s.depute.groupe)
     const groupes = Object.entries(sieges
-        .filter(s => s.depute)
-        .reduce(groupByGroupe, {})
-      )
+      .filter(s => s.depute)
+      .reduce(groupByGroupe, {})
+    )
       .sort(([gna, sa], [gnb, sb]) => sb.length - sa.length)
-    return {groupes, maxColSize: 9}
+    return { groupes, maxColSize: 9 }
   }
 
   caption(props) {
@@ -55,25 +55,25 @@ class GroupeVisual {
       const color = groupes[name].color
       const iconsize = 15
       return <div key={name} className="elem">
-        <svg className="img" width={iconsize} height={iconsize}>
+            <svg className="img" width={iconsize} height={iconsize}>
               <circle
-                 style={{fill: `hsl(${color.h},  ${color.s * 0.8}%, ${color.v}%)`}}
-                 r={iconsize/2} cx={iconsize/2} cy={iconsize/2}
+                style={{ fill: `hsl(${color.h},  ${color.s * 0.8}%, ${color.v}%)` }}
+                r={iconsize / 2} cx={iconsize / 2} cy={iconsize / 2}
               />
-        </svg>
-        <div className="text">
-        {name}
-        </div>
-      </div>
+            </svg>
+            <div className="text">
+              {name}
+            </div>
+          </div>
     })
 
-    return <Fragment>
+    return <foreignObject transform="scale(0.07)" width="300" height="450">
+    <div className="undraggable">
       <style>{`
         .caption {
           color: white;
           padding: 10px;
           text-align: left;
-          font-family: 'Segoe UI'
         }
 
         .caption .elem {
@@ -93,11 +93,12 @@ class GroupeVisual {
           flex: none
         }
       `}</style>
-      <div className="caption"  xmlns="http://www.w3.org/1999/xhtml">
-        <GroupeLegendeElems/>
+      <div className="caption" xmlns="http://www.w3.org/1999/xhtml">
+        <GroupeLegendeElems />
       </div>
-    </Fragment>
+      </div>
+      </foreignObject>
   }
 
 }
- export default new GroupeVisual
+export default new GroupeVisual

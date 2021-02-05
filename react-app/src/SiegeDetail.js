@@ -71,7 +71,7 @@ class SiegeDetail extends React.PureComponent {
     const of = this.depute?.official_link
     social.push(
       <div key="official" className={of ? "" : "desaturated"}>
-        <a href={of} target="_blank" rel="noreferrer"><img alt="logo assemblée nationale" src="/asbntn.png" width="30px"/></a>
+        <a href={of} target="_blank" rel="noreferrer"><img alt="logo assemblée nationale" src="/logo-gris.png" width="38px"/></a>
       </div>
     )
     const fb = this.depute?.facebook_link

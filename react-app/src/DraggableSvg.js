@@ -23,8 +23,11 @@ class DraggableSvg extends React.PureComponent {
   }
 
   startDrag(e) {
-    if (!e.target.closest("foreignObject")) {
+    if (!e.target.closest(".undraggable")) {
+      //Fix drag weird behavior when text is selected inside a foreignObject
+      window.getSelection().removeAllRanges();
       this.draggedElement = this.transformRef.current;
+      this.svgRef.current.style.cursor = "grabbing"
       this.offset = this.clientCordToSvgCord(e, this.svgRef);
       this.offset.x -= this.transform.pos_x;
       this.offset.y -= this.transform.pos_y;
@@ -41,6 +44,7 @@ class DraggableSvg extends React.PureComponent {
   }
 
   endDrag(e) {
+    this.svgRef.current.style.cursor = "grab"
     this.draggedElement = undefined
   }
 

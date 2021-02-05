@@ -13,7 +13,7 @@ import Grid from '@material-ui/core/Grid';
 
 import {PureComponent, Fragment, createRef} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faAlignJustify, faSearch, faFileExport,faCog} from '@fortawesome/free-solid-svg-icons'
+import {faAlignJustify, faSearch, faFileExport,faCog, faExternalLinkAlt, faPaintBrush, faProjectDiagram} from '@fortawesome/free-solid-svg-icons'
 import visuals from "./visual/all.js"
 
 
@@ -47,7 +47,7 @@ class Panel extends PureComponent {
         alignItems="center"
       >
       <FormControl className={classes.formControl}>
-        <InputLabel id="demo-simple-select-label">Disposition</InputLabel>
+        <InputLabel id="demo-simple-select-label">Disposition <FontAwesomeIcon icon={faProjectDiagram}/></InputLabel>
         <Select
           labelId="demo-simple-select-label"
           id="demo-simple-select"
@@ -60,10 +60,11 @@ class Panel extends PureComponent {
           <MenuItem value={"perfollower"}>Par twitter follower</MenuItem>
           <MenuItem value={"persexe"}>Par sexe</MenuItem>
           <MenuItem value={"perage"}>Par age</MenuItem>
+          <MenuItem value={"perscrutin"}>Par scrutin</MenuItem>
         </Select>
       </FormControl>
       <FormControl className={classes.formControl}>
-        <InputLabel id="demo-simple-select-label">Couleur</InputLabel>
+        <InputLabel id="demo-simple-select-label">Couleur <FontAwesomeIcon icon={faPaintBrush}/></InputLabel>
         <Select
           labelId="demo-simple-select-label"
           id="demo-simple-select"
@@ -74,6 +75,7 @@ class Panel extends PureComponent {
           <MenuItem value={"twitter"}>Twitter follower</MenuItem>
           <MenuItem value={"sexe"}>Sexe</MenuItem>
           <MenuItem value={"age"}>Age</MenuItem>
+          <MenuItem value={"scrutin"}>Scrutin</MenuItem>
         </Select>
       </FormControl>
       <FormControlLabel

@@ -119,7 +119,8 @@ class AgeVisual {
        samples.push(<text x={w + 5} y={h * (1-rate) + 5} fill="rgba(255, 255, 255, 0.9)">{value}</text>);
      }
 
-     return <Fragment>
+     return       <foreignObject transform="scale(0.07)" width="50" height="450">
+     <div className="undraggable">
        <style>{`
          .old { stop-color: hsl(${oldColor.h}, ${oldColor.s}%, ${oldColor.v}%); }
          .young { stop-color: hsl(${youngColor.h}, ${youngColor.s}%, ${youngColor.v}%); }
@@ -138,7 +139,8 @@ class AgeVisual {
            </g>
          </svg>
        </div>
-     </Fragment>
+       </div>
+    </foreignObject >
    }
 }
 

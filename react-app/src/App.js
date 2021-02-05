@@ -59,7 +59,9 @@ class App extends React.PureComponent {
       visualLayoutName: visuals.default.layout,
       panelOpen: false,
       highlightSiegeIds: [],
-      invertSiege: false
+      invertSiege: false,
+      scrutinIdColor: visuals.default.scrutinIdColor,
+      scrutinIdLayout: visuals.default.scrutinIdLayout 
     }
     window.sieges = sieges
     window.onpopstate = function(event) {
@@ -128,18 +130,46 @@ class App extends React.PureComponent {
     }
   }
 
+  
+  setScrutinIdLayout(id, pushState) {
+    this.setState({
+      scrutinIdLayout: id
+    })
+    if (pushState) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("scrutinIdLayout", id);
+      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
+    }
+  }
+
+  setScrutinIdColor(id, pushState) {
+    this.setState({
+      scrutinIdColor: id
+    })
+    if (pushState) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("scrutinIdColor", id);
+      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
+    }
+  }
+
   togglePanel() {
     this.setState({panelOpen: !this.state.panelOpen})
   }
 
   render() {
     const app = this;
-    const {pinned, visualLayoutName, visualColorName, panelOpen, highlightSiegeIds, showPic, invertSiege} = this.state
+    const {pinned,  panelOpen, highlightSiegeIds, showPic} = this.state
+    const {visualLayoutName, visualColorName, scrutinIdLayout, scrutinIdColor} = this.state
     const siege = this.state.pinned || this.state.detail
     const key = siege.siegeid + "detail" + (this.state.pinned ? "-pinned" : "")
 
-    const visualColor = visuals.colors[visualColorName]
-    const visualLayout = visuals.layouts[visualLayoutName](visualColor)
+    const visualColor = visualColorName == "scrutin"
+      ? visuals.colors[visualColorName](scrutinIdColor)
+      : visuals.colors[visualColorName] 
+    const visualLayout = visualLayoutName == "perscrutin"
+      ? visuals.layouts[visualLayoutName](scrutinIdLayout)(visualColor)
+      : visuals.layouts[visualLayoutName](visualColor)
     const {Blueprint, Caption, siegeWithVisualProp} = visualLayout(this.sieges)
     //SiegeRenderer to avoid react add/remove siege from DOM
 

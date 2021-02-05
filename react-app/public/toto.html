@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const iframe = document.querySelector("#if")
+            const iframedoc = iframe.contentDocument || iframe.contentWindow.document;
+            console.log(iframedoc)
+            iframedoc.querySelector("#deputes-illustration > span > a").style.style.border = "red 1px solid"
+        });
+    </script>
+</head>
+
+<body>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+    <iframe id="toto" style="width: 100%; height: 100%"
+        src="https://www2.assemblee-nationale.fr/deputes/fiche/OMC_PA608016">
+    </iframe>
+</body>
+
+</html>

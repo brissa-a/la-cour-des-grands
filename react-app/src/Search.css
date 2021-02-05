@@ -21,7 +21,6 @@
 
 .search .respelem {
   padding: 5px;
-  cursor: pointer;
   transition: background-color 0.8s;
 }
 
@@ -61,11 +60,16 @@
   flex: 1 1 auto;
 }
 
-.search .respelem {
+.search .respelem, .deputeresp {
   display: flex;
   flex-direction: row;
   width: 450px;
 }
+
+.clickable {
+  cursor: pointer;
+}
+
 .search .respelem .pic {
   margin-left: 20px;
   width: 50px;

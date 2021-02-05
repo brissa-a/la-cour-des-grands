@@ -3,6 +3,7 @@ const axios = require('axios');
 const util = require('util');
 const unzipper = require('unzipper')
 const path = require('path')
+const glob = require('fast-glob');
 
 const readdir = util.promisify(fs.readdir);
 
@@ -30,7 +31,7 @@ async function downloadFile(url, destfile, opt = {}) {
   opt = Object.assign(d, opt)
   const dir = path.dirname(destfile)
   opt.mkdir && await fs.promises.mkdir(dir, { recursive: true })
-  if (!opt.override && fs.existsSync(destfile)) {
+  if (!opt.redownload && fs.existsSync(destfile)) {
       opt.verbose && console.log(`${destfile} already exist, skipping download`)
       return;
   }
@@ -41,7 +42,7 @@ async function downloadFile(url, destfile, opt = {}) {
 async  function downloadUnzip(url, destfolder, opt = {}) {
   opt = Object.assign(d, opt)
   opt.mkdir && await fs.promises.mkdir(destfolder, { recursive: true })
-  if (!opt.override) {
+  if (!opt.redownload) {
     const files = await fs.promises.readdir(destfolder)
     if (files.length) {
       opt.verbose && console.log(`${destfolder} not empty, skipping download`)
@@ -52,6 +53,27 @@ async  function downloadUnzip(url, destfolder, opt = {}) {
   return download(url, unzip(destfolder))
 }
 
+// function openJson(filename) {
+//   return JSON.parse(fs.readFileSync(filename))
+// }
+
+// function saveJson(filename, obj, pretty=false) {
+//   const str = pretty ? JSON.stringify(obj, null, " ") : JSON.stringify(obj)
+//   return fs.writeFileSync(filename, str)
+// }
+
+// function dlJsonFile(url, destfile, opt = {}) {
+//   await downloadFile(url, destfile, opt)
+//   return openJson(destfile)
+// }
+
+// function dlJsonUnzip(url, destfolder, globPattern = "**/*", opt = {}) {
+//   await downloadUnzip(url, destfolder, opt = {})
+//   return glob([destfolder, globPattern].join('/')).map(filename => ({
+//     filename,
+//     content: openJson(filename)
+//   }))
+// }
 
 async function main() {
   downloadFile(

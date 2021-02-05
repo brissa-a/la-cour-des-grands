@@ -1,13 +1,32 @@
 
 
-.draggable {
-  cursor: move;
-}
-
 svg.main {
   position: fixed;
   top: 0;
   left: 0;
+  cursor: grab;
+}
+
+svg.main .undraggable{
+  cursor: auto;
+  --b:1px;   /* thickness of the border */
+  --c:rgba(255,255,255, 0.2);   /* color of the border */
+  --w:10px;  /* width of border */
+  
+
+  border:var(--b) solid transparent; /* space for the border */
+  background:
+    linear-gradient(var(--c),var(--c)) top left,
+    linear-gradient(var(--c),var(--c)) top left,
+    linear-gradient(var(--c),var(--c)) bottom left,
+    linear-gradient(var(--c),var(--c)) bottom left,
+    linear-gradient(var(--c),var(--c)) top right,
+    linear-gradient(var(--c),var(--c)) top right,
+    linear-gradient(var(--c),var(--c)) bottom right,
+    linear-gradient(var(--c),var(--c)) bottom right;
+  background-size:var(--b) var(--w),var(--w) var(--b);
+  background-origin:border-box;
+  background-repeat:no-repeat;
 }
 
 .pin {
@@ -51,4 +70,15 @@ svg {
 
 svg foreignObject {
     user-select: text;
+    padding: 3px;/*fix drawing artefact witrh border on Brave*/
+}
+
+@keyframes slidein {
+  from {
+    transform: translate(125px, 9px) scale(0.8) rotate(35deg);
+  }
+
+  to {
+    transform: translate(125px, 9px) scale(0.1) rotate(35deg);
+  }
 }
