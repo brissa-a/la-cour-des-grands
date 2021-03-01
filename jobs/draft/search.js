@@ -28,7 +28,7 @@ const options = {
   },
   keys: [
     "code_array","codes","codes_nested.a","lol"
-    // "depute.ident.nom",
+    // "depute.an_data_depute.ident.nom",
     //"depute.circo.communes"
   ]
 };
@@ -75,7 +75,7 @@ console.log(JSON.stringify(resp, null, ' '))
 //     const originalValue = key.split(".").reduce((acc,key) => acc[key], oneresp.item)
 //     const hgl = match
 //       ? highlightMatch(match, originalValue)
-//       : oneresp.item.depute.ident.prenom
+//       : oneresp.item.depute.an_data_depute.ident.prenom
 //     return hgl
 //   }
 //   const hglnom = highlightKey.bind(this)("code")

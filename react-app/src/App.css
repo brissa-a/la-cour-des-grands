@@ -1,10 +1,12 @@
-
+body {
+  touch-action: none;
+}
 
 svg.main {
   position: fixed;
   top: 0;
   left: 0;
-  cursor: grab;
+  cursor: grab
 }
 
 svg.main .undraggable{

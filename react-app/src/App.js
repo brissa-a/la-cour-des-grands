@@ -1,23 +1,18 @@
 import React from 'react';
-import SiegeDetail from './SiegeDetail.js'
+import DeputeDetail from './DeputeDetail.js'
 import './App.css';
 import DraggableSvg from './DraggableSvg.js'
 import Footer  from './Footer.js'
-import sieges from './sieges.json'
 import Search  from './Search.js'
-import Actions  from './Actions.js'
 import Panel  from './Panel.js'
-import visuals from "./visual/all.js"
-import Caption from './Caption.js'
-import {SiegesRenderer} from './layout/Layout.js'
-import Siege from './Siege.js'
-import {Transition, TransitionGroup} from 'react-transition-group';
+import buildVisuals from "./visual/all.js"
+import {DeputesRenderer} from './layout/Layout.js'
+import Depute from './Depute.js'
+import {TransitionGroup} from 'react-transition-group';
 import {SvgOpacityTransition} from './SvgOpacityTransition.js'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import blue from '@material-ui/core/colors/blue';
 import grey from '@material-ui/core/colors/grey';
-import blueGrey from '@material-ui/core/colors/blueGrey';
-import green from '@material-ui/core/colors/green';
 import CssBaseline from '@material-ui/core/CssBaseline';
 
 function handleDarkMode() {
@@ -46,41 +41,43 @@ const theme = createMuiTheme({
 
 class App extends React.PureComponent {
 
-  constructor() {
+  constructor({bdd}) {
     super()
-    this.sieges = sieges
-    var randomSiege;
-    while (!randomSiege?.depute) randomSiege = sieges[Math.floor(Math.random() * sieges.length)];
+    const {deputes} = bdd
+    const visuals = buildVisuals(bdd)
+    this.visuals = visuals
+    let randomDepute;
+    while (!randomDepute) randomDepute = deputes[Math.floor(Math.random() * deputes.length)];
     this.state = {
-      detail: randomSiege,
+      detail: randomDepute,
       pinned: null,
       showPic: visuals.showPic,
       visualColorName: visuals.default.color,
       visualLayoutName: visuals.default.layout,
       panelOpen: false,
-      highlightSiegeIds: [],
-      invertSiege: false,
+      highlightDeputeUids: [],
+      invertDepute: false,
       scrutinIdColor: visuals.default.scrutinIdColor,
-      scrutinIdLayout: visuals.default.scrutinIdLayout 
+      scrutinIdLayout: visuals.default.scrutinIdLayout
     }
-    window.sieges = sieges
-    window.onpopstate = function(event) {
+    window.deputes = deputes
+    window.onpopstate = function() {
       const params = new URLSearchParams(window.location.search);
       this.setVisual(params.get("visual") || visuals.default, false)
       this.showPic(params.get("showPic") === 'true' || visuals.showPic, false)
     }.bind(this);
   }
 
-  setHighlightSiegeIds(highlightSiegeIds) {
-    this.setState({highlightSiegeIds})
+  setHighlightDeputeIds(highlightDeputeUids) {
+    this.setState({highlightDeputeUids})
   }
 
-  showDetail(siege) {
-    this.setState({detail: siege, highlightSiegeIds: [siege.siegeid]})
+  showDetail(depute) {
+    this.setState({detail: depute, highlightDeputeUids: [depute.uid]})
   }
 
-  pinDetail(siege) {
-    if (siege === null) {
+  pinDetail(depute) {
+    if (depute === null) {
       //unpin case
       this.setState({
         detail: this.state.pinned,
@@ -88,7 +85,7 @@ class App extends React.PureComponent {
       })
     }  else {
       this.setState({
-        pinned: siege
+        pinned: depute
       })
     }
   }
@@ -158,21 +155,22 @@ class App extends React.PureComponent {
   }
 
   render() {
+    const {bdd} = this.props
+    const {deputes} = bdd
     const app = this;
-    const {pinned,  panelOpen, highlightSiegeIds, showPic} = this.state
+    const {pinned,  highlightDeputeUids, showPic} = this.state
     const {visualLayoutName, visualColorName, scrutinIdLayout, scrutinIdColor} = this.state
-    const siege = this.state.pinned || this.state.detail
-    const key = siege.siegeid + "detail" + (this.state.pinned ? "-pinned" : "")
+    const depute = this.state.pinned || this.state.detail
+    const key = depute.uid + "detail" + (this.state.pinned ? "-pinned" : "")
 
-    const visualColor = visualColorName == "scrutin"
-      ? visuals.colors[visualColorName](scrutinIdColor)
-      : visuals.colors[visualColorName] 
-    const visualLayout = visualLayoutName == "perscrutin"
-      ? visuals.layouts[visualLayoutName](scrutinIdLayout)(visualColor)
-      : visuals.layouts[visualLayoutName](visualColor)
-    const {Blueprint, Caption, siegeWithVisualProp} = visualLayout(this.sieges)
-    //SiegeRenderer to avoid react add/remove siege from DOM
-
+    const visualColor = visualColorName === "scrutin"
+      ? this.visuals.colors[visualColorName](scrutinIdColor)
+      : this.visuals.colors[visualColorName] 
+    const visualLayout = visualLayoutName === "perscrutin"
+      ? this.visuals.layouts[visualLayoutName](scrutinIdLayout)(visualColor)
+      : this.visuals.layouts[visualLayoutName](visualColor)
+    const {Blueprint, Caption, deputeWithVisualProp} = visualLayout(deputes)
+    //DeputeRenderer to avoid react add/remove depute from DOM
     return <ThemeProvider theme={theme}><div className="App">
       <CssBaseline/>
       <DraggableSvg app={app}>
@@ -182,17 +180,17 @@ class App extends React.PureComponent {
         <TransitionGroup component={null}><SvgOpacityTransition key={visualColorName}>
             <Caption app={app} />
         </SvgOpacityTransition></TransitionGroup>
-        <SiegesRenderer  app={app} siegeWithVisualProp={siegeWithVisualProp}>
-          {({siege, visualProps}) => <Siege
-             app={app} highlight={highlightSiegeIds.includes(siege.siegeid)}
-             siege={siege} key={siege.siegeid}
+        <DeputesRenderer  app={app} deputeWithVisualProp={deputeWithVisualProp}>
+          {({depute, visualProps}) => <Depute
+             app={app} highlight={highlightDeputeUids.includes(depute.uid)}
+             depute={depute} key={depute.uid}
              showPic={showPic}
              {...visualProps}
            />}
-        </SiegesRenderer>
+        </DeputesRenderer>
       </DraggableSvg>
-      <SiegeDetail app={app} {...siege} pinned={pinned} key={key}/>
-      <Search app={app}/>
+      <DeputeDetail app={app} bdd={bdd} depute={depute} pinned={pinned} key={key}/>
+      <Search app={app} bdd={bdd}/>
       <Footer/>
       <Panel app={app} visualLayoutName={visualLayoutName} visualColorName={visualColorName} open={true} showPic={showPic}/>
     </div></ThemeProvider>

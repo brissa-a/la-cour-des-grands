@@ -2,21 +2,31 @@ const { program } = require('commander');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const Bottleneck = require('bottleneck');
-const {getdeputeData} = require('./dl_depute.js')
-const {fetchUrls} = require("./fetcher/an_www.js")
-const {closeBrowser} = require("./fetcher/misc/browser.js")
+const {getdeputeData} = require('./src/dl_depute.js')
+const {closeBrowser} = require("./src/fetcher/misc/browser.js")
 const glob = require('fast-glob');
+const {fileCache, openJson, saveJson} = require("./src/fetcher/misc/files.js")
+const {diffArrays} = require('diff')
+const {detectListChange} = require('./src/detectListChange.js')
+const {pushToRemote} = require("./src/pushToRemote.js")
+const {getScrutinIdScrutinNameIndex} = require('./src/fetcher/an_data.js')
 
 async function getDeputesData(opt) {
   var datum;
+  if (opt.cleanWorkdir) {
+    console.log("Cleaning work directory")
+    await fs.promises.rmdir(opt.dlfolder, { recursive: true }).then(() => console.log('directory removed!'));
+  }
+  const urlsFilepath = [opt.dlfolder, 'depute_urls.json'].join('/')
   try {
       var urls;
+      if (opt.detectListChange) await detectListChange(urlsFilepath, opt)
       if (opt.only === true) {
         urls=[`http://www2.assemblee-nationale.fr/deputes/fiche/OMC_PA605036`]
       } else if(opt.only) {
         urls = opt.only.split(";").map(uid => `http://www2.assemblee-nationale.fr/deputes/fiche/OMC_${uid}`)
       } else {
-        urls = await fetchUrls(opt)
+        urls = await openJson(urlsFilepath)
       }
       console.log(`Found ${urls.length} urls`, urls.slice(0, 10));
       const limiter = new Bottleneck({ maxConcurrent: 1 });
@@ -32,9 +42,13 @@ async function getDeputesData(opt) {
       datum = (await glob(`./${opt.dlfolder}/depute/*.json`))
         .map(filename => fs.readFileSync(filename))
         .map(str =>  JSON.parse(str))
-      let jsonstr = JSON.stringify(datum, null, ' ');
+      
       console.log(`saving ./${opt.dlfolder}/depute/*.json in ${opt.dlfolder}/deputes.json`)
-      fs.writeFileSync(`${opt.dlfolder}/deputes.json`, jsonstr);
+      await saveJson(`${opt.dlfolder}/deputes.json`, datum, false)
+      await getScrutinIdScrutinNameIndex(opt)
+      if (opt.pushToRemote) {
+        await pushToRemote(opt.pushToRemote, opt)
+      }
   } catch (err) {
       console.log("Error while fetching deputes", err);
   }
@@ -44,7 +58,7 @@ async function getDeputesData(opt) {
 async function main() {
   program
     .description(`Download depute data into dl/deputes.json.`)
-    .option('-f, --dlfolder <folder>' , 'download folder', "dl/")
+    .option('-f, --dlfolder <folder>' , 'download folder', "work/")
     .option('-i, --dl-img', 'download depute pic')
     .option('-d, --debug', 'run puppeteer headless')
     .option('-c, --config-file <file>' , 'config.json file path', 'config.json')
@@ -54,6 +68,9 @@ async function main() {
     .option('--override')
     .option('--step <step-name>', '', 'default')
     .option('--show-step')
+    .option('--detect-list-change')
+    .option('--push-to-remote <giturl>')
+    .option('--clean-workdir')
     .parse(process.argv);
   const start = Date.now();
   await getDeputesData(program)

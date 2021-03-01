@@ -1,9 +1,8 @@
-import React, { PureComponent } from 'react';
-import { Border, Tribune } from '../SvgPath.js'
-import { Transition, TransitionGroup } from 'react-transition-group';
-import { EmptySiege } from '../Siege.js'
-import SvgCaption from '../Caption.js'
 import Typography from '@material-ui/core/Typography';
+import React from 'react';
+import SvgCaption from '../Caption.js';
+import { Siege } from '../Depute.js';
+import { Border, Tribune } from '../SvgPath.js';
 
 const rand = Math.round(Math.random() * 300)
 
@@ -18,39 +17,38 @@ function minMaxRange(list, getter) {
   return { min, max, range, avg }
 }
 
-export const chart = (visualLayout) => (visualColor) => (sieges) => {
+export const chart = (visualLayout) => (visualColor) => (deputes) => {
   const Caption = props => <SvgCaption visualColor={visualColor} />//To wrap for positioning
-  const { groupes, maxColSize } = visualLayout.group(sieges.filter(s => s.depute))
-  const siegeWithVisualProp = []
+  const { groupes, maxColSize } = visualLayout.group(deputes)
+  const deputeWithVisualProp = []
   const columns = []
   const margin = 1
-  const curX = 0
-  for (const [colIdx, [groupeName, sieges]] of groupes.entries()) {
-    const colSize = maxColSize //sieges.length > maxColSize ? maxColSize : Math.max(sieges.length, 1)
-    sieges.sort((a, b) => visualColor.sort(a, b))
+  for (const [colIdx, [groupeName, deputes]] of groupes.entries()) {
+    const colSize = maxColSize //deputes.length > maxColSize ? maxColSize : Math.max(deputes.length, 1)
+    deputes.sort((a, b) => visualColor.sort(a, b))
 
     columns.push({
       name: groupeName,
       idx: colIdx,
       width: colSize,
-      y: -Math.floor(sieges.length / colSize),
+      y: -Math.floor(deputes.length / colSize),
       x: colIdx * (colSize + margin) - (colSize + margin) * groupes.length / 2
     })
-    for (const [sIdx, siege] of sieges.entries()) {
+    for (const [sIdx, depute] of deputes.entries()) {
       const visualProps = {
         x: colIdx * (colSize + margin) + (sIdx % colSize) - (colSize + margin) * groupes.length / 2,
         y: -Math.floor(sIdx / colSize),
         colIdx: colIdx,
         sIdx: sIdx,
-        ...visualColor.siegeColor(siege)
+        ...visualColor.deputeColor(depute)
       }
-      siegeWithVisualProp.push([siege, visualProps])
+      deputeWithVisualProp.push([depute, visualProps])
     }
   }
   const Blueprint = props => {
     const fontSize = 1
     const yAxis = minMaxRange(columns, c => c.y)
-    const xAxis = minMaxRange(columns, c => c.x)
+    //const xAxis = minMaxRange(columns, c => c.x)
     const lastCol = columns[columns.length - 1]
     const firstCol = columns[0]
     const siegeSize = 1
@@ -58,20 +56,20 @@ export const chart = (visualLayout) => (visualColor) => (sieges) => {
     const strokeWidth = "0.05"
 
     ///X Axis
-    const xAxisElems = columns.map(col => <g transform={`translate(${col.x}, 0)`}>
+    const xAxisElems = columns.map(col => <g key={col.x} transform={`translate(${col.x}, 0)`}>
       <line x1={-siegeSize / 2} y1={siegeSize} x2={-siegeSize / 2} y2={siegeSize - 0.5} stroke={stroke} strokeWidth={strokeWidth} />
       <line x1={col.width - siegeSize / 2} y1={siegeSize} x2={col.width - siegeSize / 2} y2={siegeSize - 0.5} stroke={stroke} strokeWidth={strokeWidth} />
       <line x1={-siegeSize / 2} y1={siegeSize} x2={col.width - siegeSize / 2} y2={siegeSize} stroke={stroke} strokeWidth={strokeWidth} />
       <g transform={`translate(${-siegeSize / 2}, ${siegeSize * 2})`}>
-        <foreignObject transform="scale(0.05)" width={(col.width * siegeSize) / 0.05} height="15rem">
-          <div class="undraggable" style={{ padding: "5px", textAlign: "center" }}>
-            <Typography><div style={{ textAlign: "center" }}>{visualLayout.formatGroupeName(col.name)}</div></Typography>
+        <foreignObject transform="scale(0.05)" width={(col.width * siegeSize) / 0.05 * 1.1} height="15rem">
+          <div className="undraggable" style={{ padding: "-3px", textAlign: "center" }}>
+            <Typography>{visualLayout.formatGroupeName(col.name)}</Typography>
           </div>
         </foreignObject>
       </g>
     </g>)
     const xAxisNameElem = <text
-      fill="rgba(255, 255, 255, 0.9)" style={{ "text-anchor": "start" }}
+      fill="rgba(255, 255, 255, 0.9)" style={{ "textAnchor": "start" }}
       x={lastCol.x + lastCol.width} y={siegeSize * 3} fontSize={fontSize}
     >
       {visualLayout.xAxisName()}
@@ -80,9 +78,9 @@ export const chart = (visualLayout) => (visualColor) => (sieges) => {
     //Y Axis
     const yAxisElems = []
     for (let i = -firstCol.width; i > yAxis.min; i -= firstCol.width) {
-      const yAxisElem = <g>
+      const yAxisElem = <g key={i}>
         <line x1={firstCol.x - siegeSize / 2 - 1} y1={i + siegeSize / 2} x2={lastCol.x + lastCol.width + 1} y2={i + siegeSize / 2} stroke={stroke} strokeWidth={strokeWidth} />
-        <text style={{ "text-anchor": "end" }} fill="rgba(255, 255, 255, 0.9)" x={firstCol.x - siegeSize / 2 - 1} y={i + siegeSize / 2} fontSize={fontSize}>
+        <text style={{ "textAnchor": "end" }} fill="rgba(255, 255, 255, 0.9)" x={firstCol.x - siegeSize / 2 - 1} y={i + siegeSize / 2} fontSize={fontSize}>
           {-i * firstCol.width}
         </text>
       </g>
@@ -90,7 +88,7 @@ export const chart = (visualLayout) => (visualColor) => (sieges) => {
     }
 
     const yAxisNameElem = <text
-      fill="rgba(255, 255, 255, 0.9)" style={{ "text-anchor": "end" }}
+      fill="rgba(255, 255, 255, 0.9)" style={{ "textAnchor": "end" }}
       x={firstCol.x - siegeSize / 2 - 1} y={yAxis.min - siegeSize / 2} fontSize={fontSize}
     >
       Nombre de députés
@@ -108,55 +106,59 @@ export const chart = (visualLayout) => (visualColor) => (sieges) => {
       </foreignObject>
     </g>
     return <g>
-      {xAxisElems}
+      <g>
+        {xAxisElems}
+      </g>
       {xAxisNameElem}
-      {yAxisElems}
+      <g>
+        {yAxisElems}
+      </g>
       {yAxisNameElem}
       {chartTitle}
     </g>
   }
-  return { Blueprint, Caption, siegeWithVisualProp, columns }
+  return { Blueprint, Caption, deputeWithVisualProp, columns }
 }
 
 
 
-export const hemicycle = (visualLayout) => (visualColor) => (sieges) => {
+export const hemicycle = (sieges) => (visualLayout) => (visualColor) => (deputes) => {
   const Blueprint = props => {
     return <g>
-      {sieges.filter(s => !s.depute).map(s => <EmptySiege key={s.siegeid} siege={s} />)}
+      <g>
+        {sieges.map(s => <Siege key={s.id} siege={s} />)}
+      </g>
       <Border /><Tribune />
     </g>
   }
   const Caption = props => <SvgCaption visualColor={visualColor} />//To wrap for positioning
-  const siegeWithVisualProp = sieges.filter(s => s.depute).map(siege => {
-    const color = siege.depute && visualColor.siegeColor(siege) || { h: 0, s: 0, v: 0 }
+  const deputeWithVisualProp = deputes.map(depute => {
+    const color = visualColor.deputeColor(depute)
     const visualProps = {
-      x: siege.pos.x,
-      y: siege.pos.y,
+      x: depute.lcdg.siege.pos.x * 29,
+      y: depute.lcdg.siege.pos.y * 29,
       ...color
     }
-    return [siege, visualProps]
+    return [depute, visualProps]
   });
-  return { Blueprint, Caption, siegeWithVisualProp }
+  return { Blueprint, Caption, deputeWithVisualProp }
 }
 
-export class SiegesRenderer extends React.PureComponent {
+export class DeputesRenderer extends React.PureComponent {
 
   constructor(props) {
     super()
   }
 
   render() {
-    const onlyOne = params.has("onlyOne") ? params.get("onlyOne") == 'true' : false
-    const { highlightSiegeIds, showPic, app, children } = this.props
-    let { siegeWithVisualProp } = this.props
-    siegeWithVisualProp = onlyOne ? [siegeWithVisualProp[rand]] : siegeWithVisualProp
-    const siegeElems = siegeWithVisualProp
-      .sort(([a, x], [b, y]) => a.siegeid.localeCompare(b.siegeid))
-      .map(([siege, visualProps]) => <g>
-        {children({ siege, visualProps })}
-      </g>)
-    return siegeElems
+    const onlyOne = params.has("onlyOne") ? params.get("onlyOne") === 'true' : false
+    const { children } = this.props
+    let { deputeWithVisualProp } = this.props
+    deputeWithVisualProp = onlyOne ? [deputeWithVisualProp[rand]] : deputeWithVisualProp
+    const deputeElems = deputeWithVisualProp
+      .sort(([a, x], [b, y]) => a.uid.localeCompare(b.uid))
+      .map(([depute, visualProps]) => children({ depute, visualProps }))
+    return deputeElems
   }
 
 }

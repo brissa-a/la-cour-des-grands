@@ -1,4 +1,5 @@
 {
   "removebg_api_key": "myapikey",
-  "twitter_bearer": "mybearerkey"
+  "twitter_bearer": "mybearerkey",
+  "twitter_headers": {}
 }

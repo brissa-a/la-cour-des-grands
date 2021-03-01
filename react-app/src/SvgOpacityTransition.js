@@ -1,5 +1,5 @@
-import {React, PureComponent} from 'react';
-import {Transition, TransitionGroup} from 'react-transition-group';
+import { PureComponent, React } from 'react';
+import { Transition } from 'react-transition-group';
 
 
 const defaultStyle = {
@@ -15,10 +15,6 @@ const transitionStyles = {
 };
 
 export class SvgOpacityTransition extends PureComponent {
-
-  constructor() {
-    super()
-  }
 
   render() {
     const {children, ...remaining} = this.props

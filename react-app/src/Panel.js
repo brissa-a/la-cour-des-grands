@@ -1,20 +1,17 @@
-import { withStyles } from "@material-ui/core/styles";
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import FormHelperText from '@material-ui/core/FormHelperText';
+import { faPaintBrush, faProjectDiagram } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import Box from "@material-ui/core/Box";
 import FormControl from '@material-ui/core/FormControl';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Select from '@material-ui/core/Select';
-import Switch from '@material-ui/core/Switch';
-import Box from "@material-ui/core/Box";
-import Typography from '@material-ui/core/Typography';
-import ListSubheader from '@material-ui/core/ListSubheader';
 import Grid from '@material-ui/core/Grid';
+import InputLabel from '@material-ui/core/InputLabel';
+import ListSubheader from '@material-ui/core/ListSubheader';
+import MenuItem from '@material-ui/core/MenuItem';
+import Select from '@material-ui/core/Select';
+import { withStyles } from "@material-ui/core/styles";
+import Switch from '@material-ui/core/Switch';
+import { PureComponent } from 'react';
 
-import {PureComponent, Fragment, createRef} from 'react';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faAlignJustify, faSearch, faFileExport,faCog, faExternalLinkAlt, faPaintBrush, faProjectDiagram} from '@fortawesome/free-solid-svg-icons'
-import visuals from "./visual/all.js"
 
 
 const styles = (theme) => ({

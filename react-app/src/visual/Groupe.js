@@ -1,37 +1,16 @@
-import { Fragment } from 'react';
-import groupes from '../groupes.json'
-import Chart from '../chart/GroupeChart.js'
-import { groupBy } from '../functional.js'
+import { groupBy } from '../functional.js';
 
-const groupByGroupe = groupBy(s => s.depute.groupe)
+const GroupeVisual = groupes => new class {
 
-function minMaxRange(list, getter) {
-  if (getter) list = list.map(getter)
-  const min = Math.min(...list)
-  const max = Math.max(...list)
-  const range = max - min
-  const avg = list.reduce((a, b) => a + b, 0) / list.length
-  return { min, max, range, avg }
-}
-
-class GroupeVisual {
-
-  constructor() {
-  }
-
-  siegeColor(siege) {
-    const { h, s, v } = groupes[siege.depute.groupe].color
+  deputeColor(depute) {
+    const { h, s, v } = groupes[depute.an_www_depute.groupe].color
     return {
       h, s: s * 0.8, v
     }
   }
 
-  chart(props) {
-    return <Chart app={props.app} color={this.color} />
-  }
-
-  sort(sa, sb) {
-    return sa.depute.groupe.localeCompare(sb.depute.groupe)
+  sort(da, db) {
+    return da.an_www_depute.groupe.localeCompare(db.an_www_depute.groupe)
   }
 
   formatGroupeName(groupeName) {
@@ -40,11 +19,10 @@ class GroupeVisual {
 
   xAxisName() { return null }
 
-  group(sieges) {
-    const groupByGroupe = groupBy(s => s.depute.groupe)
-    const groupes = Object.entries(sieges
-      .filter(s => s.depute)
-      .reduce(groupByGroupe, {})
+  group(deputes) {
+    const groupByGroupe = groupBy(s => s.an_www_depute.groupe)
+    const groupes = Object.entries(
+      deputes.reduce(groupByGroupe, {})
     )
       .sort(([gna, sa], [gnb, sb]) => sb.length - sa.length)
     return { groupes, maxColSize: 9 }
@@ -101,4 +79,4 @@ class GroupeVisual {
   }
 
 }
-export default new GroupeVisual
+export default GroupeVisual

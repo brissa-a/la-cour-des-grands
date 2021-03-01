@@ -1,27 +1,24 @@
-import { PureComponent, createRef, Fragment } from 'react';
-import './Search.css'
-import sieges from './sieges.json'
-import scrutins from './scrutinIdScrutinName.index.json'
-import { highlightArray, highlightField } from "./highlightAlgo.js"
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSearch } from '@fortawesome/free-solid-svg-icons'
-import SearchResponse from './SearchResponse.js'
-import { Typography, Link } from '@material-ui/core';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Link, Typography } from '@material-ui/core';
+import { createRef, PureComponent } from 'react';
+import './Search.css';
+import SearchResponse from './SearchResponse.js';
 const { buildIndex, search } = require('./searchAlgo.js')
 
 class Search extends PureComponent {
 
-  constructor(props) {
+  constructor({bdd}) {
     super()
+    const {deputes, scrutins} = bdd
     this.wrapperRef = createRef();
-    Object.assign(this, props)
     this.state = {
       text: "",
       resp: null,
       respDate: null,
       focused: false
     }
-    const myIdx = buildIndex(sieges, scrutins)
+    const myIdx = buildIndex(deputes, scrutins)
     Object.assign(this, { myIdx })
     Object.assign(window, { myIdx })
     Object.assign(window, { search })
@@ -35,16 +32,24 @@ class Search extends PureComponent {
     document.removeEventListener('mousedown', this.handleClickOutside.bind(this));
   }
 
+  buildIndex() {
+    if (this.deputes && this.scrutins) {
+
+    }
+  }
+
   onChange(evt) {
     this.setState({
       text: evt.target.value
     });
-    this.searchto && clearTimeout(this.searchto)
-    this.searchto = setTimeout(() => {
-      const resp = search(this.myIdx, evt.target.value)
-      const respDate = Date.now()
-      this.setState({ resp, respDate });
-    }, 300)
+    if (this.myIdx) {
+      this.searchto && clearTimeout(this.searchto)
+      this.searchto = setTimeout(() => {
+        const resp = search(this.myIdx, evt.target.value)
+        const respDate = Date.now()
+        this.setState({ resp, respDate });
+      }, 300)
+    }
   }
 
   handleClickOutside(event) {
@@ -87,10 +92,8 @@ class Search extends PureComponent {
 
     if (this.state.resp) {
       let top10 = this.state.resp.slice(0, 10);
-      //console.log(top10)
-      //this.app.setHighlightSiegeIds(top10.map(x => x.metadata.siegeid))
       respElemList = top10.map(x => {
-        return <div class="respelem"><SearchResponse key={x.ref + this.state.respDate} item={x} app={this.app} /></div>
+        return <div class="respelem"><SearchResponse bdd={this.props.bdd} key={x.ref + this.state.respDate} item={x} app={this.props.app} /></div>
       })
       respElemList = respElemList.length ? respElemList : <SearchTips></SearchTips>
     } else {
@@ -99,7 +102,7 @@ class Search extends PureComponent {
     return <div className="search" ref={this.wrapperRef}>
       <div className='input-container'>
         <FontAwesomeIcon size="lg" icon={faSearch} /> <input
-          id="search" autocomplete="off" placeholder="Rechercher un député ou un scrutin"
+          id="search" autoComplete="off" placeholder="Rechercher un député ou un scrutin"
           value={this.state.text}
           onChange={e => this.onChange(e)}
           onFocus={() => this.setState({ focused: true })}
@@ -118,7 +121,7 @@ class SearchTips extends PureComponent {
   }
 
   render() {
-    return <div style={{ width: "440px", padding: "10px"}}><Typography variant="body2">
+    return <div style={{ width: "440px", padding: "10px" }}><Typography variant="body2">
       Vous pouvez rechercher les députés par:
       <ul>
         <li>Nom/Prénom</li>
@@ -126,9 +129,9 @@ class SearchTips extends PureComponent {
         <li>Par nom de ville ou code postal</li>
         <li>Par numéro de circonscription</li>
       </ul>
-      <br/>
+      <br />
       Et les scrutins par titre, tel qu'ils se trouvent dans la colonne 'object du scrutin' sur <Link href="https://www2.assemblee-nationale.fr/scrutins/liste/(legislature)/15">le site de l'assemblée </Link>
-      Puis les sélectionner pour les visualiser en cliquant sur les icones.<br/>
+      Puis les sélectionner pour les visualiser en cliquant sur les icones.<br />
     </Typography>
     </div>
   }

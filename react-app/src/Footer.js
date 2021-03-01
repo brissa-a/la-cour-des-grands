@@ -24,15 +24,15 @@ class Footer extends React.PureComponent {
   render() {
     return <div className={`footer ${this.state.open} backdrop`}><Box m={0} p={1} boxShadow={2} bgcolor="">
       <button onClick={this.toggle.bind(this)}>
-        <FontAwesomeIcon size="" icon={faAlignJustify}/> Mentions légales
+        <FontAwesomeIcon icon={faAlignJustify}/> Mentions légales
       </button>
       &nbsp;&nbsp;&nbsp;
       <a href={config.github_link}>
-        <FontAwesomeIcon size="" icon={faGithub}/> Github
+        <FontAwesomeIcon icon={faGithub}/> Github
       </a>
       &nbsp;&nbsp;&nbsp;
       <a href={config.donation_link}>
-        <FontAwesomeIcon size="" icon={faPaypal}/> Faire un don
+        <FontAwesomeIcon icon={faPaypal}/> Faire un don
       </a>
       <p style={{width: "290px"}}>Ce site est hébergé par Firebase, 188 King ST, San Francisco, CA 94107, United States, https://firebase.google.com/.</p>
     </Box></div>

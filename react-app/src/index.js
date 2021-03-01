@@ -1,12 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
+import LoadingScreen from './LoadingScreen';
 import reportWebVitals from './reportWebVitals';
+
+window.addEventListener('wheel', event => event.preventDefault(), { passive: false })
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <LoadingScreen />
   </React.StrictMode>,
   document.getElementById('root')
 );

@@ -1,5 +1,4 @@
-import { PureComponent, Fragment, createRef } from "react"
-import visuals from "./visual/all.js"
+import { PureComponent } from "react";
 
 class Caption extends PureComponent {
 

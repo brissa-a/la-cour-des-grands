@@ -28,7 +28,7 @@ export function highlightField(metadatas, fieldName, color) {
 
 function highlightMatch(sliceAndEditStack, value, color) {
     return wrapMatch(sortBy(sliceAndEditStack, saet => {
-        const [slice, editstack] = saet
+        const [slice] = saet
         return slice[0]
     }), value, color)
 }

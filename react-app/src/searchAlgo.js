@@ -2,17 +2,17 @@
 // const {groupBy, sortBy, minBy, result, maxBy} = require('lodash')
 
 import diacritics from 'diacritics'
-import {groupBy, sortBy, minBy, result, maxBy} from 'lodash'
+import { groupBy, sortBy } from 'lodash'
 const {max, min} = Math
 
 const createNode = () => ({children: {}, key: null, prevSearch: {}})
 
-export function buildIndex(sieges, scrutins) {
+export function buildIndex(deputes, scrutins) {
     const wordTree = createNode()
     const wordToTokens = {}
-    const siegeTokens = sieges.filter(x => x.depute).flatMap(tokenizeSiege)
+    const deputeTokens = deputes.flatMap(tokenizeDepute)
     const scrutinTokens = Object.entries(scrutins).flatMap(tokenizeScrutin)
-    const allTokens = siegeTokens.concat(scrutinTokens)
+    const allTokens = deputeTokens.concat(scrutinTokens)
     //console.log({dictSize: allTokens.length})
     for (const token of allTokens) {
         insert(wordTree, token.word)
@@ -33,34 +33,34 @@ function tokenizeScrutin([id, titre]) {
     return allTokens.flatMap(x => x)
 }
 
-function tokenizeSiege(siege) {
-    const ref = "siege:"+siege.depute.uid
+function tokenizeDepute(depute) {
+    const ref = "depute:"+depute.uid
     let allTokens = []
     allTokens.push(tokenize(
-        siege.depute.nom,
+        depute.an_data_depute.nom,
         ref,
-        {getField: x => x.depute.nom, fieldName: `depute.nom`, item: siege, weight: 1.10}
+        {getField: x => x.an_data_depute.nom, fieldName: `an_data_depute.nom`, item: depute, weight: 1.10}
     ))
     allTokens.push(tokenize(
-        siege.depute.circo.departement,
+        depute.circo.departement,
         ref,
-        {getField: x => x.depute.circo.departement, fieldName: `depute.circo.departement`, item: siege, weight: 1.05}
+        {getField: x => x.circo.departement, fieldName: `circo.departement`, item: depute, weight: 1.05}
     ))
     allTokens.push(tokenize(
-        siege.depute.circo.numDepartement,
+        depute.circo.numDepartement,
         ref,
-        {getField: x => x.depute.circo.numDepartement, fieldName: `depute.circo.numDepartement`, item: siege, weight: 1.05}
+        {getField: x => x.circo.numDepartement, fieldName: `circo.numDepartement`, item: depute, weight: 1.05}
     ))
     allTokens.push(tokenize(
-        siege.depute.circo.numCirco,
+        depute.circo.numCirco,
         ref,
-        {getField: x => x.depute.circo.numCirco, fieldName: `depute.circo.numCirco`, item: siege, weight: 1.05}
+        {getField: x => x.circo.numCirco, fieldName: `circo.numCirco`, item: depute, weight: 1.05}
     ))
-    for (const [idx, commune] of siege.depute.circo.communes.entries()) {
+    for (const [idx, commune] of depute.circo.communes.entries()) {
         const communeTokens = tokenize(
         commune,
         ref,
-        {getField: x => x.depute.circo.communes[idx], fieldName: `depute.circo.communes`, item: siege, arrayKey: idx}
+        {getField: x => x.circo.communes[idx], fieldName: `circo.communes`, item: depute, arrayKey: idx}
         )
         allTokens.push(communeTokens)
     }
@@ -72,6 +72,7 @@ function normalizeTxt(txt) {
 }
 
 function tokenize(txt, ref, meta) {
+    // eslint-disable-next-line no-useless-escape
     let words = normalizeTxt(txt).split(/[()\[\]<>\s-,']/)
     let i = 0
     let withPos = []
@@ -90,6 +91,7 @@ function tokenize(txt, ref, meta) {
   
 export function search(index, query) {
     const {wordTree, wordToTokens} = index
+    // eslint-disable-next-line no-useless-escape
     const terms = normalizeTxt(query).split(/[()\[\]<>\s-,']/).filter(x => x)
     const allTermResults = []
     for (const term of terms) {
@@ -102,6 +104,7 @@ export function search(index, query) {
         const tokensPerRef = groupBy(foundTokens, found => found.token.ref);
         const scoredResults = Object.entries(tokensPerRef).map(([ref, founds]) => {
             const score = founds.map(({token,result}) => {
+                // eslint-disable-next-line no-unused-vars
                 const [editstack, dist] = result.dist
                 const weight = token.weight || 1
                 return (query.length - dist)/query.length * weight
@@ -140,12 +143,12 @@ function getOrCreateChild(node, childname) {
     return child
 }
 
-let i, j;
+//let i, j;
 
 function searchWord(tree, word, log) {
     const results = {}
-    i = 0
-    j = 0
+    // i = 0
+    // j = 0
     searchNode(tree, word, 0, min(3, Math.round(word.length/2)), [], results)
     log && logResultColored(results)
     //console.log({i, j})
@@ -153,16 +156,17 @@ function searchWord(tree, word, log) {
 }
 
 function searchNode(node, word, cur_dist, max_dist, editStack, results) {
-    i++
+    //i++
     if (node.key) {
+        // eslint-disable-next-line no-unused-vars
         const [prevEditStack,d] = results[node.key] || [[], Number.MAX_VALUE]
         if (d > (cur_dist + word.length) && (cur_dist + word.length) < max_dist) {
             results[node.key] = [[...editStack], cur_dist + word.length]
         }
     }
-    if (node.prevSearch[word] && node.prevSearch[word][0] > cur_dist) {
-        j++
-    }
+    // if (node.prevSearch[word] && node.prevSearch[word][0] > cur_dist) {
+    //     j++
+    // }
     if (cur_dist > max_dist) {
         //Stop browsing tree
     } else if (!word.length) {
@@ -199,7 +203,7 @@ function searchNode(node, word, cur_dist, max_dist, editStack, results) {
     }
 }
 
-const reset = "\x1B[0m"
+//const reset = "\x1B[0m"
 const colors = {
     'd': "\x1B[91m",
     'a': "\x1B[91m",
@@ -220,16 +224,18 @@ function logResultColored(results) {
         return [color(str, editstack), score, str, editstack]
     }).slice(0, 10)
 
+    // eslint-disable-next-line no-unused-vars
     for (const [str, dist, original, editstack] of coloredResult) {
         console.log(str, Math.round(dist*100)/100)
     }
 }
 
 async function main() {
-    const sieges = await require('./sieges.json')
-    const idx = buildIndex(sieges)
+    const deputes = {}//await require('./deputes.json')
+    const idx = buildIndex(deputes)
     const results = search(idx, "mel", true)//{ i: 39372, j: 1000 }
     const twiceresults = search(idx, "melenchon", true)//{ i: 766727, j: 40828 }
+    console.log(results, twiceresults)
 }
 
 if (require.main === module) main()

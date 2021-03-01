@@ -1,40 +1,29 @@
-import { Fragment } from 'react';
-import sieges from '../sieges.json'
-import Chart from '../chart/TwitterChart.js'
-import { groupBy } from '../functional.js'
-const { log, ceil, floor, round } = Math
+import { groupBy } from '../functional.js';
+
+const { log, ceil, floor} = Math
 
 const params = new URLSearchParams(window.location.search)
 const significantFigures = params.has("sf") ? Number.parseInt(params.get("sf")) : 3
 const base = params.has("base") ? Number.parseInt(params.get("base")) : 3
-const f = s => s.depute?.twitterByUsername?.public_metrics?.followers_count || 0
-
-function minMaxRange(list, getter) {
-  if (getter) list = list.map(getter)
-  const min = Math.min(...list)
-  const max = Math.max(...list)
-  const range = max - min
-  const avg = list.reduce((a, b) => a + b, 0) / list.length
-  return { min, max, range, avg }
-}
+const f = d => d.twitter?.public_metrics?.followers_count || 0
 
 const numberFormat = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 3 })
 
 function rangeName({ from, to }) {
   const n = numberFormat.format
-  if (from == 0 && to == 0) {
+  if (from === 0 && to === 0) {
     return `Pas de compte twitter`
   }
-  if (from - to == 0) {
+  if (from - to === 0) {
     return `${n(from)}`
   }
   return `de\u00a0${n(from)}  à\u00a0${n(to)}`
 }
 
-class TwitterVisual {
+const TwitterVisual = deputes => new class {
 
   constructor() {
-    const followers_counts = sieges.map(s => f(s))
+    const followers_counts = deputes.map(d => f(d))
     const max = followers_counts.reduce((acc, x) => Math.max(acc, x))
 
     const powMax = floor(log(max) / log(base)) - significantFigures + 1
@@ -43,7 +32,7 @@ class TwitterVisual {
 
     this.global = {
       base,
-      avg: followers_counts.reduce((acc, x) => acc + x) / sieges.length,
+      avg: followers_counts.reduce((acc, x) => acc + x) / deputes.length,
       roundedMax, powMax, sfMax
     }
     this.f = f
@@ -52,7 +41,7 @@ class TwitterVisual {
 
   //Get a number between 0 and 1
   t(twitterFollowerCount) {
-    if (twitterFollowerCount == 0) return 0
+    if (twitterFollowerCount === 0) return 0
     const { roundedMax } = this.global
     return log(twitterFollowerCount) / log(roundedMax)
   }
@@ -71,20 +60,16 @@ class TwitterVisual {
     }
   }
 
-  siegeColor(siege) {
-    return this.color(this.t(this.f(siege)))
-  }
-
-  chart(props) {
-    return <Chart app={props.app} visual={this} color={this.color} />
+  deputeColor(depute) {
+    return this.color(this.t(this.f(depute)))
   }
 
   sort(sa, sb) {
     return f(sb) - f(sa)
   }
 
-  group(sieges) {
-    const { powMax, sfMax, roundedMax, base } = this.global
+  group(deputes) {
+    const { powMax, sfMax, base } = this.global
     const followerGroupsName = [`{"from":${0}, "to":${0}}`, `{"from":${1}, "to":${sfMax}}`]
     const sampleCount = powMax
     for (let i = 0; i < sampleCount; i++) {
@@ -92,11 +77,10 @@ class TwitterVisual {
       const to = sfMax * base ** (i + 1)
       followerGroupsName.push(`{"from":${from}, "to":${to}}`)
     }
-    const groupByFollower = groupBy(s => {
-      //if (s.depute.nom === "Karine Lebon") debugger;
-      const follower = s.depute?.twitterByUsername?.public_metrics?.followers_count || 0
+    const groupByFollower = groupBy(d => {
+      const follower = d.twitter?.public_metrics?.followers_count || 0
       let groupIndex;
-      if (follower != 0) {
+      if (follower !== 0) {
         groupIndex = log(follower / sfMax) / log(base)
         groupIndex = groupIndex < 0 ? 0 : ceil(groupIndex)
         groupIndex = groupIndex + 1
@@ -112,8 +96,7 @@ class TwitterVisual {
       },
       {}
     )
-    const groupes = Object.entries(sieges
-      .filter(s => s.depute)
+    const groupes = Object.entries(deputes
       .reduce(groupByFollower, followerGroups)
     )
     return { groupes, maxColSize: 5 };
@@ -126,7 +109,6 @@ class TwitterVisual {
   xAxisName() { return "Nombre de follower" }
 
   caption() {
-    const txt = 14
     const sampleCount = 5
     const [w, h] = [15, 300]
 
@@ -165,4 +147,4 @@ class TwitterVisual {
   }
 }
 
-export default new TwitterVisual()
+export default TwitterVisual

@@ -1,6 +1,6 @@
-import {Component, Fragment, createRef} from 'react';
+import {Component} from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faAlignJustify, faSearch, faFileExport,faCog} from '@fortawesome/free-solid-svg-icons'
+import {faFileExport,faCog} from '@fortawesome/free-solid-svg-icons'
 import "./Actions.css"
 
 class Actions extends Component {
@@ -38,14 +38,15 @@ class Actions extends Component {
   }
 
   render() {
-    return <div class="actions">
-    <a class="btn-floating btn-large waves-effect waves-light" onClick={() => this.app.togglePanel()}>
-      <FontAwesomeIcon size="lg" icon={faCog} />
-    </a>
-    <a style={{display: "none"}} class="btn-floating btn-large waves-effect waves-light" onClick={() => this.exportSvg()}>
-      <FontAwesomeIcon size="lg" icon={faFileExport} />
-    </a>
-    </div>
+    // return <div class="actions">
+    // <a class="btn-floating btn-large waves-effect waves-light" href="#" onClick={() => this.app.togglePanel()}>
+    //   <FontAwesomeIcon size="lg" icon={faCog} />
+    // </a>
+    // <a style={{display: "none"}} href="#" class="btn-floating btn-large waves-effect waves-light" onClick={() => this.exportSvg()}>
+    //   <FontAwesomeIcon size="lg" icon={faFileExport} />
+    // </a>
+    // </div>
+    return null
   }
 
 }

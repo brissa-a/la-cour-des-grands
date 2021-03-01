@@ -1,6 +1,4 @@
-import {Fragment} from 'react';
-import Chart from '../chart/SexeChart.js'
-import {groupBy} from '../functional.js'
+import { groupBy } from '../functional.js';
 
 const womanColor = {
   h:299, s:37, v:46
@@ -24,39 +22,21 @@ const CaptionElem = (props) => {
   </div>
 }
 
-const groupBySexe = groupBy(s => s.depute.femme ?  "femme" : "homme")
-
-function minMaxRange(list, getter) {
-  if (getter) list = list.map(getter)
-  const min = Math.min(...list)
-  const max = Math.max(...list)
-  const range = max - min
-  const avg = list.reduce((a, b) => a + b, 0) / list.length
-  return {min,max,range, avg}
-}
+const groupBySexe = groupBy(s => s.an_data_depute.femme ?  "femme" : "homme")
 
 class SexeVisual {
 
-  constructor() {
-
-  }
-
-  siegeColor(siege) {
-    return siege.depute.femme ? womanColor : menColor
-  }
-
-  chart(props) {
-    return <Chart app={props.app} color={this.color}/>
+  deputeColor(depute) {
+    return depute.an_data_depute.femme ? womanColor : menColor
   }
 
   sort(sa, sb) {
-    return sb.depute.femme - sa.depute.femme
+    return sb.an_data_depute.femme - sa.an_data_depute.femme
   }
 
-  group(sieges) {
-    const groupes = Object.entries(sieges
-      .filter(s => s.depute)
-      .reduce(groupBySexe, {"homme": [], "femme": []})
+  group(deputes) {
+    const groupes = Object.entries(
+      deputes.reduce(groupBySexe, {"homme": [], "femme": []})
     )
     return {groupes, maxColSize: 10}
   }
@@ -103,4 +83,4 @@ class SexeVisual {
   }
 
 }
- export default new SexeVisual
+ export default new SexeVisual()

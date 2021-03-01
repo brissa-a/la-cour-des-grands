@@ -1,9 +1,8 @@
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { CssBaseline, Typography, Link } from '@material-ui/core';
+import { Link, Typography } from '@material-ui/core';
 import { Fragment } from 'react';
-import { groupBy } from '../functional.js'
-import idNameIndex from '../scrutinIdScrutinName.index.json'
+import { groupBy } from '../functional.js';
 
 const colors = {
   "P": { h: 101, s: 47, v: 46 },
@@ -36,20 +35,9 @@ const CaptionElem = (props) => {
   </div>
 }
 
+const ScrutinVisual = idNameIndex => scrutinId => new class {
 
-
-function minMaxRange(list, getter) {
-  if (getter) list = list.map(getter)
-  const min = Math.min(...list)
-  const max = Math.max(...list)
-  const range = max - min
-  const avg = list.reduce((a, b) => a + b, 0) / list.length
-  return { min, max, range, avg }
-}
-
-const ScrutinVisual = scrutinId => new class {
-
-  f(s) { return s.depute?.scrutins && s.depute?.scrutins[scrutinId] || "U" }
+  f(s) { return s.scrutins && (s.scrutins[scrutinId] || "U") }
 
   groupByScrutin() {
     return groupBy(s => this.f(s))
@@ -58,18 +46,17 @@ const ScrutinVisual = scrutinId => new class {
   constructor() {
     Object.assign(window, { idNameIndex })
   }
-
-  siegeColor(siege) {
-    return colors[this.f(siege)]
+ 
+  deputeColor(depute) {
+    return colors[this.f(depute)]
   }
 
   sort(sa, sb) {
-    return this.f(sb) - this.f(sa)
+    return this.f(sb).localeCompare(this.f(sa))
   }
 
-  group(sieges) {
-    const groupes = Object.entries(sieges
-      .filter(s => s.depute)
+  group(deputes) {
+    const groupes = Object.entries(deputes
       .reduce(this.groupByScrutin(), { "P": [], "C": [], "N": [], "A": [], "U": [] })
     )
     return { groupes, maxColSize: 10 }
@@ -141,5 +128,5 @@ const ScrutinVisual = scrutinId => new class {
     </foreignObject >
   }
 
-}
+}()
 export default ScrutinVisual
