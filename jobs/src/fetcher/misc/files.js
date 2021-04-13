@@ -1,4 +1,5 @@
 const fs = require('fs').promises
+const path = require('path')
 
 async function canAccess(filename) {
     let canAccess;
@@ -37,6 +38,8 @@ async function openJson(filename) {
 }
 
 async function saveJson(filename, obj, pretty = false) {
+    const dir = path.dirname(filename)
+    await fs.mkdir(dir, { recursive: true })
     const str = pretty ? jsonStringifyOrdered(obj, " ") : jsonStringifyOrdered(obj)
     return fs.writeFile(filename, str)
 }
@@ -48,4 +51,4 @@ function jsonStringifyOrdered(obj, space) {
     return JSON.stringify(obj, allKeys, space);
 }
 
-module.exports = {fileCache, openJson, saveJson, openOrDefault}
+module.exports = {fileCache, openJson, saveJson, openOrDefault, canAccess}

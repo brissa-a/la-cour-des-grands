@@ -103,7 +103,7 @@ class DeputeDetail extends React.PureComponent {
               <circle r="95" cx={portrait.w / 2} cy={portrait.h / 2} />
             </clipPath>
             <image
-              href={`https://raw.githubusercontent.com/brissa-a/lcdg-data/main/img-nobg/${depute.uid}.png`}
+              href={`https://raw.githubusercontent.com/brissa-a/lcdg-nobg/main/depute/${depute.uid}.webp`}
               clipPath={"url(#" + depute.uid + "-clippath-detail)"}
             />
             <circle

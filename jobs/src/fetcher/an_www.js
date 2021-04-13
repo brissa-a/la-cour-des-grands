@@ -1,5 +1,6 @@
 const { program } = require('commander');
-const {buildBrowser, closeBrowser} = require('./misc/browser.js')
+const {buildBrowser, closeBrowser} = require('./misc/browser.js');
+const { dlJsonFile } = require('./misc/downloader.js');
 const {isMissingThrow} = require('./misc/isMissing.js')
 
 const url = 'http://www2.assemblee-nationale.fr/deputes/liste/alphabetique'
@@ -14,8 +15,6 @@ async function fetchSearchOf(depute, opt) {
 }
 
 
-var searchData;
-
 /*
 {
     acteurId: 'OMC_PA2150',
@@ -28,14 +27,13 @@ var searchData;
     numCirco: '4',
     communes: 'Marseille 1er arrondissement (13001),Marseille 5eme arrondissement (13005),Marseille,Marseille 2eme arrondissement (13002),Marseille 3eme arrondissement (13003),Marseille 6eme arrondissement (13006)'
   }
-  //TODO replace by a requet to https://www.assemblee-nationale.fr/dyn/ajax/deputes/get-deputes-data
 */
+let searchData;
 async function fetchSearch(uid, opt) {
-  const {searchtab} = await buildBrowser(opt);
   const v = opt.verbose;
+  let target = `${opt.dlfolder}/an_www/get-deputes-data.json`
   while (!searchData) {
-    await timeout(100) //TODO Better solution ?
-    searchData = await searchtab.evaluate(() => JSON.parse(sessionStorage.getItem("dataDeputesList")));
+    searchData = (await dlJsonFile('https://www.assemblee-nationale.fr/dyn/ajax/deputes/get-deputes-data', target, opt)).data
     for (one of searchData) {
       one.communes = one.communes.split(',').map(commune => commune.trim()).sort();
     }

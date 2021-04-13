@@ -58,17 +58,17 @@ async function getDeputesData(opt) {
 async function main() {
   program
     .description(`Download depute data into dl/deputes.json.`)
-    .option('-f, --dlfolder <folder>' , 'download folder', "work/")
-    .option('-i, --dl-img', 'download depute pic')
+    .option('-f, --dlfolder <folder>' , 'work folder', "work/")
     .option('-d, --debug', 'run puppeteer headless')
     .option('-c, --config-file <file>' , 'config.json file path', 'config.json')
     .option('--only [uid]', 'download only the one depute for debugging purpose. depute uid ex: PA722170')
     .option('-v, --verbose', 'log what\'s happening')
     .option('--no-mkdir')
-    .option('--override')
+    .option('--override', 'rewrite data from all steps even if already present')
+    .option('--redownload', 'redownload all file even if already present in dlfolder')
     .option('--step <step-name>', '', 'default')
     .option('--show-step')
-    .option('--detect-list-change')
+    .option('--no-detect-list-change', 'detect added/removed deputes')
     .option('--push-to-remote <giturl>')
     .option('--clean-workdir')
     .parse(process.argv);

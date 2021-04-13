@@ -3,11 +3,24 @@ const util = require('util');
 const unzipper = require('unzipper')
 const path = require('path')
 const glob = require('fast-glob');
-const {fileCache, openJson, saveJson} = require("./files.js")
+const { fileCache, openJson, saveJson } = require("./files.js")
 const fs = require('fs');
 
 const unzip = folder => unzipper.Extract({ path: folder })
 const file = f => fs.createWriteStream(f)
+
+async function exists(url) {
+  try {
+    await axios.head(url);
+    return true;
+  } catch (error) {
+    if (error.response && error.response.status >= 400) {
+      return false;
+    } else {
+      throw error
+    }
+  }
+}
 
 async function download(url, output) {
   const response = await axios({
@@ -22,7 +35,7 @@ async function download(url, output) {
 
 const d = {
   mkdir: true,
-  override: false,
+  redownload: false,
   verbose: false
 }
 
@@ -31,14 +44,14 @@ async function downloadFile(url, destfile, opt = {}) {
   const dir = path.dirname(destfile)
   opt.mkdir && await fs.promises.mkdir(dir, { recursive: true })
   if (!opt.redownload && fs.existsSync(destfile)) {
-      opt.verbose && console.log(`${destfile} already exist, skipping download`)
-      return;
+    opt.verbose && console.log(`${destfile} already exist, skipping download`)
+    return;
   }
   opt.verbose && console.log(`Downloading file from ${url} into ${destfile}`)
   return download(url, file(destfile))
 }
 
-async  function downloadUnzip(url, destfolder, opt = {}) {
+async function downloadUnzip(url, destfolder, opt = {}) {
   opt = Object.assign(d, opt)
   opt.mkdir && await fs.promises.mkdir(destfolder, { recursive: true })
   if (!opt.redownload) {
@@ -58,26 +71,20 @@ async function dlJsonFile(url, destfile, opt = {}) {
 }
 
 async function dlJsonUnzip(url, destfolder, globPattern = "**/*", opt = {}) {
-  await downloadUnzip(url, destfolder, opt = {})
-  return glob([destfolder, globPattern].join('/')).map(filename => ({
-    filename,
-    content: openJson(filename)
-  }))
+  await downloadUnzip(url, destfolder, opt)
+  const filenames = await glob([destfolder, globPattern].join('/'))
+  function* contentIterator() {
+    for (filename of filenames) {
+      yield { filename, content: openJson(filename) }
+    }
+  }
+  return {filenames, [Symbol.iterator]: contentIterator}
 }
 
 async function main() {
-  downloadFile(
-    url="https://www.google.com/logos/doodles/2020/december-holidays-days-2-30-6753651837108830.5-s.png",
-    destfile="./google.png",
-    opt={verbose: true}
-  )
-  downloadUnzip(
-    url="http://data.assemblee-nationale.fr/static/openData/repository/15/amo/deputes_actifs_mandats_actifs_organes/AMO10_deputes_actifs_mandats_actifs_organes_XV.json.zip",
-    destfolder="test/data4.assemblee-nationale.fr/",
-    opt={verbose: true}
-  )
+  await download('https://datan.fr/assets/imgs/deputes_nobg_import/depute_60.png', "download.test");
 }
 
 if (require.main === module) main()
 
-module.exports = {downloadFile, downloadUnzip}
+module.exports = { downloadFile, downloadUnzip, dlJsonFile, dlJsonUnzip, exists }

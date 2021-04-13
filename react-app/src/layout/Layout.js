@@ -156,7 +156,7 @@ export class DeputesRenderer extends React.PureComponent {
     let { deputeWithVisualProp } = this.props
     deputeWithVisualProp = onlyOne ? [deputeWithVisualProp[rand]] : deputeWithVisualProp
     const deputeElems = deputeWithVisualProp
-      .sort(([a, x], [b, y]) => a.uid.localeCompare(b.uid))
+      .sort(([a, x], [b, y]) => a.uid.localeCompare(b.uid))//Keep fixed order to avoid react rerendering 
       .map(([depute, visualProps]) => children({ depute, visualProps }))
     return deputeElems
   }

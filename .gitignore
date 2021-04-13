@@ -40,3 +40,4 @@ react-app/.firebaserc
 jobs/dl_old/
 test_*.js
 jobs/work/
+jobs/work*

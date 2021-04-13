@@ -39,7 +39,7 @@ async function downloadBackgroundLessPic(depute, opt) {
         fs.unlinkSync(filename) //remove empty file started to be created before error
         if (opt.removeBg) {
           opt.verbose && console.log(`trying download from remove.bg`)
-          downloadFromRemoveBg(depute, filename, opt)
+          await downloadFromRemoveBg(depute, filename, opt)
         } else {
           console.log(`depute ${depute.uid} pic not found on github, try adding --remove-bg option to download it from paying remove.bg site`)
         }

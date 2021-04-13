@@ -161,7 +161,6 @@ class DraggableSvg extends React.PureComponent {
       <g
         ref={this.transformRef}
         transform={this.getTransformString()}
-        style={{ transition: "transform 0.1s" }}
       >
         <g>
           {this.props.children}

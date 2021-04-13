@@ -59,7 +59,7 @@ class Depute extends PureComponent {
         <circle r="0.53" />
       </clipPath>
       <image opacity={0.8}
-        href={`https://raw.githubusercontent.com/brissa-a/lcdg-data/main/img-nobg/${depute.uid}.png`}
+        href={`https://raw.githubusercontent.com/brissa-a/lcdg-nobg/main/depute/${depute.uid}.webp`}
         x={-imgsize / 2}
         y={-imgsize / 2}
         height={imgsize}
