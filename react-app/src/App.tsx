@@ -14,9 +14,10 @@ import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import blue from '@material-ui/core/colors/blue';
 import grey from '@material-ui/core/colors/grey';
 import CssBaseline from '@material-ui/core/CssBaseline';
+import {BDD} from './LoadingScreen'
 
 function handleDarkMode() {
-  const favicons = document.querySelectorAll('head > link[rel="icon"][media]')
+  const favicons : NodeListOf<HTMLLinkElement> = document.querySelectorAll('head > link[rel="icon"][media]')
   for (const fav of favicons) {
     if (window.matchMedia(fav.media).matches && fav.dataset.host === window.location.hostname) {
       //console.log({fav}, true)
@@ -39,12 +40,28 @@ const theme = createMuiTheme({
 
 //#212121
 
-class App extends React.PureComponent {
+interface Props { bdd : BDD  }
+interface State {
+  detail: any,
+  pinned: any,
+  showPic: any,
+  visualColorName: any,
+  visualLayoutName: any,
+  panelOpen: any,
+  highlightDeputeUids: any,
+  invertDepute: any,
+  scrutinIdColor: any,
+  scrutinIdLayout: any
+}
 
-  constructor({bdd}) {
-    super()
-    const {deputes} = bdd
-    const visuals = buildVisuals(bdd)
+class App extends React.PureComponent<Props, State | any> {
+
+  visuals : any
+
+  constructor(props) {
+    super(props)
+    const {deputes} = props.bdd
+    const visuals = buildVisuals(props.bdd)
     this.visuals = visuals
     let randomDepute;
     while (!randomDepute) randomDepute = deputes[Math.floor(Math.random() * deputes.length)];
@@ -105,49 +122,29 @@ class App extends React.PureComponent {
     }
   }
 
-  setVisualLayout(name, pushState) {
-    this.setState({
-      visualLayoutName: name
-    })
-    if (pushState) {
+  setUrlState(name, value, pushHistory) {
+    this.setState({[name]: value})
+    if (pushHistory) {
       const params = new URLSearchParams(window.location.search);
-      params.set("layout", name);
+      params.set(name, value);
       window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
     }
+  }
+
+  setVisualLayout(name, pushState) {
+    this.setUrlState("visualLayoutName", name, pushState)
   }
 
   setVisualColor(name, pushState) {
-    this.setState({
-      visualColorName: name
-    })
-    if (pushState) {
-      const params = new URLSearchParams(window.location.search);
-      params.set("color", name);
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
-    }
-  }
-
-  
-  setScrutinIdLayout(id, pushState) {
-    this.setState({
-      scrutinIdLayout: id
-    })
-    if (pushState) {
-      const params = new URLSearchParams(window.location.search);
-      params.set("scrutinIdLayout", id);
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
-    }
+    this.setUrlState("visualColorName", name, pushState)
   }
 
   setScrutinIdColor(id, pushState) {
-    this.setState({
-      scrutinIdColor: id
-    })
-    if (pushState) {
-      const params = new URLSearchParams(window.location.search);
-      params.set("scrutinIdColor", id);
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
-    }
+    this.setUrlState("scrutinIdColor", id, pushState)
+  }
+
+  setScrutinIdLayout(id, pushState) {
+    this.setUrlState("scrutinIdLayout", id, pushState)
   }
 
   togglePanel() {
