@@ -14,7 +14,7 @@ import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import blue from '@material-ui/core/colors/blue';
 import grey from '@material-ui/core/colors/grey';
 import CssBaseline from '@material-ui/core/CssBaseline';
-import {BDD} from './LoadingScreen'
+import {BDD, Depute as DeputeApi} from './LoadingScreen'
 
 function handleDarkMode() {
   const favicons : NodeListOf<HTMLLinkElement> = document.querySelectorAll('head > link[rel="icon"][media]')
@@ -48,17 +48,19 @@ interface State {
   visualColorName: any,
   visualLayoutName: any,
   panelOpen: any,
-  highlightDeputeUids: any,
+  highlightDeputeUids: string[],
   invertDepute: any,
   scrutinIdColor: any,
   scrutinIdLayout: any
 }
 
+export type UrlStateName = "visualLayoutName" | "visualColorName" | "scrutinIdColor" | "scrutinIdLayout" | "showPic"
+
 class App extends React.PureComponent<Props, State | any> {
 
   visuals : any
 
-  constructor(props) {
+  constructor(props : Props) {
     super(props)
     const {deputes} = props.bdd
     const visuals = buildVisuals(props.bdd)
@@ -78,22 +80,18 @@ class App extends React.PureComponent<Props, State | any> {
       scrutinIdLayout: visuals.default.scrutinIdLayout
     }
     window.deputes = deputes
-    window.onpopstate = function() {
-      const params = new URLSearchParams(window.location.search);
-      this.setVisual(params.get("visual") || visuals.default, false)
-      this.showPic(params.get("showPic") === 'true' || visuals.showPic, false)
-    }.bind(this);
+    window.onpopstate = this.popState
   }
 
-  setHighlightDeputeIds(highlightDeputeUids) {
+  setHighlightDeputeIds(highlightDeputeUids: string[]) {
     this.setState({highlightDeputeUids})
   }
 
-  showDetail(depute) {
+  showDetail(depute: any) {
     this.setState({detail: depute, highlightDeputeUids: [depute.uid]})
   }
 
-  pinDetail(depute) {
+  pinDetail(depute: DeputeApi) {
     if (depute === null) {
       //unpin case
       this.setState({
@@ -107,7 +105,7 @@ class App extends React.PureComponent<Props, State | any> {
     }
   }
 
-  showPic(show, pushState) {
+  showPic(show : boolean, pushState : boolean) {
     this.setState({
       showPic: show
     })
@@ -118,32 +116,46 @@ class App extends React.PureComponent<Props, State | any> {
       } else {
         params.delete("showPic")
       }
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
+      window.history.pushState(null, document.title, decodeURIComponent(`${window.location.pathname}?${params}`));
     }
   }
 
-  setUrlState(name, value, pushHistory) {
+  getUrlState(name : UrlStateName) {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name)
+  }
+
+  popState() {
+      const params = new URLSearchParams(window.location.search);
+      this.setVisualLayout(this.getUrlState("visualLayoutName") || this.visuals.default.layout, false)
+      this.setVisualColor(this.getUrlState("visualColorName") || this.visuals.default.color, false)
+      this.setScrutinIdLayout(this.getUrlState("scrutinIdLayout") || this.visuals.default.scrutinIdLayout, false)
+      this.setScrutinIdColor(this.getUrlState("scrutinIdColor") || this.visuals.default.scrutinIdColor, false)
+      this.showPic(this.getUrlState("showPic") === 'true' || this.visuals.showPic, false)
+  }
+
+  setUrlState(name: UrlStateName, value: string, pushHistory: boolean) {
     this.setState({[name]: value})
     if (pushHistory) {
       const params = new URLSearchParams(window.location.search);
       params.set(name, value);
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
+      window.history.pushState(null, window.document.title, decodeURIComponent(`${window.location.pathname}?${params}`));
     }
   }
 
-  setVisualLayout(name, pushState) {
+  setVisualLayout(name: string, pushState: boolean) {
     this.setUrlState("visualLayoutName", name, pushState)
   }
 
-  setVisualColor(name, pushState) {
+  setVisualColor(name: string, pushState: boolean) {
     this.setUrlState("visualColorName", name, pushState)
   }
 
-  setScrutinIdColor(id, pushState) {
+  setScrutinIdColor(id: string, pushState: boolean) {
     this.setUrlState("scrutinIdColor", id, pushState)
   }
 
-  setScrutinIdLayout(id, pushState) {
+  setScrutinIdLayout(id: string, pushState: boolean) {
     this.setUrlState("scrutinIdLayout", id, pushState)
   }
 
@@ -178,7 +190,7 @@ class App extends React.PureComponent<Props, State | any> {
             <Caption app={app} />
         </SvgOpacityTransition></TransitionGroup>
         <DeputesRenderer  app={app} deputeWithVisualProp={deputeWithVisualProp}>
-          {({depute, visualProps}) => <Depute
+          {({depute, visualProps}: {depute: any, visualProps: any}) => <Depute
              app={app} highlight={highlightDeputeUids.includes(depute.uid)}
              depute={depute} key={depute.uid}
              showPic={showPic}

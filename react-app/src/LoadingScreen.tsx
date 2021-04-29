@@ -1,20 +1,25 @@
 import React from 'react';
-import App from './App.jsx'
+import App from './App'
 
-export type BDD = {scrutins: any, deputes: any, groupes: any, sieges: any}
+//TODO create API types
+export type Depute = any
+export type Scrutin = any
+export type Siege = any
+export type Groupe = any
+export type BDD = {scrutins: Scrutin[], deputes: Depute[], groupes: Groupe[], sieges: Siege[]}
 
 interface Props {}
 interface State {loading : boolean}
 
 class LoadingScreen extends React.PureComponent<Props, State> {
 
-  deputes: any | undefined
-  scrutins: any | undefined
-  sieges: any | undefined
-  groupes: any | undefined
+  deputes?: Depute[]
+  scrutins?: Scrutin[]
+  sieges?: Siege[]
+  groupes?: Groupe[]
 
 
-  constructor(props) {
+  constructor(props : Props) {
     super(props)
     this.state = {
       loading: true
@@ -30,8 +35,11 @@ class LoadingScreen extends React.PureComponent<Props, State> {
   render() {
     const { loading } = this.state
     if (loading) return "Loading..."
-    const bdd : BDD = this
-    return <App bdd={bdd} />
+    const {scrutins, groupes, sieges, deputes} = this
+    if (scrutins && deputes && groupes && sieges) {
+      const bdd : BDD = {scrutins, groupes, sieges, deputes}
+      return <App bdd={bdd} />
+    }
   }
 
   componentDidMount() {
