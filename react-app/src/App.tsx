@@ -14,7 +14,7 @@ import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import blue from '@material-ui/core/colors/blue';
 import grey from '@material-ui/core/colors/grey';
 import CssBaseline from '@material-ui/core/CssBaseline';
-import {BDD, Depute as DeputeApi} from './LoadingScreen'
+import {BDD} from './LoadingScreen'
 
 function handleDarkMode() {
   const favicons : NodeListOf<HTMLLinkElement> = document.querySelectorAll('head > link[rel="icon"][media]')

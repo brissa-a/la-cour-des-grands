@@ -1,20 +1,17 @@
 import React from 'react';
 import App from './App'
 
-//TODO create API types
-export type Siege = any
-export type Groupe = any
-export type BDD = {scrutins: Scrutin[], deputes: Depute[], groupes: Groupe[], sieges: Siege[]}
+export type BDD = {scrutins: ScrutinApi[], deputes: DeputeApi[], groupes: GroupeApi[], sieges: SiegeApi[]}
 
 interface Props {}
 interface State {loading : boolean}
 
 class LoadingScreen extends React.PureComponent<Props, State> {
 
-  deputes?: Depute[]
-  scrutins?: Scrutin[]
-  sieges?: Siege[]
-  groupes?: Groupe[]
+  deputes?: DeputeApi[]
+  scrutins?: ScrutinApi[]
+  sieges?: SiegeApi[]
+  groupes?: GroupeApi[]
 
 
   constructor(props : Props) {
