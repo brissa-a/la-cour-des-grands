@@ -30,7 +30,7 @@ class DraggableSvg extends React.PureComponent<Props, State> {
   offset? : Coord
   prevTouchDist = 0
 
-  constructor(props : {}) {
+  constructor(props : Props) {
     super(props)
     //USe ref for perfomance purpose
   }

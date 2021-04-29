@@ -1,7 +1,7 @@
 import React from 'react';
 import DeputeDetail from './DeputeDetail.js'
 import './App.css';
-import DraggableSvg from './DraggableSvg.js'
+import DraggableSvg from './DraggableSvg'
 import Footer  from './Footer.js'
 import Search  from './Search.js'
 import Panel  from './Panel.js'
