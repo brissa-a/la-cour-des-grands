@@ -2,8 +2,6 @@ import React from 'react';
 import App from './App'
 
 //TODO create API types
-export type Depute = any
-export type Scrutin = any
 export type Siege = any
 export type Groupe = any
 export type BDD = {scrutins: Scrutin[], deputes: Depute[], groupes: Groupe[], sieges: Siege[]}

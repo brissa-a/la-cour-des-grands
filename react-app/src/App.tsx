@@ -80,7 +80,7 @@ class App extends React.PureComponent<Props, State | any> {
       scrutinIdLayout: visuals.default.scrutinIdLayout
     }
     window.deputes = deputes
-    window.onpopstate = this.popState
+    window.onpopstate = () => this.popState()
   }
 
   setHighlightDeputeIds(highlightDeputeUids: string[]) {
