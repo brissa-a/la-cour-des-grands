@@ -1,6 +1,7 @@
 import { withStyles, StyledComponentProps, Theme } from "@material-ui/core/styles";
 import React from 'react';
 import { meanBy } from 'lodash'
+import App from "./App";
 
 const styles = (theme: Theme) => ({
   root: {
@@ -12,7 +13,7 @@ const styles = (theme: Theme) => ({
 type Coord = {x: number; y: number}
 type SvgMoveEvent = React.MouseEvent<SVGSVGElement, MouseEvent> | React.TouchEvent<SVGSVGElement>
 
-interface Props extends StyledComponentProps {}
+interface Props extends StyledComponentProps {app: App}
 interface State {}
 
 class DraggableSvg extends React.PureComponent<Props, State> {
