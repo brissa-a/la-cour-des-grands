@@ -42,16 +42,15 @@ const theme = createMuiTheme({
 
 interface Props { bdd : BDD  }
 interface State {
-  detail: any,
-  pinned: any,
-  showPic: any,
-  visualColorName: any,
-  visualLayoutName: any,
-  panelOpen: any,
+  detail: DeputeApi,
+  pinned: DeputeApi,
+  showPic: boolean,
+  visualColorName: string,
+  visualLayoutName: string,
+  scrutinIdColor: string,
+  scrutinIdLayout: string,
+  panelOpen: boolean,
   highlightDeputeUids: string[],
-  invertDepute: any,
-  scrutinIdColor: any,
-  scrutinIdLayout: any
 }
 
 export type UrlStateName = "visualLayoutName" | "visualColorName" | "scrutinIdColor" | "scrutinIdLayout" | "showPic"
@@ -73,11 +72,10 @@ class App extends React.PureComponent<Props, State | any> {
       showPic: visuals.showPic,
       visualColorName: visuals.default.color,
       visualLayoutName: visuals.default.layout,
-      panelOpen: false,
-      highlightDeputeUids: [],
-      invertDepute: false,
       scrutinIdColor: visuals.default.scrutinIdColor,
-      scrutinIdLayout: visuals.default.scrutinIdLayout
+      scrutinIdLayout: visuals.default.scrutinIdLayout,
+      panelOpen: false,
+      highlightDeputeUids: []
     }
     window.deputes = deputes
     window.onpopstate = () => this.popState()
