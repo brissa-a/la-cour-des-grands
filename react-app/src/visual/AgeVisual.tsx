@@ -1,4 +1,5 @@
-import { groupBy } from '../functional.js';
+import { groupBy } from '../functional';
+import { VisualColor, VisualLayout } from './VisualType.js';
 
 const youngColor = {
   h: 31 ,
@@ -36,7 +37,7 @@ function minMaxRange(list : number[] | any[], getter?: (a:any) => number) {
   return { min, max, range, avg }
 }
 
-const  AgeVisual = (deputes: DeputeApi[]) => new class {
+const  AgeVisual = (deputes: DeputeApi[]) => new class implements VisualLayout, VisualColor {
 
   global : {avg: number, max: number, min: number, span: number};
   f = f

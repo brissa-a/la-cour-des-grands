@@ -2,7 +2,7 @@ import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Link, Typography } from '@material-ui/core';
 import { Fragment } from 'react';
-import { groupBy } from '../functional.js';
+import { groupBy } from '../functional.tsx';
 
 const colors = {
   "P": { h: 101, s: 47, v: 46 },

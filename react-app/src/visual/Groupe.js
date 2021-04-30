@@ -1,4 +1,4 @@
-import { groupBy } from '../functional.js';
+import { groupBy } from '../functional.tsx';
 
 const GroupeVisual = groupes => new class {
 

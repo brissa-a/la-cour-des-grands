@@ -1,4 +1,4 @@
-import { groupBy } from '../functional.js';
+import { groupBy } from '../functional.tsx';
 
 const womanColor = {
   h:299, s:37, v:46

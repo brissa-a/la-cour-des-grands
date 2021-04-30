@@ -1,4 +1,4 @@
-import { groupBy } from '../functional.js';
+import { groupBy } from '../functional.tsx';
 
 const { log, ceil, floor} = Math
 
