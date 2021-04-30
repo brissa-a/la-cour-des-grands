@@ -1,27 +1,47 @@
 import Typography from '@material-ui/core/Typography';
-import React from 'react';
+import React, { ReactChild, ReactChildren } from 'react';
 import SvgCaption from '../Caption.js';
 import { Siege } from '../Depute.js';
 import { Border, Tribune } from '../SvgPath.js';
+import { VisualLayout, VisualColor } from "../visual/VisualType";
 
 const rand = Math.round(Math.random() * 300)
 
 const params = new URLSearchParams(window.location.search)
 
-function minMaxRange(list, getter) {
-  if (getter) list = list.map(getter)
-  const min = Math.min(...list)
-  const max = Math.max(...list)
+function minMaxRange(list : number[]) :{ min:number, max:number, range:number, avg:number } ;
+function minMaxRange(list : any[], getter: (a:any) => number) :{ min:number, max:number, range:number, avg:number } ;
+
+function minMaxRange(list : number[] | any[], getter?: (a:any) => number) {
+  let numList = getter ? list.map(getter) : list as number[]
+  const min = Math.min(...numList)
+  const max = Math.max(...numList)
   const range = max - min
-  const avg = list.reduce((a, b) => a + b, 0) / list.length
+  const avg = numList.reduce((a: number, b: number) => a + b, 0) / numList.length
   return { min, max, range, avg }
 }
 
-export const chart = (visualLayout) => (visualColor) => (deputes) => {
-  const Caption = props => <SvgCaption visualColor={visualColor} />//To wrap for positioning
+type Column = {
+  name: string,
+  idx: number,
+  width: number,
+  y: number,
+  x: number
+}
+
+type VisualProps = {
+  y: number,
+  x: number,
+  h: number,
+  s: number,
+  v: number
+}
+
+export const chart = (visualLayout: VisualLayout) => (visualColor : VisualColor) => (deputes: DeputeApi[]) => {
+  const Caption : React.FC = props => <SvgCaption visualColor={visualColor} />//To wrap for positioning
   const { groupes, maxColSize } = visualLayout.group(deputes)
   const deputeWithVisualProp = []
-  const columns = []
+  const columns: Column[] = []
   const margin = 1
   for (const [colIdx, [groupeName, deputes]] of groupes.entries()) {
     const colSize = maxColSize //deputes.length > maxColSize ? maxColSize : Math.max(deputes.length, 1)
@@ -35,7 +55,7 @@ export const chart = (visualLayout) => (visualColor) => (deputes) => {
       x: colIdx * (colSize + margin) - (colSize + margin) * groupes.length / 2
     })
     for (const [sIdx, depute] of deputes.entries()) {
-      const visualProps = {
+      const visualProps : VisualProps & {sIdx: number, colIdx: number} = {
         x: colIdx * (colSize + margin) + (sIdx % colSize) - (colSize + margin) * groupes.length / 2,
         y: -Math.floor(sIdx / colSize),
         colIdx: colIdx,
@@ -45,7 +65,7 @@ export const chart = (visualLayout) => (visualColor) => (deputes) => {
       deputeWithVisualProp.push([depute, visualProps])
     }
   }
-  const Blueprint = props => {
+  const Blueprint : React.FC = props => {
     const fontSize = 1
     const yAxis = minMaxRange(columns, c => c.y)
     //const xAxis = minMaxRange(columns, c => c.x)
@@ -98,7 +118,7 @@ export const chart = (visualLayout) => (visualColor) => (deputes) => {
 
     const chartTitle = visualLayout.title && <g transform={`translate(${(-800 * 0.05 / 2)}, ${siegeSize * 5})`}>
       <foreignObject transform="scale(0.05)" width="800" height="500">
-        <div class="undraggable" style={{ padding: "5px", textAlign: "center" }}>
+        <div className="undraggable" style={{ padding: "5px", textAlign: "center" }}>
           <Typography variant="body1">
             {visualLayout.title()}
           </Typography>
@@ -122,8 +142,8 @@ export const chart = (visualLayout) => (visualColor) => (deputes) => {
 
 
 
-export const hemicycle = (sieges) => (visualLayout) => (visualColor) => (deputes) => {
-  const Blueprint = props => {
+export const hemicycle = (sieges: SiegeApi[]) => (visualColor: VisualColor) => (deputes: DeputeApi[]) => {
+  const Blueprint : React.FC = props => {
     return <g>
       <g>
         {sieges.map(s => <Siege key={s.id} siege={s} />)}
@@ -131,10 +151,10 @@ export const hemicycle = (sieges) => (visualLayout) => (visualColor) => (deputes
       <Border /><Tribune />
     </g>
   }
-  const Caption = props => <SvgCaption visualColor={visualColor} />//To wrap for positioning
+  const Caption : React.FC = props => <SvgCaption visualColor={visualColor} />//To wrap for positioning
   const deputeWithVisualProp = deputes.map(depute => {
     const color = visualColor.deputeColor(depute)
-    const visualProps = {
+    const visualProps : VisualProps = {
       x: depute.lcdg.siege.pos.x * 29,
       y: depute.lcdg.siege.pos.y * 29,
       ...color
@@ -144,10 +164,17 @@ export const hemicycle = (sieges) => (visualLayout) => (visualColor) => (deputes
   return { Blueprint, Caption, deputeWithVisualProp }
 }
 
-export class DeputesRenderer extends React.PureComponent {
 
-  constructor(props) {
-    super()
+interface Props {
+  deputeWithVisualProp : [DeputeApi, VisualProps][],
+  children: (x:{depute:DeputeApi, visualProps:VisualProps}) => ReactChild
+}
+interface State {}  
+
+export class DeputesRenderer extends React.PureComponent<Props, State> {
+
+  constructor(props: Props) {
+    super(props)
   }
 
   render() {
@@ -157,7 +184,7 @@ export class DeputesRenderer extends React.PureComponent {
     deputeWithVisualProp = onlyOne ? [deputeWithVisualProp[rand]] : deputeWithVisualProp
     const deputeElems = deputeWithVisualProp
       .sort(([a, x], [b, y]) => a.uid.localeCompare(b.uid))//Keep fixed order to avoid react rerendering 
-      .map(([depute, visualProps]) => children({ depute, visualProps }))
+      .map(([depute, visualProps]) => this.props.children && this.props.children({ depute, visualProps }))
     return deputeElems
   }
 

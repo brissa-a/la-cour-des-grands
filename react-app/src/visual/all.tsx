@@ -3,7 +3,7 @@ import TwitterVisual from "./Twitter.js"
 import AgeVisual from "./AgeVisual.js"
 import sexe from "./Sexe.js"
 import ScrutinVisual from "./Scrutin.js"
-import { hemicycle, chart } from "../layout/Layout.js"
+import { hemicycle, chart } from "../layout/Layout"
 import { BDD } from "../LoadingScreen.js"
 
 const params = new URLSearchParams(window.location.search)
@@ -19,7 +19,7 @@ function buildVisuals(bdd: BDD) {
   const scrutin = ScrutinVisual(scrutins)
   return {
     layouts: {
-      "hemicycle": hemicycle(sieges)(),
+      "hemicycle": hemicycle(sieges),
       "pergroupe": chart(groupe),
       "perfollower": chart(twitter),
       "persexe": chart(sexe),
