@@ -9,9 +9,9 @@ interface State {loading : boolean}
 class LoadingScreen extends React.PureComponent<Props, State> {
 
   deputes?: DeputeApi[]
-  scrutins?: ScrutinApi[]
+  scrutins?: ScrutinsApi
   sieges?: SiegeApi[]
-  groupes?: GroupeApi[]
+  groupes?: GroupesApi
 
 
   constructor(props : Props) {

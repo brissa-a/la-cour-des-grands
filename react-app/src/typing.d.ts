@@ -2,7 +2,8 @@ declare interface Window {
     deputes?: any
 }
 
-type ScrutinApi = Record<string, string>
+type ScrutinApi = string
+type ScrutinsApi = Record<string, ScrutinApi>
 
 type SiegeApi = {
     "pos": {
@@ -19,13 +20,14 @@ type SiegeApi = {
     "no": number
 }
 
-type GroupeApi = Record<string, {
+type GroupeApi = {
     "color": {
         "h": number,
         "s": number,
         "v": number
     }
-}>
+}
+type GroupesApi = Record<string, GroupeApi>
 
 type DeputeApi = {
     "an_data_depute": {

@@ -1,26 +1,28 @@
-import { groupBy } from '../functional.tsx';
+import { Fragment } from 'react';
+import { groupBy } from '../functional';
+import { VisualColor, VisualLayout } from './VisualType';
 
-const GroupeVisual = groupes => new class {
+const GroupeVisual = (groupes: GroupesApi) => new class implements VisualLayout, VisualColor {
 
-  deputeColor(depute) {
+  deputeColor(depute: DeputeApi) {
     const { h, s, v } = groupes[depute.an_www_depute.groupe].color
     return {
       h, s: s * 0.8, v
     }
   }
 
-  sort(da, db) {
+  sort(da: DeputeApi, db: DeputeApi) {
     return da.an_www_depute.groupe.localeCompare(db.an_www_depute.groupe)
   }
 
-  formatGroupeName(groupeName) {
+  formatGroupeName(groupeName: string) {
     return groupeName
   }
 
   xAxisName() { return null }
 
-  group(deputes) {
-    const groupByGroupe = groupBy(s => s.an_www_depute.groupe)
+  group(deputes: DeputeApi[]) {
+    const groupByGroupe = groupBy( (s: DeputeApi) => s.an_www_depute.groupe)
     const groupes = Object.entries(
       deputes.reduce(groupByGroupe, {})
     )
@@ -28,8 +30,8 @@ const GroupeVisual = groupes => new class {
     return { groupes, maxColSize: 9 }
   }
 
-  caption(props) {
-    const GroupeLegendeElems = () => Object.keys(groupes).map(name => {
+  caption() {
+    const GroupeLegendeElems = () => <Fragment>{Object.keys(groupes).map(name => {
       const color = groupes[name].color
       const iconsize = 15
       return <div key={name} className="elem">
@@ -43,7 +45,7 @@ const GroupeVisual = groupes => new class {
               {name}
             </div>
           </div>
-    })
+    })}</Fragment>
 
     return <foreignObject transform="scale(0.07)" width="300" height="450">
     <div className="undraggable">
@@ -71,7 +73,7 @@ const GroupeVisual = groupes => new class {
           flex: none
         }
       `}</style>
-      <div className="caption" xmlns="http://www.w3.org/1999/xhtml">
+      <div className="caption">
         <GroupeLegendeElems />
       </div>
       </div>
