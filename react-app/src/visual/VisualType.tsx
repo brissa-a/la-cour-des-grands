@@ -14,7 +14,7 @@ export interface VisualLayout {
 export type Color = { h: number, s: number, v: number }
 
 export interface VisualColor {
-    sort(a: any, b: any): number
+    sort(a: DeputeApi, b: DeputeApi): number
     deputeColor(depute: DeputeApi): Color
 }
 

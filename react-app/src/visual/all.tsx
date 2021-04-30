@@ -1,6 +1,6 @@
 import GroupeVisual from "./Groupe.js"
 import TwitterVisual from "./Twitter.js"
-import AgeVisual from "./AgeVisual.js"
+import AgeVisual from "./AgeVisual"
 import sexe from "./Sexe.js"
 import ScrutinVisual from "./Scrutin.js"
 import { hemicycle, chart } from "../layout/Layout"
