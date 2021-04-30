@@ -4,12 +4,13 @@ import AgeVisual from "./AgeVisual.js"
 import sexe from "./Sexe.js"
 import ScrutinVisual from "./Scrutin.js"
 import { hemicycle, chart } from "../layout/Layout.js"
+import { BDD } from "../LoadingScreen.js"
 
 const params = new URLSearchParams(window.location.search)
 //window.history.pushState({"html":response.html,"pageTitle":response.pageTitle},"", urlPath);
 
 
-function buildVisuals(bdd) {
+function buildVisuals(bdd: BDD) {
   const {scrutins, deputes, groupes, sieges} = bdd
   const scrutinIds = Object.keys(scrutins);
   const twitter = TwitterVisual(deputes)
@@ -23,9 +24,9 @@ function buildVisuals(bdd) {
       "perfollower": chart(twitter),
       "persexe": chart(sexe),
       "perage": chart(age),
-      "perscrutin": scrutinId => chart(scrutin(scrutinId)),
+      "perscrutin": (scrutinId: string) => chart(scrutin(scrutinId)),
     },
-    colors: { groupe, twitter, sexe, age, scrutin: scrutinId => scrutin(scrutinId) },
+    colors: { groupe, twitter, sexe, age, scrutin},
     default: {
       layout: params.get("layout") || "hemicycle",
       color: params.get("color") || "groupe",

@@ -5,7 +5,7 @@ import DraggableSvg from './DraggableSvg'
 import Footer  from './Footer.js'
 import Search  from './Search.js'
 import Panel  from './Panel.js'
-import buildVisuals from "./visual/all.js"
+import buildVisuals from "./visual/all"
 import {DeputesRenderer} from './layout/Layout.js'
 import Depute from './Depute.js'
 import {TransitionGroup} from 'react-transition-group';
