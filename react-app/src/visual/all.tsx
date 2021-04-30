@@ -1,5 +1,5 @@
 import GroupeVisual from "./Groupe"
-import TwitterVisual from "./Twitter.js"
+import TwitterVisual from "./Twitter"
 import AgeVisual from "./AgeVisual"
 import sexe from "./Sexe"
 import ScrutinVisual from "./Scrutin"

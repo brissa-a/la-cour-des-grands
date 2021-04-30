@@ -1,15 +1,17 @@
-import { groupBy } from '../functional.tsx';
+import Depute from '../Depute';
+import { groupBy } from '../functional';
+import { VisualColor, VisualLayout } from './VisualType';
 
 const { log, ceil, floor} = Math
 
 const params = new URLSearchParams(window.location.search)
-const significantFigures = params.has("sf") ? Number.parseInt(params.get("sf")) : 3
-const base = params.has("base") ? Number.parseInt(params.get("base")) : 3
-const f = d => d.twitter?.public_metrics?.followers_count || 0
+const significantFigures = params.has("sf") ? Number.parseInt(params.get("sf") as string) : 3
+const base = params.has("base") ? Number.parseInt(params.get("base") as string) : 3
+const f = (d: DeputeApi) => d.twitter?.public_metrics?.followers_count || 0
 
 const numberFormat = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 3 })
 
-function rangeName({ from, to }) {
+function rangeName({ from, to }: {from:number, to:number}) {
   const n = numberFormat.format
   if (from === 0 && to === 0) {
     return `Pas de compte twitter`
@@ -20,7 +22,14 @@ function rangeName({ from, to }) {
   return `de\u00a0${n(from)}  à\u00a0${n(to)}`
 }
 
-const TwitterVisual = deputes => new class {
+const TwitterVisual = (deputes: DeputeApi[]) => new class implements VisualLayout, VisualColor {
+
+  global: {
+    base: number,
+    avg: number,
+    roundedMax: number, powMax: number, sfMax: number
+  }
+  f = f
 
   constructor() {
     const followers_counts = deputes.map(d => f(d))
@@ -34,25 +43,25 @@ const TwitterVisual = deputes => new class {
       base,
       avg: followers_counts.reduce((acc, x) => acc + x) / deputes.length,
       roundedMax, powMax, sfMax
-    }
-    this.f = f
-    window.twitter_visual = this;
+    };
+    
+    (window as any).twitter_visual = this;
   }
 
   //Get a number between 0 and 1
-  t(twitterFollowerCount) {
+  t(twitterFollowerCount: number) {
     if (twitterFollowerCount === 0) return 0
     const { roundedMax } = this.global
     return log(twitterFollowerCount) / log(roundedMax)
   }
 
   //reverse t to original value
-  tToValue(t) {
+  tToValue(t: number) {
     const { roundedMax } = this.global
     return roundedMax ** t
   }
 
-  color(t) {
+  color(t: number) {
     return {
       h: 203,
       s: t * 70.0,
@@ -60,15 +69,15 @@ const TwitterVisual = deputes => new class {
     }
   }
 
-  deputeColor(depute) {
+  deputeColor(depute: DeputeApi) {
     return this.color(this.t(this.f(depute)))
   }
 
-  sort(sa, sb) {
+  sort(sa: DeputeApi, sb: DeputeApi) {
     return f(sb) - f(sa)
   }
 
-  group(deputes) {
+  group(deputes: DeputeApi[]) {
     const { powMax, sfMax, base } = this.global
     const followerGroupsName = [`{"from":${0}, "to":${0}}`, `{"from":${1}, "to":${sfMax}}`]
     const sampleCount = powMax
@@ -77,7 +86,7 @@ const TwitterVisual = deputes => new class {
       const to = sfMax * base ** (i + 1)
       followerGroupsName.push(`{"from":${from}, "to":${to}}`)
     }
-    const groupByFollower = groupBy(d => {
+    const groupByFollower = groupBy((d: DeputeApi) => {
       const follower = d.twitter?.public_metrics?.followers_count || 0
       let groupIndex;
       if (follower !== 0) {
@@ -90,7 +99,7 @@ const TwitterVisual = deputes => new class {
       return followerGroupsName[groupIndex]
     })
     const followerGroups = followerGroupsName.reduce(
-      (acc, name) => {
+      (acc: Record<string, DeputeApi[]>, name: string) => {
         acc[name] = []
         return acc
       },
@@ -102,7 +111,7 @@ const TwitterVisual = deputes => new class {
     return { groupes, maxColSize: 5 };
   }
 
-  formatGroupeName(groupeName) {
+  formatGroupeName(groupeName: string) {
     return rangeName(JSON.parse(groupeName))
   }
 
@@ -129,7 +138,7 @@ const TwitterVisual = deputes => new class {
 
     return <foreignObject transform="scale(0.07)" width="110" height="400">
       <div className="undraggable">
-        <div className="caption" xmlns="http://www.w3.org/1999/xhtml">
+        <div className="caption">
           <svg className="img" width={110} height={325}>
             <defs>
               <linearGradient id="Gradient1" x1="0" x2="0" y1="0" y2="1">
