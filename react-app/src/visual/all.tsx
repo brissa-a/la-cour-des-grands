@@ -1,7 +1,7 @@
 import GroupeVisual from "./Groupe"
 import TwitterVisual from "./Twitter.js"
 import AgeVisual from "./AgeVisual"
-import sexe from "./Sexe.js"
+import sexe from "./Sexe"
 import ScrutinVisual from "./Scrutin"
 import { hemicycle, chart } from "../layout/Layout"
 import { BDD } from "../LoadingScreen.js"

@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Link, Typography } from '@material-ui/core';
 import { Fragment } from 'react';
 import { groupBy } from '../functional';
-import { Color } from './VisualType';
+import { Color, VisualColor, VisualLayout } from './VisualType';
 
 const colors: Record<string, Color> = {
   "P": { h: 101, s: 47, v: 46 },
@@ -36,7 +36,7 @@ const CaptionElem : React.FC<{name:string, color:Color}> = (props: {name:string,
   </div>
 }
 
-const ScrutinVisual = (idNameIndex: ScrutinsApi) => (scrutinId: string) => new class {
+const ScrutinVisual = (idNameIndex: ScrutinsApi) => (scrutinId: string) => new class implements VisualLayout, VisualColor {
 
   f(s: DeputeApi) { return s.scrutins && (s.scrutins[scrutinId] || "U") }
 
