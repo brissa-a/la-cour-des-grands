@@ -2,9 +2,10 @@ import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Link, Typography } from '@material-ui/core';
 import { Fragment } from 'react';
-import { groupBy } from '../functional.tsx';
+import { groupBy } from '../functional';
+import { Color } from './VisualType';
 
-const colors = {
+const colors: Record<string, Color> = {
   "P": { h: 101, s: 47, v: 46 },
   "C": { h: 0, s: 47, v: 46 },
   "A": { h: 0, s: 0, v: 50 },
@@ -12,7 +13,7 @@ const colors = {
   "U": { h: 0, s: 0, v: 0 }
 }
 
-const groupNameFormating = {
+const groupNameFormating: Record<string, string> = {
   "P": "Pour",
   "C": "Contre",
   "A": "Abstention",
@@ -20,7 +21,7 @@ const groupNameFormating = {
   "U": "Absent"
 }
 
-const CaptionElem = (props) => {
+const CaptionElem : React.FC<{name:string, color:Color}> = (props: {name:string, color:Color}) => {
   const iconsize = 15
   return <div key={props.name} className="elem">
     <svg className="img" width={iconsize} height={iconsize}>
@@ -35,34 +36,34 @@ const CaptionElem = (props) => {
   </div>
 }
 
-const ScrutinVisual = idNameIndex => scrutinId => new class {
+const ScrutinVisual = (idNameIndex: ScrutinsApi) => (scrutinId: string) => new class {
 
-  f(s) { return s.scrutins && (s.scrutins[scrutinId] || "U") }
+  f(s: DeputeApi) { return s.scrutins && (s.scrutins[scrutinId] || "U") }
 
   groupByScrutin() {
-    return groupBy(s => this.f(s))
+    return groupBy<DeputeApi>(s => this.f(s))
   }
 
   constructor() {
     Object.assign(window, { idNameIndex })
   }
  
-  deputeColor(depute) {
+  deputeColor(depute: DeputeApi) {
     return colors[this.f(depute)]
   }
 
-  sort(sa, sb) {
+  sort(sa: DeputeApi, sb: DeputeApi) {
     return this.f(sb).localeCompare(this.f(sa))
   }
 
-  group(deputes) {
+  group(deputes: DeputeApi[]) {
     const groupes = Object.entries(deputes
       .reduce(this.groupByScrutin(), { "P": [], "C": [], "N": [], "A": [], "U": [] })
     )
     return { groupes, maxColSize: 10 }
   }
 
-  formatGroupeName(groupeName) {
+  formatGroupeName(groupeName: string) {
     return groupNameFormating[groupeName]
   }
 
@@ -78,12 +79,12 @@ const ScrutinVisual = idNameIndex => scrutinId => new class {
     </Fragment>
   }
 
-  caption(props) {
+  caption() {
     //VTANR5L15V*3320*
     const smallid = scrutinId.slice("VTANR5L15V".length)
     return <foreignObject transform="scale(0.07)" width="350" height="400">
-      <div class="undraggable">
-        <div className="caption" xmlns="http://www.w3.org/1999/xhtml">
+      <div className="undraggable">
+        <div className="caption" >
           <style>{`
         .caption {
           color: white;

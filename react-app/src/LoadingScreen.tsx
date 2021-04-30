@@ -1,7 +1,7 @@
 import React from 'react';
 import App from './App'
 
-export type BDD = {scrutins: ScrutinApi[], deputes: DeputeApi[], groupes: GroupeApi[], sieges: SiegeApi[]}
+export type BDD = {scrutins: ScrutinsApi, deputes: DeputeApi[], groupes: GroupesApi, sieges: SiegeApi[]}
 
 interface Props {}
 interface State {loading : boolean}
