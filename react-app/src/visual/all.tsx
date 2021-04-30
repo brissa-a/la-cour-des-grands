@@ -5,10 +5,10 @@ import sexe from "./Sexe.js"
 import ScrutinVisual from "./Scrutin.js"
 import { hemicycle, chart } from "../layout/Layout"
 import { BDD } from "../LoadingScreen.js"
+import { LayoutBuilder, VisualColor, VisualLayout } from "./VisualType.js"
 
 const params = new URLSearchParams(window.location.search)
 //window.history.pushState({"html":response.html,"pageTitle":response.pageTitle},"", urlPath);
-
 
 function buildVisuals(bdd: BDD) {
   const {scrutins, deputes, groupes, sieges} = bdd
@@ -17,16 +17,21 @@ function buildVisuals(bdd: BDD) {
   const age = AgeVisual(deputes)
   const groupe = GroupeVisual(groupes)
   const scrutin = ScrutinVisual(scrutins)
+  const layouts : {[name: string]: LayoutBuilder} = {
+    "hemicycle": hemicycle(sieges),
+    "pergroupe": chart(groupe),
+    "perfollower": chart(twitter),
+    "persexe": chart(sexe),
+    "perage": chart(age)
+  }
+  const layoutPerScrutin : (scrutinId: string) => LayoutBuilder = (scrutinId: string) => chart(scrutin(scrutinId))
+  const colors : {[name: string]: VisualColor} = { groupe, twitter, sexe, age}
+  const colorsPerScrutin : (scrutinId: string) => VisualColor = (scrutinId: string) => scrutin(scrutinId)
   return {
-    layouts: {
-      "hemicycle": hemicycle(sieges),
-      "pergroupe": chart(groupe),
-      "perfollower": chart(twitter),
-      "persexe": chart(sexe),
-      "perage": chart(age),
-      "perscrutin": (scrutinId: string) => chart(scrutin(scrutinId)),
-    },
-    colors: { groupe, twitter, sexe, age, scrutin},
+    layouts,
+    layoutPerScrutin,
+    colors,
+    colorsPerScrutin,
     default: {
       layout: params.get("layout") || "hemicycle",
       color: params.get("color") || "groupe",

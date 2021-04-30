@@ -6,7 +6,7 @@ import Footer  from './Footer.js'
 import Search  from './Search.js'
 import Panel  from './Panel.js'
 import buildVisuals from "./visual/all"
-import {DeputesRenderer} from './layout/Layout.js'
+import {DeputesRenderer} from './layout/Layout'
 import Depute from './Depute.js'
 import {TransitionGroup} from 'react-transition-group';
 import {SvgOpacityTransition} from './SvgOpacityTransition.js'
@@ -15,6 +15,7 @@ import blue from '@material-ui/core/colors/blue';
 import grey from '@material-ui/core/colors/grey';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import {BDD} from './LoadingScreen'
+import { Visual, VisualColor, VisualLayout } from './visual/VisualType.js';
 
 function handleDarkMode() {
   const favicons : NodeListOf<HTMLLinkElement> = document.querySelectorAll('head > link[rel="icon"][media]')
@@ -43,7 +44,7 @@ const theme = createMuiTheme({
 interface Props { bdd : BDD  }
 interface State {
   detail: DeputeApi,
-  pinned: DeputeApi,
+  pinned: DeputeApi | null,
   showPic: boolean,
   visualColorName: string,
   visualLayoutName: string,
@@ -55,9 +56,9 @@ interface State {
 
 export type UrlStateName = "visualLayoutName" | "visualColorName" | "scrutinIdColor" | "scrutinIdLayout" | "showPic"
 
-class App extends React.PureComponent<Props, State | any> {
+class App extends React.PureComponent<Props, State> {
 
-  visuals : any
+  visuals
 
   constructor(props : Props) {
     super(props)
@@ -90,7 +91,7 @@ class App extends React.PureComponent<Props, State | any> {
   }
 
   pinDetail(depute: DeputeApi) {
-    if (depute === null) {
+    if (depute === null && this.state.pinned) {
       //unpin case
       this.setState({
         detail: this.state.pinned,
@@ -133,7 +134,7 @@ class App extends React.PureComponent<Props, State | any> {
   }
 
   setUrlState(name: UrlStateName, value: string, pushHistory: boolean) {
-    this.setState({[name]: value})
+    this.setState({[name]: value} as any)//Dirty
     if (pushHistory) {
       const params = new URLSearchParams(window.location.search);
       params.set(name, value);
@@ -171,12 +172,12 @@ class App extends React.PureComponent<Props, State | any> {
     const key = depute.uid + "detail" + (this.state.pinned ? "-pinned" : "")
 
     const visualColor = visualColorName === "scrutin"
-      ? this.visuals.colors[visualColorName](scrutinIdColor)
+      ? this.visuals.colorsPerScrutin(scrutinIdColor)
       : this.visuals.colors[visualColorName] 
-    const visualLayout = visualLayoutName === "perscrutin"
-      ? this.visuals.layouts[visualLayoutName](scrutinIdLayout)(visualColor)
+    const visual : ((deputes: DeputeApi[]) => Visual) = visualLayoutName === "perscrutin"
+      ? this.visuals.layoutPerScrutin(scrutinIdLayout)(visualColor)
       : this.visuals.layouts[visualLayoutName](visualColor)
-    const {Blueprint, Caption, deputeWithVisualProp} = visualLayout(deputes)
+    const {Blueprint, Caption, deputeWithVisualProp} = visual(deputes)
     //DeputeRenderer to avoid react add/remove depute from DOM
     return <ThemeProvider theme={theme}><div className="App">
       <CssBaseline/>
@@ -185,10 +186,10 @@ class App extends React.PureComponent<Props, State | any> {
             <Blueprint />
         </SvgOpacityTransition></TransitionGroup>
         <TransitionGroup component={null}><SvgOpacityTransition key={visualColorName}>
-            <Caption app={app} />
+            <Caption />
         </SvgOpacityTransition></TransitionGroup>
-        <DeputesRenderer  app={app} deputeWithVisualProp={deputeWithVisualProp}>
-          {({depute, visualProps}: {depute: any, visualProps: any}) => <Depute
+        <DeputesRenderer deputeWithVisualProp={deputeWithVisualProp}>
+          {({depute, visualProps}) => <Depute
              app={app} highlight={highlightDeputeUids.includes(depute.uid)}
              depute={depute} key={depute.uid}
              showPic={showPic}

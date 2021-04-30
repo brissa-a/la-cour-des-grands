@@ -3,7 +3,7 @@ import React, { ReactChild, ReactChildren } from 'react';
 import SvgCaption from '../Caption.js';
 import { Siege } from '../Depute.js';
 import { Border, Tribune } from '../SvgPath.js';
-import { VisualLayout, VisualColor } from "../visual/VisualType";
+import { VisualLayout, VisualColor, VisualProps, Visual } from "../visual/VisualType";
 
 const rand = Math.round(Math.random() * 300)
 
@@ -29,18 +29,10 @@ type Column = {
   x: number
 }
 
-type VisualProps = {
-  y: number,
-  x: number,
-  h: number,
-  s: number,
-  v: number
-}
-
 export const chart = (visualLayout: VisualLayout) => (visualColor : VisualColor) => (deputes: DeputeApi[]) => {
   const Caption : React.FC = props => <SvgCaption visualColor={visualColor} />//To wrap for positioning
   const { groupes, maxColSize } = visualLayout.group(deputes)
-  const deputeWithVisualProp = []
+  const deputeWithVisualProp : [DeputeApi, VisualProps][]  = []
   const columns: Column[] = []
   const margin = 1
   for (const [colIdx, [groupeName, deputes]] of groupes.entries()) {
@@ -137,7 +129,8 @@ export const chart = (visualLayout: VisualLayout) => (visualColor : VisualColor)
       {chartTitle}
     </g>
   }
-  return { Blueprint, Caption, deputeWithVisualProp, columns }
+  const layout : Visual = { Blueprint, Caption, deputeWithVisualProp }
+  return layout;
 }
 
 
@@ -152,7 +145,7 @@ export const hemicycle = (sieges: SiegeApi[]) => (visualColor: VisualColor) => (
     </g>
   }
   const Caption : React.FC = props => <SvgCaption visualColor={visualColor} />//To wrap for positioning
-  const deputeWithVisualProp = deputes.map(depute => {
+  const deputeWithVisualProp = deputes.map((depute: DeputeApi) : [DeputeApi, VisualProps] => {
     const color = visualColor.deputeColor(depute)
     const visualProps : VisualProps = {
       x: depute.lcdg.siege.pos.x * 29,
@@ -161,7 +154,8 @@ export const hemicycle = (sieges: SiegeApi[]) => (visualColor: VisualColor) => (
     }
     return [depute, visualProps]
   });
-  return { Blueprint, Caption, deputeWithVisualProp }
+  const layout : Visual = { Blueprint, Caption, deputeWithVisualProp }
+  return layout;
 }
 
 
