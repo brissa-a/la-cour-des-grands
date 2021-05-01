@@ -4,7 +4,7 @@ import { Link, Typography } from '@material-ui/core';
 import { createRef, PureComponent } from 'react';
 import './Search.css';
 import SearchResponse from './SearchResponse.js';
-const { buildIndex, search } = require('./searchAlgo.js')
+const { buildIndex, search } = require('./searchAlgo.tsx')
 
 class Search extends PureComponent {
 

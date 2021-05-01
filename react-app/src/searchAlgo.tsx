@@ -5,12 +5,40 @@ import diacritics from 'diacritics'
 import { groupBy, sortBy } from 'lodash'
 const {max, min} = Math
 
-const createNode = () => ({children: {}, key: null, prevSearch: {}})
+const createNode = () : Node => ({children: {}, key: null/*, prevSearch: {}*/})
 
-export function buildIndex(deputes, scrutins) {
+type ScrutinItem = {id: string, titre: string}
+type Deputeitem = DeputeApi
+type Meta<T> = {getField: (x:T) => string, fieldName: string, item: T, weight?: number, arrayKey?: number}
+
+type Token<T> = {
+    ref: string;
+} & Meta<T> & {
+    word: string;
+    slice: [number, number];
+}
+
+type PossibleToken = Token<DeputeApi> | Token<ScrutinItem>
+
+type Node = {
+    children: Record<string, Node>;
+    key: string | null;//If key not null means its a real word (kind of leaf of tree)
+    // prevSearch: {};
+}
+
+type Index = {
+    wordTree: Node;
+    wordToTokens: Record<string, PossibleToken[]>;
+}
+
+type Edition = "e" | "s" | "d" | "a" | "r" //Equality Substitution Deletion Addition Remains
+type EditStack = Edition[]
+type SearchResults = Record<string, [EditStack, number]>
+
+export function buildIndex(deputes: DeputeApi[], scrutins: ScrutinsApi) {
     const wordTree = createNode()
-    const wordToTokens = {}
-    const deputeTokens = deputes.flatMap(tokenizeDepute)
+    const wordToTokens : Record<string, PossibleToken[]> = {}
+    const deputeTokens : PossibleToken[] = deputes.flatMap(tokenizeDepute)
     const scrutinTokens = Object.entries(scrutins).flatMap(tokenizeScrutin)
     const allTokens = deputeTokens.concat(scrutinTokens)
     //console.log({dictSize: allTokens.length})
@@ -23,59 +51,59 @@ export function buildIndex(deputes, scrutins) {
     return {wordTree, wordToTokens}
 }
 
-function tokenizeScrutin([id, titre]) {
-    const allTokens = []
+function tokenizeScrutin([id, titre]:[string, string]) {
+    const allTokens: Token<ScrutinItem>[][] = []
     allTokens.push(tokenize(
         titre,
         "vote:"+id,
-        {getField: x => x.titre, fieldName: `titre`, item: {id, titre}, weight: 0.9}
+        {getField: (x: ScrutinItem) => x.titre, fieldName: `titre`, item: {id, titre}, weight: 0.9}
     ))
     return allTokens.flatMap(x => x)
 }
 
-function tokenizeDepute(depute) {
+function tokenizeDepute(depute: DeputeApi) {
     const ref = "depute:"+depute.uid
-    let allTokens = []
+    let allTokens: Token<DeputeApi>[][] = []
     allTokens.push(tokenize(
         depute.an_data_depute.nom,
         ref,
-        {getField: x => x.an_data_depute.nom, fieldName: `an_data_depute.nom`, item: depute, weight: 1.10}
+        {getField: (x: DeputeApi) => x.an_data_depute.nom, fieldName: `an_data_depute.nom`, item: depute, weight: 1.10}
     ))
     allTokens.push(tokenize(
         depute.circo.departement,
         ref,
-        {getField: x => x.circo.departement, fieldName: `circo.departement`, item: depute, weight: 1.05}
+        {getField: (x: DeputeApi) => x.circo.departement, fieldName: `circo.departement`, item: depute, weight: 1.05}
     ))
     allTokens.push(tokenize(
         depute.circo.numDepartement,
         ref,
-        {getField: x => x.circo.numDepartement, fieldName: `circo.numDepartement`, item: depute, weight: 1.05}
+        {getField: (x: DeputeApi) => x.circo.numDepartement, fieldName: `circo.numDepartement`, item: depute, weight: 1.05}
     ))
     allTokens.push(tokenize(
         depute.circo.numCirco,
         ref,
-        {getField: x => x.circo.numCirco, fieldName: `circo.numCirco`, item: depute, weight: 1.05}
+        {getField: (x: DeputeApi) => x.circo.numCirco, fieldName: `circo.numCirco`, item: depute, weight: 1.05}
     ))
     for (const [idx, commune] of depute.circo.communes.entries()) {
         const communeTokens = tokenize(
         commune,
         ref,
-        {getField: x => x.circo.communes[idx], fieldName: `circo.communes`, item: depute, arrayKey: idx}
+        {getField: (x: DeputeApi) => x.circo.communes[idx], fieldName: `circo.communes`, item: depute, arrayKey: idx}
         )
         allTokens.push(communeTokens)
     }
     return allTokens.flatMap(x => x)
 }
 
-function normalizeTxt(txt) {
+function normalizeTxt(txt: string) {
     return  diacritics.remove(txt.toLowerCase())
 }
 
-function tokenize(txt, ref, meta) {
+function tokenize<T>(txt: string, ref: string, meta: Meta<T>) : Token<T>[] {
     // eslint-disable-next-line no-useless-escape
     let words = normalizeTxt(txt).split(/[()\[\]<>\s-,']/)
     let i = 0
-    let withPos = []
+    let withPos: {word: string, slice: [number, number]}[] = []
     for (const word of words) {
         withPos.push({
             word,
@@ -89,7 +117,7 @@ function tokenize(txt, ref, meta) {
 }
   
   
-export function search(index, query) {
+export function search(index : Index, query: string) {
     const {wordTree, wordToTokens} = index
     // eslint-disable-next-line no-useless-escape
     const terms = normalizeTxt(query).split(/[()\[\]<>\s-,']/).filter(x => x)
@@ -105,9 +133,9 @@ export function search(index, query) {
         const scoredResults = Object.entries(tokensPerRef).map(([ref, founds]) => {
             const score = founds.map(({token,result}) => {
                 // eslint-disable-next-line no-unused-vars
-                const [editstack, dist] = result.dist
+                const [editstack, value] = result.dist
                 const weight = token.weight || 1
-                return (query.length - dist)/query.length * weight
+                return (query.length - value)/query.length * weight
             }).reduce((a,b) => max(a,b))
             return {ref, item: founds[0].token.item, metadata: founds, score: score}
         });
@@ -121,9 +149,9 @@ export function search(index, query) {
     return sortBy(mergedScore,  x => x.score).reverse()
 }
 
-function insert(node, word) {
+function insert(node: Node, word: string) {
     insertChar(node, word, 0)
-    function insertChar(node, word, i) {
+    function insertChar(node: Node, word: string, i: number) {
         if (i < word.length) {
             const c = word[i]
             const child = getOrCreateChild(node, c)
@@ -134,7 +162,7 @@ function insert(node, word) {
     }
 }
 
-function getOrCreateChild(node, childname) {
+function getOrCreateChild(node : Node, childname: string) {
     let child = node.children[childname]
     if (!child) {
         child = createNode()
@@ -145,17 +173,17 @@ function getOrCreateChild(node, childname) {
 
 //let i, j;
 
-function searchWord(tree, word, log) {
-    const results = {}
+function searchWord(tree : Node, word : string, log : boolean = false) {
+    const results : SearchResults = {}
     // i = 0
     // j = 0
-    searchNode(tree, word, 0, min(3, Math.round(word.length/2)), [], results)
+    searchNode(tree, [...word], 0, min(3, Math.round(word.length/2)), [], results)
     log && logResultColored(results)
     //console.log({i, j})
     return results
 }
 
-function searchNode(node, word, cur_dist, max_dist, editStack, results) {
+function searchNode(node:Node, word:string[], cur_dist:number, max_dist:number, editStack:EditStack, results: SearchResults) {
     //i++
     if (node.key) {
         // eslint-disable-next-line no-unused-vars
@@ -185,11 +213,11 @@ function searchNode(node, word, cur_dist, max_dist, editStack, results) {
         for (const [childname, child] of Object.entries(node.children)) { 
             if (childname === head) {               
                 editStack.push('e')//Equality
-                searchNode(child, tail, cur_dist + 0, max_dist, editStack, results) // rec(i+1, j+1)
+                searchNode(child, tail, cur_dist + 0, max_dist, editStack, results)  // rec(i+1, j+1)
                 editStack.pop()
             } else {
                 editStack.push('s')//Substitution
-                searchNode(child, tail, cur_dist + 1, max_dist, editStack, results)
+                searchNode(child, tail, cur_dist + 1, max_dist, editStack, results)// rec(i+1, j+1)
                 editStack.pop()
             }
             editStack.push("d")//Deletion
@@ -211,7 +239,7 @@ const colors = {
     's': "\x1B[93m",
     'r': "\x1B[90m",
 }
-function color(str, editstack) {
+function color(str: string[], editstack: EditStack): string {
     const [edit, ...remainEdit] = editstack
     const [char, ...remainChar] = str
     if (!edit) return ""
@@ -219,9 +247,9 @@ function color(str, editstack) {
     else return colors[edit]+char+color(remainChar, remainEdit)
 }
 
-function logResultColored(results) {
-    const coloredResult = Object.entries(results).map(([str, [editstack, score]]) => {
-        return [color(str, editstack), score, str, editstack]
+function logResultColored(results:SearchResults) {
+    const coloredResult  = Object.entries(results).map(([str, [editstack, score]]): [string, number, string, EditStack] => {
+        return [color([...str], editstack), score, str, editstack]
     }).slice(0, 10)
 
     // eslint-disable-next-line no-unused-vars
@@ -231,11 +259,11 @@ function logResultColored(results) {
 }
 
 async function main() {
-    const deputes = {}//await require('./deputes.json')
-    const idx = buildIndex(deputes)
-    const results = search(idx, "mel", true)//{ i: 39372, j: 1000 }
-    const twiceresults = search(idx, "melenchon", true)//{ i: 766727, j: 40828 }
-    console.log(results, twiceresults)
+    // const deputes = {}//await require('./deputes.json')
+    // const idx = buildIndex(deputes)
+    // const results = search(idx, "mel", true)//{ i: 39372, j: 1000 }
+    // const twiceresults = search(idx, "melenchon", true)//{ i: 766727, j: 40828 }
+    // console.log(results, twiceresults)
 }
 
 if (require.main === module) main()
