@@ -1,5 +1,5 @@
 import React from 'react';
-import DeputeDetail from './DeputeDetail.js'
+import DeputeDetail from './DeputeDetail'
 import './App.css';
 import DraggableSvg from './DraggableSvg'
 import Footer  from './Footer.js'
@@ -90,7 +90,7 @@ class App extends React.PureComponent<Props, State> {
     this.setState({detail: depute, highlightDeputeUids: [depute.uid]})
   }
 
-  pinDetail(depute: DeputeApi) {
+  pinDetail(depute: DeputeApi | null) {
     if (depute === null && this.state.pinned) {
       //unpin case
       this.setState({
