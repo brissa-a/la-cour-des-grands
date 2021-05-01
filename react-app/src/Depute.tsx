@@ -2,11 +2,16 @@ import { faExclamation } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Fragment, PureComponent } from 'react';
 import "./Depute.css";
+import { VisualProps } from './visual/VisualType';
+import App from './App'
 
-export class Siege extends PureComponent {
+interface PropsS {siege: SiegeApi}
+interface StateS {}
 
-  constructor(props) {
-    super();
+export class Siege extends PureComponent<PropsS, StateS> {
+
+  constructor(props : PropsS) {
+    super(props);
   }
 
   render() {
@@ -36,10 +41,14 @@ export class Siege extends PureComponent {
   }
 }
 
-class Depute extends PureComponent {
+interface I {depute: DeputeApi, showPic: boolean, app: App, highlight : boolean}
+type PropsD = I & VisualProps
+interface StateD {}
 
-  constructor(props) {
-    super();
+class Depute extends PureComponent<PropsD , StateD> {
+
+  constructor(props: PropsD) {
+    super(props);
   }
 
   render() {

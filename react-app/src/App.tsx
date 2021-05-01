@@ -7,7 +7,7 @@ import Search  from './Search.js'
 import Panel  from './Panel.js'
 import buildVisuals from "./visual/all"
 import {DeputesRenderer} from './layout/Layout'
-import Depute from './Depute.js'
+import Depute from './Depute'
 import {TransitionGroup} from 'react-transition-group';
 import {SvgOpacityTransition} from './SvgOpacityTransition.js'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';

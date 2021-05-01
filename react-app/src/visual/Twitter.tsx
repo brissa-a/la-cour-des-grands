@@ -1,4 +1,4 @@
-import Depute from '../Depute';
+
 import { groupBy } from '../functional';
 import { VisualColor, VisualLayout } from './VisualType';
 
