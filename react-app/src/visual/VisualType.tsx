@@ -14,6 +14,7 @@ export interface VisualLayout {
 export type Color = { h: number, s: number, v: number }
 
 export interface VisualColor {
+    caption(): React.ReactElement
     sort(a: DeputeApi, b: DeputeApi): number
     deputeColor(depute: DeputeApi): Color
 }

@@ -1,6 +1,6 @@
 import Typography from '@material-ui/core/Typography';
 import React, { ReactChild, ReactChildren } from 'react';
-import SvgCaption from '../Caption.js';
+import SvgCaption from '../Caption';
 import { Siege } from '../Depute.js';
 import { Border, Tribune } from '../SvgPath.js';
 import { VisualLayout, VisualColor, VisualProps, Visual } from "../visual/VisualType";
