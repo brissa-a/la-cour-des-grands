@@ -6,11 +6,14 @@ import './Footer.css'
 import config from './config.json'
 import Box from "@material-ui/core/Box";
 
-class Footer extends React.PureComponent {
+interface Props {}
+interface State {open: string}
 
-  constructor() {
-    super()
-    this.state = {}
+class Footer extends React.PureComponent<Props, State> {
+
+  constructor(props: Props) {
+    super(props)
+    this.state = {open: ""}
   }
 
   toggle() {

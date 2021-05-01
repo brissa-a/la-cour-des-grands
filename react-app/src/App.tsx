@@ -2,7 +2,7 @@ import React from 'react';
 import DeputeDetail from './DeputeDetail'
 import './App.css';
 import DraggableSvg from './DraggableSvg'
-import Footer  from './Footer.js'
+import Footer  from './Footer'
 import Search  from './Search.js'
 import Panel  from './Panel.js'
 import buildVisuals from "./visual/all"
