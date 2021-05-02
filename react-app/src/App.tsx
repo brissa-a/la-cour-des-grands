@@ -3,7 +3,7 @@ import DeputeDetail from './DeputeDetail'
 import './App.css';
 import DraggableSvg from './DraggableSvg'
 import Footer  from './Footer'
-import Search  from './Search.js'
+import Search  from './Search'
 import Panel  from './Panel.js'
 import buildVisuals from "./visual/all"
 import {DeputesRenderer} from './layout/Layout'

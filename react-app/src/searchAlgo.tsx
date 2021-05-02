@@ -7,33 +7,47 @@ const {max, min} = Math
 
 const createNode = () : Node => ({children: {}, key: null/*, prevSearch: {}*/})
 
-type ScrutinItem = {id: string, titre: string}
-type Deputeitem = DeputeApi
-type Meta<T> = {getField: (x:T) => string, fieldName: string, item: T, weight?: number, arrayKey?: number}
+export type ScrutinItem = {id: string, titre: string}
+export type Meta<T> = {getField: (x:T) => string, fieldName: string, item: T, weight?: number, arrayKey?: number}
 
-type Token<T> = {
+export type Token<T> = {
     ref: string;
 } & Meta<T> & {
     word: string;
     slice: [number, number];
 }
 
-type PossibleToken = Token<DeputeApi> | Token<ScrutinItem>
+export type PossibleToken = Token<DeputeApi> | Token<ScrutinItem>
 
-type Node = {
+export type Node = {
     children: Record<string, Node>;
     key: string | null;//If key not null means its a real word (kind of leaf of tree)
     // prevSearch: {};
 }
 
-type Index = {
+export type Index = {
     wordTree: Node;
     wordToTokens: Record<string, PossibleToken[]>;
 }
 
-type Edition = "e" | "s" | "d" | "a" | "r" //Equality Substitution Deletion Addition Remains
-type EditStack = Edition[]
-type SearchResults = Record<string, [EditStack, number]>
+export type Edition = "e" | "s" | "d" | "a" | "r" //Equality Substitution Deletion Addition Remains
+export type EditStack = Edition[]
+export type SearchResults = Record<string, [EditStack, number]>
+
+
+export type SearchResponse = {
+    ref: string;
+    item: DeputeApi | ScrutinItem;
+    metadata: {
+        token: PossibleToken;
+        result: {
+            word: string;
+            dist: [EditStack, number];
+        };
+    }[];
+    score: number;
+}
+
 
 export function buildIndex(deputes: DeputeApi[], scrutins: ScrutinsApi) {
     const wordTree = createNode()
@@ -117,7 +131,7 @@ function tokenize<T>(txt: string, ref: string, meta: Meta<T>) : Token<T>[] {
 }
   
   
-export function search(index : Index, query: string) {
+export function search(index : Index, query: string) : SearchResponse[] {
     const {wordTree, wordToTokens} = index
     // eslint-disable-next-line no-useless-escape
     const terms = normalizeTxt(query).split(/[()\[\]<>\s-,']/).filter(x => x)

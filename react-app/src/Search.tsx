@@ -1,17 +1,30 @@
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Link, Typography } from '@material-ui/core';
-import { createRef, PureComponent } from 'react';
+import { ChangeEvent, createRef, PureComponent } from 'react';
+import { BDD } from './LoadingScreen';
 import './Search.css';
-import SearchResponse from './SearchResponse.js';
-const { buildIndex, search } = require('./searchAlgo.tsx')
+import SearchResponseElem from './SearchResponse';
+import { buildIndex, search, Index as SearchIndex, SearchResponse } from "./searchAlgo";
+import App from './App';
 
-class Search extends PureComponent {
+interface Props {app: App, bdd: BDD}
+interface State {
+  text: string,
+  resp: SearchResponse[] | null,
+  respDate: number | null,
+  focused: boolean
+ }
 
-  constructor({bdd}) {
-    super()
-    const {deputes, scrutins} = bdd
-    this.wrapperRef = createRef();
+class Search extends PureComponent<Props, State> {
+
+  wrapperRef = createRef<HTMLDivElement>();
+  searchto?: NodeJS.Timeout;
+  myIdx: SearchIndex;
+
+  constructor(props: Props) {
+    super(props)
+    const {deputes, scrutins} = props.bdd
     this.state = {
       text: "",
       resp: null,
@@ -19,26 +32,20 @@ class Search extends PureComponent {
       focused: false
     }
     const myIdx = buildIndex(deputes, scrutins)
-    Object.assign(this, { myIdx })
+    this.myIdx = myIdx
     Object.assign(window, { myIdx })
     Object.assign(window, { search })
   }
 
   componentDidMount() {
-    document.addEventListener('mousedown', this.handleClickOutside.bind(this));
+    document.addEventListener('mousedown', e => this.handleClickOutside(e));
   }
 
   componentWillUnmount() {
-    document.removeEventListener('mousedown', this.handleClickOutside.bind(this));
+    document.removeEventListener('mousedown', e => this.handleClickOutside(e));
   }
 
-  buildIndex() {
-    if (this.deputes && this.scrutins) {
-
-    }
-  }
-
-  onChange(evt) {
+  onChange(evt: ChangeEvent<HTMLInputElement>) {
     this.setState({
       text: evt.target.value
     });
@@ -52,39 +59,10 @@ class Search extends PureComponent {
     }
   }
 
-  handleClickOutside(event) {
-    if (this.wrapperRef && this.wrapperRef.current && !this.wrapperRef.current.contains(event.target)) {
+  handleClickOutside(event: MouseEvent) {
+    if (this.wrapperRef && this.wrapperRef.current && event.target instanceof Node && !this.wrapperRef.current.contains(event.target)) {
       this.setState({ focused: false })
     }
-  }
-
-  exportSvg() {
-    var svgElement = document.getElementById("mainsvg").cloneNode(true);
-    svgElement.setAttribute("width", "1920");
-    svgElement.setAttribute("height", "1080");
-    svgElement.firstChild.setAttribute("transform", `translate(-0.04861094553469947, 0.26474552964222897) scale(0.02272727272727273)`);
-    var svgUrl = 'data:image/svg+xml; charset=utf8, ' + encodeURIComponent(new XMLSerializer().serializeToString(svgElement))
-
-    let image = new Image();
-    console.log({ svgUrl, image })
-    image.onload = () => {
-      let canvas = document.createElement('canvas');
-      const width = image.naturalWidth
-      const height = image.naturalHeight
-      canvas.width = width;
-      canvas.height = height;
-      let ctx = canvas.getContext('2d');
-      ctx.drawImage(image, 0, 0, width, height);
-      let pngUrl = canvas.toDataURL();
-      console.log({ width, height, image, ctx, pngUrl })
-      //https://stackoverflow.com/questions/27798126/how-to-open-the-newly-created-image-in-a-new-tab
-      var img = new Image();
-      img.src = pngUrl
-      img.style.backgroundColor = '#333333'
-      var w = window.open(pngUrl);
-      w.document.write(img.outerHTML);
-    };
-    image.src = svgUrl;
   }
 
   render() {
@@ -93,7 +71,7 @@ class Search extends PureComponent {
     if (this.state.resp) {
       let top10 = this.state.resp.slice(0, 10);
       respElemList = top10.map(x => {
-        return <div class="respelem"><SearchResponse bdd={this.props.bdd} key={x.ref + this.state.respDate} item={x} app={this.props.app} /></div>
+        return <div className="respelem"><SearchResponseElem bdd={this.props.bdd} key={x.ref + this.state.respDate} item={x} app={this.props.app} /></div>
       })
       respElemList = respElemList.length ? respElemList : <SearchTips></SearchTips>
     } else {
@@ -114,10 +92,13 @@ class Search extends PureComponent {
 
 }
 
-class SearchTips extends PureComponent {
+interface PropsST {}
+interface StateST {}
 
-  constructor(props) {
-    super()
+class SearchTips extends PureComponent<PropsST, StateST> {
+
+  constructor(props: Props) {
+    super(props)
   }
 
   render() {

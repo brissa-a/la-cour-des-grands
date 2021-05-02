@@ -2,12 +2,19 @@ import { faPaintBrush, faProjectDiagram } from '@fortawesome/free-solid-svg-icon
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Typography } from '@material-ui/core';
 import { PureComponent } from 'react';
-import { highlightArray, highlightField } from "./highlightAlgo.js";
+import App from './App';
+import { highlightArray, highlightField } from "./highlightAlgo";
+import { BDD } from './LoadingScreen';
+import { ScrutinItem, SearchResponse as SearchResp, SearchResults } from './searchAlgo';
 
-class SearchResponse extends PureComponent {
 
-  constructor(props) {
-    super()
+interface Props {bdd: BDD, item: SearchResp, app: App}
+interface State {}
+
+class SearchResponse extends PureComponent<Props, State> {
+
+  constructor(props: Props) {
+    super(props)
   }
 
   render() {
@@ -21,15 +28,19 @@ class SearchResponse extends PureComponent {
 
 }
 
-class DeputeSearchResponse extends PureComponent {
+interface PropsDSR {bdd: BDD, item: SearchResp, app: App}
+interface StateDSR {}
 
-  constructor(props) {
-    super()
+class DeputeSearchResponse extends PureComponent<PropsDSR, StateDSR> {
+
+  constructor(props: PropsDSR) {
+    super(props)
   }
    
   render() {
     const {groupes} = this.props.bdd
-    const {item, metadata} = this.props.item
+    const item = this.props.item.item as DeputeApi
+    const metadata = this.props.item.metadata
     const {app} = this.props
     //style={{ color: `hsl(${h},${s - 40}%, ${v}%)` }}
     const color = groupes[item.an_www_depute.groupe]?.color
@@ -51,7 +62,7 @@ class DeputeSearchResponse extends PureComponent {
     const CommuneListHtml = () => hglcommunes.length ? <div className="commune-list">{hglcommunes.map((x) =><div className="elem">{x}</div>)}</div> : null
 
     return <div className="deputeresp clickable" onMouseEnter={() => app.showDetail(item)} onClick={() => app.pinDetail(item)}>
-      <div class="pic">
+      <div className="pic">
         <svg width={svg.w} height={svg.h}>
           <g transform={`translate(${(svg.w - portrait.w * scale)/2}, ${(svg.h - portrait.h * scale)/2}) scale(${scale})`}>
             <clipPath id={item.uid+"-clippath-detail"}>
@@ -67,9 +78,9 @@ class DeputeSearchResponse extends PureComponent {
           </g>
         </svg>
       </div>
-      <div class="text">
-        <div class="head">
-          <div class="name">{hglnom}</div><div class="circo">{hgldep} ({hglnodep}) circo n<sup>o</sup>{hglnocirco}</div>
+      <div className="text">
+        <div className="head">
+          <div className="name">{hglnom}</div><div className="circo">{hgldep} ({hglnodep}) circo n<sup>o</sup>{hglnocirco}</div>
         </div>
         <CommuneListHtml/>
       </div>
@@ -77,13 +88,17 @@ class DeputeSearchResponse extends PureComponent {
   }
 }
 
-class ScrutinSearchResponse extends PureComponent {
+interface PropsSSR {bdd: BDD, item: SearchResp, app: App}
+interface StateSSR {}
+
+class ScrutinSearchResponse extends PureComponent<PropsSSR, StateSSR> {
 
   render() {
-    const {item, metadata} = this.props.item
+    const item = this.props.item.item as ScrutinItem
+    const metadata = this.props.item.metadata
     const {app} = this.props
     const titre = highlightField(metadata, "titre", {h:0, s:100, v:50}) || item.titre; 
-    return <div class="respelem">
+    return <div className="respelem">
       <Typography variant="body2">{titre}</Typography>
       <div style={{padding: "10px"}} onClick={e => {
         app.setScrutinIdColor(item.id, true)
