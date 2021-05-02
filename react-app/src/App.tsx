@@ -9,7 +9,7 @@ import buildVisuals from "./visual/all"
 import {DeputesRenderer} from './layout/Layout'
 import Depute from './Depute'
 import {TransitionGroup} from 'react-transition-group';
-import {SvgOpacityTransition} from './SvgOpacityTransition.js'
+import {SvgOpacityTransition} from './SvgOpacityTransition'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import blue from '@material-ui/core/colors/blue';
 import grey from '@material-ui/core/colors/grey';
