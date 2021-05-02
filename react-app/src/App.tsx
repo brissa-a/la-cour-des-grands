@@ -4,7 +4,7 @@ import './App.css';
 import DraggableSvg from './DraggableSvg'
 import Footer  from './Footer'
 import Search  from './Search'
-import Panel  from './Panel.js'
+import Panel  from './Panel'
 import buildVisuals from "./visual/all"
 import {DeputesRenderer} from './layout/Layout'
 import Depute from './Depute'
