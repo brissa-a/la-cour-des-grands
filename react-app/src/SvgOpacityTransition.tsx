@@ -1,4 +1,5 @@
-import { PureComponent, React } from 'react';
+import { CSSProperties } from '@material-ui/styles';
+import { PureComponent } from 'react';
 import { Transition } from 'react-transition-group';
 
 
@@ -7,14 +8,17 @@ const defaultStyle = {
   opacity: 0,
 }
 
-const transitionStyles = {
+const transitionStyles : Record<string, CSSProperties> = {
   entering: { opacity: 0 },
   entered:  { opacity: 1 },
   exiting:  { opacity: 0 },
   exited:  { opacity: 0 },
 };
 
-export class SvgOpacityTransition extends PureComponent {
+interface Props {}
+interface State {}
+
+export class SvgOpacityTransition extends PureComponent<Props, State> {
 
   render() {
     const {children, ...remaining} = this.props

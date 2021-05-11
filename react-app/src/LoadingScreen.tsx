@@ -1,18 +1,28 @@
 import React from 'react';
-import App from './App.js'
+import App from './App'
 
-class LoadingScreen extends React.PureComponent {
+export type BDD = {scrutins: ScrutinsApi, deputes: DeputeApi[], groupes: GroupesApi, sieges: SiegeApi[]}
 
-  constructor() {
-    super()
-    this.bdd = {}
+interface Props {}
+interface State {loading : boolean}
+
+class LoadingScreen extends React.PureComponent<Props, State> {
+
+  deputes?: DeputeApi[]
+  scrutins?: ScrutinsApi
+  sieges?: SiegeApi[]
+  groupes?: GroupesApi
+
+
+  constructor(props : Props) {
+    super(props)
     this.state = {
       loading: true
     }
   }
 
   refreshLoading() {
-    if (this.bdd.scrutins && this.bdd.deputes && this.bdd.groupes && this.bdd.sieges) {
+    if (this.scrutins && this.deputes && this.groupes && this.sieges) {
       this.setState({ loading: false })
     }
   }
@@ -20,32 +30,36 @@ class LoadingScreen extends React.PureComponent {
   render() {
     const { loading } = this.state
     if (loading) return "Loading..."
-    return <App bdd={this.bdd} />
+    const {scrutins, groupes, sieges, deputes} = this
+    if (scrutins && deputes && groupes && sieges) {
+      const bdd : BDD = {scrutins, groupes, sieges, deputes}
+      return <App bdd={bdd} />
+    }
   }
 
   componentDidMount() {
     fetch('https://raw.githubusercontent.com/brissa-a/lcdg-data/main/scrutins.json')
       .then(resp => resp.json())
       .then(json => {
-        this.bdd.scrutins = json
+        this.scrutins = json
         this.refreshLoading()
       })
     fetch('https://raw.githubusercontent.com/brissa-a/lcdg-data/main/deputes.json')
       .then(resp => resp.json())
       .then(json => {
-        this.bdd.deputes = json
+        this.deputes = json
         this.refreshLoading()
       })
     fetch('/bdd/groupes.json')
       .then(resp => resp.json())
       .then(json => {
-        this.bdd.groupes = json
+        this.groupes = json
         this.refreshLoading()
       })
     fetch('/bdd/sieges.json')
       .then(resp => resp.json())
       .then(json => {
-        this.bdd.sieges = json
+        this.sieges = json
         this.refreshLoading()
       })
   }

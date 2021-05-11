@@ -1,4 +1,5 @@
-import { groupBy } from '../functional.js';
+import { groupBy } from '../functional';
+import { VisualColor, VisualLayout } from './VisualType.js';
 
 const youngColor = {
   h: 31 ,
@@ -11,7 +12,7 @@ const oldColor = {
   v: 30 * 0.5
 }
 
-function getAge(dateNais) {
+function getAge(dateNais:string) {
     var today = new Date();
     const birthDate = new Date(dateNais)
     var age = today.getFullYear() - birthDate.getFullYear();
@@ -21,19 +22,25 @@ function getAge(dateNais) {
     }
     return age;
 }
-const f = d => getAge(d.an_data_depute.dateNais)
+const f = (d: DeputeApi) => getAge(d.an_data_depute.dateNais)
 const groupByAge = groupBy(f)
 
-function minMaxRange(list, getter) {
-  if (getter) list = list.map(getter)
-  const min = Math.min(...list)
-  const max = Math.max(...list)
+function minMaxRange(list : number[]) :{ min:number, max:number, range:number, avg:number } ;
+function minMaxRange(list : any[], getter: (a:any) => number) :{ min:number, max:number, range:number, avg:number } ;
+
+function minMaxRange(list : number[] | any[], getter?: (a:any) => number) {
+  let numList = getter ? list.map(getter) : list as number[]
+  const min = Math.min(...numList)
+  const max = Math.max(...numList)
   const range = max - min
-  const avg = list.reduce((a, b) => a + b, 0) / list.length
-  return {min,max,range, avg}
+  const avg = numList.reduce((a: number, b: number) => a + b, 0) / numList.length
+  return { min, max, range, avg }
 }
 
-const  AgeVisual = deputes => new class {
+const  AgeVisual = (deputes: DeputeApi[]) => new class implements VisualLayout, VisualColor {
+
+  global : {avg: number, max: number, min: number, span: number};
+  f = f
 
   constructor() {
     const ages = deputes.map(d => f(d))
@@ -45,22 +52,21 @@ const  AgeVisual = deputes => new class {
       span: max - min
     }
     //no this.p because linear
-    this.f = f
   }
 
   //color rate Get a number between 0 and 1
-  t(age) {
+  t(age: number) {
     const {min, span} = this.global
     return (age - min) / span
   }
 
   //reverse t to original value
-  tToValue(t) {
+  tToValue(t: number) {
     const {min, span} = this.global
     return t * span + min
   }
 
-  color(t) {
+  color(t: number) {
     const [start, end] = [youngColor, oldColor]
     return {
       h: (end.h - start.h) * t + start.h,
@@ -69,18 +75,18 @@ const  AgeVisual = deputes => new class {
      }
    }
 
-   deputeColor(depute) {
+   deputeColor(depute: DeputeApi) {
      return this.color(this.t(this.f(depute)))
    }
 
-   sort(sa, sb) {
+   sort(sa: DeputeApi, sb: DeputeApi) {
      return f(sb) - f(sa)
    }
 
-   group(deputes) {
+   group(deputes: DeputeApi[]) {
      const ages = deputes.map(d => getAge(d.an_data_depute.dateNais))
      const mmrAges = minMaxRange(ages)
-     const agesGroup = {}
+     const agesGroup : Record<number, DeputeApi[]> = {}
      for (let i = mmrAges.min; i <= mmrAges.max; i++) {
        agesGroup[i] = []
      }
@@ -89,7 +95,7 @@ const  AgeVisual = deputes => new class {
      return {groupes, maxColSize: 1}
    }
 
-   formatGroupeName(groupeName) {
+   formatGroupeName(groupeName: string) {
      return groupeName
    }
 
@@ -112,7 +118,7 @@ const  AgeVisual = deputes => new class {
          .old { stop-color: hsl(${oldColor.h}, ${oldColor.s}%, ${oldColor.v}%); }
          .young { stop-color: hsl(${youngColor.h}, ${youngColor.s}%, ${youngColor.v}%); }
        `}</style>
-       <div className="caption"  xmlns="http://www.w3.org/1999/xhtml">
+       <div className="caption">
          <svg className="img" width={350} height={400}>
            <defs>
              <linearGradient id="Gradient1" x1="0" x2="0" y1="0" y2="1">

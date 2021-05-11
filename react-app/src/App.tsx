@@ -1,22 +1,24 @@
 import React from 'react';
-import DeputeDetail from './DeputeDetail.js'
+import DeputeDetail from './DeputeDetail'
 import './App.css';
-import DraggableSvg from './DraggableSvg.js'
-import Footer  from './Footer.js'
-import Search  from './Search.js'
-import Panel  from './Panel.js'
-import buildVisuals from "./visual/all.js"
-import {DeputesRenderer} from './layout/Layout.js'
-import Depute from './Depute.js'
+import DraggableSvg from './DraggableSvg'
+import Footer  from './Footer'
+import Search  from './Search'
+import Panel  from './Panel'
+import buildVisuals from "./visual/all"
+import {DeputesRenderer} from './layout/Layout'
+import Depute from './Depute'
 import {TransitionGroup} from 'react-transition-group';
-import {SvgOpacityTransition} from './SvgOpacityTransition.js'
+import {SvgOpacityTransition} from './SvgOpacityTransition'
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import blue from '@material-ui/core/colors/blue';
 import grey from '@material-ui/core/colors/grey';
 import CssBaseline from '@material-ui/core/CssBaseline';
+import {BDD} from './LoadingScreen'
+import { Visual, VisualColor, VisualLayout } from './visual/VisualType.js';
 
 function handleDarkMode() {
-  const favicons = document.querySelectorAll('head > link[rel="icon"][media]')
+  const favicons : NodeListOf<HTMLLinkElement> = document.querySelectorAll('head > link[rel="icon"][media]')
   for (const fav of favicons) {
     if (window.matchMedia(fav.media).matches && fav.dataset.host === window.location.hostname) {
       //console.log({fav}, true)
@@ -39,12 +41,29 @@ const theme = createMuiTheme({
 
 //#212121
 
-class App extends React.PureComponent {
+interface Props { bdd : BDD  }
+interface State {
+  detail: DeputeApi,
+  pinned: DeputeApi | null,
+  showPic: boolean,
+  visualColorName: string,
+  visualLayoutName: string,
+  scrutinIdColor: string,
+  scrutinIdLayout: string,
+  panelOpen: boolean,
+  highlightDeputeUids: string[],
+}
 
-  constructor({bdd}) {
-    super()
-    const {deputes} = bdd
-    const visuals = buildVisuals(bdd)
+export type UrlStateName = "visualLayoutName" | "visualColorName" | "scrutinIdColor" | "scrutinIdLayout" | "showPic"
+
+class App extends React.PureComponent<Props, State> {
+
+  visuals
+
+  constructor(props : Props) {
+    super(props)
+    const {deputes} = props.bdd
+    const visuals = buildVisuals(props.bdd)
     this.visuals = visuals
     let randomDepute;
     while (!randomDepute) randomDepute = deputes[Math.floor(Math.random() * deputes.length)];
@@ -54,30 +73,25 @@ class App extends React.PureComponent {
       showPic: visuals.showPic,
       visualColorName: visuals.default.color,
       visualLayoutName: visuals.default.layout,
-      panelOpen: false,
-      highlightDeputeUids: [],
-      invertDepute: false,
       scrutinIdColor: visuals.default.scrutinIdColor,
-      scrutinIdLayout: visuals.default.scrutinIdLayout
+      scrutinIdLayout: visuals.default.scrutinIdLayout,
+      panelOpen: false,
+      highlightDeputeUids: []
     }
     window.deputes = deputes
-    window.onpopstate = function() {
-      const params = new URLSearchParams(window.location.search);
-      this.setVisual(params.get("visual") || visuals.default, false)
-      this.showPic(params.get("showPic") === 'true' || visuals.showPic, false)
-    }.bind(this);
+    window.onpopstate = () => this.popState()
   }
 
-  setHighlightDeputeIds(highlightDeputeUids) {
+  setHighlightDeputeIds(highlightDeputeUids: string[]) {
     this.setState({highlightDeputeUids})
   }
 
-  showDetail(depute) {
+  showDetail(depute: any) {
     this.setState({detail: depute, highlightDeputeUids: [depute.uid]})
   }
 
-  pinDetail(depute) {
-    if (depute === null) {
+  pinDetail(depute: DeputeApi | null) {
+    if (depute === null && this.state.pinned) {
       //unpin case
       this.setState({
         detail: this.state.pinned,
@@ -90,7 +104,7 @@ class App extends React.PureComponent {
     }
   }
 
-  showPic(show, pushState) {
+  showPic(show : boolean, pushState : boolean) {
     this.setState({
       showPic: show
     })
@@ -101,53 +115,47 @@ class App extends React.PureComponent {
       } else {
         params.delete("showPic")
       }
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
+      window.history.pushState(null, document.title, decodeURIComponent(`${window.location.pathname}?${params}`));
     }
   }
 
-  setVisualLayout(name, pushState) {
-    this.setState({
-      visualLayoutName: name
-    })
-    if (pushState) {
+  getUrlState(name : UrlStateName) {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name)
+  }
+
+  popState() {
       const params = new URLSearchParams(window.location.search);
-      params.set("layout", name);
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
+      this.setVisualLayout(this.getUrlState("visualLayoutName") || this.visuals.default.layout, false)
+      this.setVisualColor(this.getUrlState("visualColorName") || this.visuals.default.color, false)
+      this.setScrutinIdLayout(this.getUrlState("scrutinIdLayout") || this.visuals.default.scrutinIdLayout, false)
+      this.setScrutinIdColor(this.getUrlState("scrutinIdColor") || this.visuals.default.scrutinIdColor, false)
+      this.showPic(this.getUrlState("showPic") === 'true' || this.visuals.showPic, false)
+  }
+
+  setUrlState(name: UrlStateName, value: string, pushHistory: boolean) {
+    this.setState({[name]: value} as any)//Dirty
+    if (pushHistory) {
+      const params = new URLSearchParams(window.location.search);
+      params.set(name, value);
+      window.history.pushState(null, window.document.title, decodeURIComponent(`${window.location.pathname}?${params}`));
     }
   }
 
-  setVisualColor(name, pushState) {
-    this.setState({
-      visualColorName: name
-    })
-    if (pushState) {
-      const params = new URLSearchParams(window.location.search);
-      params.set("color", name);
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
-    }
+  setVisualLayout(name: string, pushState: boolean) {
+    this.setUrlState("visualLayoutName", name, pushState)
   }
 
-  
-  setScrutinIdLayout(id, pushState) {
-    this.setState({
-      scrutinIdLayout: id
-    })
-    if (pushState) {
-      const params = new URLSearchParams(window.location.search);
-      params.set("scrutinIdLayout", id);
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
-    }
+  setVisualColor(name: string, pushState: boolean) {
+    this.setUrlState("visualColorName", name, pushState)
   }
 
-  setScrutinIdColor(id, pushState) {
-    this.setState({
-      scrutinIdColor: id
-    })
-    if (pushState) {
-      const params = new URLSearchParams(window.location.search);
-      params.set("scrutinIdColor", id);
-      window.history.pushState(null, null, decodeURIComponent(`${window.location.pathname}?${params}`));
-    }
+  setScrutinIdColor(id: string, pushState: boolean) {
+    this.setUrlState("scrutinIdColor", id, pushState)
+  }
+
+  setScrutinIdLayout(id: string, pushState: boolean) {
+    this.setUrlState("scrutinIdLayout", id, pushState)
   }
 
   togglePanel() {
@@ -164,12 +172,12 @@ class App extends React.PureComponent {
     const key = depute.uid + "detail" + (this.state.pinned ? "-pinned" : "")
 
     const visualColor = visualColorName === "scrutin"
-      ? this.visuals.colors[visualColorName](scrutinIdColor)
+      ? this.visuals.colorsPerScrutin(scrutinIdColor)
       : this.visuals.colors[visualColorName] 
-    const visualLayout = visualLayoutName === "perscrutin"
-      ? this.visuals.layouts[visualLayoutName](scrutinIdLayout)(visualColor)
+    const visual : ((deputes: DeputeApi[]) => Visual) = visualLayoutName === "perscrutin"
+      ? this.visuals.layoutPerScrutin(scrutinIdLayout)(visualColor)
       : this.visuals.layouts[visualLayoutName](visualColor)
-    const {Blueprint, Caption, deputeWithVisualProp} = visualLayout(deputes)
+    const {Blueprint, Caption, deputeWithVisualProp} = visual(deputes)
     //DeputeRenderer to avoid react add/remove depute from DOM
     return <ThemeProvider theme={theme}><div className="App">
       <CssBaseline/>
@@ -178,9 +186,9 @@ class App extends React.PureComponent {
             <Blueprint />
         </SvgOpacityTransition></TransitionGroup>
         <TransitionGroup component={null}><SvgOpacityTransition key={visualColorName}>
-            <Caption app={app} />
+            <Caption />
         </SvgOpacityTransition></TransitionGroup>
-        <DeputesRenderer  app={app} deputeWithVisualProp={deputeWithVisualProp}>
+        <DeputesRenderer deputeWithVisualProp={deputeWithVisualProp}>
           {({depute, visualProps}) => <Depute
              app={app} highlight={highlightDeputeUids.includes(depute.uid)}
              depute={depute} key={depute.uid}

@@ -3,19 +3,23 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faFileExport,faCog} from '@fortawesome/free-solid-svg-icons'
 import "./Actions.css"
 
-class Actions extends Component {
+interface Props {}
+interface State {}
 
-  constructor(props) {
-    super()
+class Actions extends Component<Props, State> {
+
+  constructor(props: Props) {
+    super(props)
     Object.assign(this, props)
   }
 
   exportSvg() {
-    var svgElement = document.getElementById("mainsvg").cloneNode(true);
+    var svgElement = document.getElementById("mainsvg")?.cloneNode(true) as SVGElement;
+    if (!svgElement) throw new Error("Should not happen")
     const [width, height] = [1920, 1080]
-    svgElement.setAttribute("width", width);
-    svgElement.setAttribute("height", height);
-    svgElement.firstChild.setAttribute("transform", `translate(-0.04861094553469947, 0.26474552964222897) scale(0.02272727272727273)`);
+    svgElement.setAttribute("width", width.toString());
+    svgElement.setAttribute("height", height.toString());
+    (svgElement.firstChild as SVGGElement).setAttribute("transform", `translate(-0.04861094553469947, 0.26474552964222897) scale(0.02272727272727273)`);
     var svgUrl = 'data:image/svg+xml; charset=utf8, ' + encodeURIComponent(new XMLSerializer().serializeToString(svgElement))
     let image = new Image();
     console.log({svgUrl, image})
@@ -24,6 +28,7 @@ class Actions extends Component {
        canvas.width = width;
        canvas.height = height;
        let ctx = canvas.getContext('2d');
+       if (!ctx) throw new Error("Should not happen")
        ctx.drawImage(image, 0, 0, width, height);
       let pngUrl = canvas.toDataURL();
       console.log({width, height, image, ctx, pngUrl})
@@ -32,6 +37,7 @@ class Actions extends Component {
       img.src = pngUrl
       img.style.backgroundColor = '#333333'
       var w = window.open(pngUrl);
+      if (!w) throw new Error("Should not happen")
       w.document.write(img.outerHTML);
     };
     image.src = svgUrl;

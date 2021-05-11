@@ -1,5 +1,7 @@
-function groupBy(get) {
-  return (acc,x) => {
+
+type FieldType = string | number
+function groupBy<ObjType>(get : (x:ObjType) => FieldType) {
+  return (acc: Record<FieldType, ObjType[]>, x: ObjType) => {
     acc = acc || {}
     const by = get(x)
     const list = acc[by] || []
@@ -19,8 +21,9 @@ function groupBy(get) {
 //usage
 //{a: "A"}.copy({a: 'B'}) => {a: 'B'}
 //{a: "A"}.copy(old => ({a: old.a + "C"})) => {a: 'AC'}
-function copy(obj, update) {
-  if (!update) return Object.assign({}, this)
+type FixLater = any;
+function copy(obj: FixLater, update: FixLater) {
+  if (!update) return Object.assign({}, obj)
   if (typeof update === 'function') update = update(obj)//update function to update object
   return Object.assign({}, obj, update)
 }

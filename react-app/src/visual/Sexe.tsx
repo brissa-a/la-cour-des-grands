@@ -1,4 +1,5 @@
-import { groupBy } from '../functional.js';
+import { groupBy } from '../functional';
+import { Color, VisualColor, VisualLayout } from './VisualType';
 
 const womanColor = {
   h:299, s:37, v:46
@@ -7,7 +8,7 @@ const menColor = {
   h:203, s:37, v:46
 }
 
-const CaptionElem = (props) => {
+const CaptionElem: React.FC<{name:string, color:Color}> = (props) => {
   const iconsize = 15
   return <div key={props.name} className="elem">
     <svg className="img" width={iconsize} height={iconsize}>
@@ -22,32 +23,32 @@ const CaptionElem = (props) => {
   </div>
 }
 
-const groupBySexe = groupBy(s => s.an_data_depute.femme ?  "femme" : "homme")
+const groupBySexe = groupBy((s: DeputeApi) => s.an_data_depute.femme ?  "femme" : "homme")
 
-class SexeVisual {
+class SexeVisual implements VisualLayout, VisualColor {
 
-  deputeColor(depute) {
+  deputeColor(depute: DeputeApi) {
     return depute.an_data_depute.femme ? womanColor : menColor
   }
 
-  sort(sa, sb) {
-    return sb.an_data_depute.femme - sa.an_data_depute.femme
+  sort(sa: DeputeApi, sb: DeputeApi) {
+    return (sb.an_data_depute.femme ? 1 : 0) - (sa.an_data_depute.femme ? 1 : 0)
   }
 
-  group(deputes) {
+  group(deputes: DeputeApi[]) {
     const groupes = Object.entries(
       deputes.reduce(groupBySexe, {"homme": [], "femme": []})
     )
     return {groupes, maxColSize: 10}
   }
 
-  formatGroupeName(groupeName) {
+  formatGroupeName(groupeName: string) {
     return groupeName
   }
 
   xAxisName() {return null}
 
-  caption(props) {
+  caption() {
     return       <foreignObject transform="scale(0.07)" width="125" height="450">
     <div className="undraggable">
       <style>{`
@@ -74,7 +75,7 @@ class SexeVisual {
           flex: none
         }
       `}</style>
-      <div className="caption"  xmlns="http://www.w3.org/1999/xhtml">
+      <div className="caption">
         <CaptionElem name="Homme" color={menColor}/>
         <CaptionElem name="Femme" color={womanColor}/>
       </div>

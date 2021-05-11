@@ -8,15 +8,17 @@ import InputLabel from '@material-ui/core/InputLabel';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
-import { withStyles } from "@material-ui/core/styles";
+import { StyledComponentProps, Theme, withStyles } from "@material-ui/core/styles";
 import Switch from '@material-ui/core/Switch';
+import { CSSProperties } from '@material-ui/styles';
 import { PureComponent } from 'react';
+import App from './App';
 
 
 
-const styles = (theme) => ({
+const styles = (theme: Theme): Record<string, CSSProperties> => ({
   root: {
-    position: "fixed",
+    position: 'fixed',
     top: "0px",
     right: "0px",
     width: "425px"
@@ -27,29 +29,35 @@ const styles = (theme) => ({
   },
 });
 
-class Panel extends PureComponent {
+interface Props extends StyledComponentProps {
+  app: App, open: boolean, showPic: boolean
+  visualLayoutName: string, visualColorName: string
+}
+interface State {}
 
-  constructor(props) {
-    super()
+class Panel extends PureComponent<Props, State> {
+
+  constructor(props: Props) {
+    super(props)
   }
 
   render() {
       if (!this.props.open) return null
       const { classes } = this.props;
-      return <div className={[classes.root, "backdrop"].join(' ')}><Box m={0} p={1} boxShadow={2} bgcolor="none">
+      return <div className={[classes?.root, "backdrop"].join(' ')}><Box m={0} p={1} boxShadow={2} bgcolor="none">
       <Grid
         container
         direction="row"
         justify="space-evenly"
         alignItems="center"
       >
-      <FormControl className={classes.formControl}>
+      <FormControl className={classes?.formControl}>
         <InputLabel id="demo-simple-select-label">Disposition <FontAwesomeIcon icon={faProjectDiagram}/></InputLabel>
         <Select
           labelId="demo-simple-select-label"
           id="demo-simple-select"
           value={this.props.visualLayoutName}
-           onChange={e => e.target.value && this.props.app.setVisualLayout(e.target.value, true)}
+           onChange={e => e.target.value && this.props.app.setVisualLayout(e.target.value as string, true)}
         >
           <MenuItem value={"hemicycle"}>Hemicycle</MenuItem>
           <ListSubheader value={"pergroupe"}>Graphique</ListSubheader>
@@ -60,13 +68,13 @@ class Panel extends PureComponent {
           <MenuItem value={"perscrutin"}>Par scrutin</MenuItem>
         </Select>
       </FormControl>
-      <FormControl className={classes.formControl}>
+      <FormControl className={classes?.formControl}>
         <InputLabel id="demo-simple-select-label">Couleur <FontAwesomeIcon icon={faPaintBrush}/></InputLabel>
         <Select
           labelId="demo-simple-select-label"
           id="demo-simple-select"
           value={this.props.visualColorName}
-           onChange={e => this.props.app.setVisualColor(e.target.value, true)}
+           onChange={e => this.props.app.setVisualColor(e.target.value as string, true)}
         >
           <MenuItem value={"groupe"}>Groupe politique</MenuItem>
           <MenuItem value={"twitter"}>Twitter follower</MenuItem>

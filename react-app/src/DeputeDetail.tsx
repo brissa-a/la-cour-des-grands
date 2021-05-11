@@ -5,9 +5,11 @@ import Box from "@material-ui/core/Box";
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 import React from 'react';
+import App from './App';
 import "./DeputeDetail.css";
+import { BDD } from './LoadingScreen';
 
-function formatedFollowerCount(depute) {
+function formatedFollowerCount(depute: DeputeApi) {
   if (depute?.twitter?.public_metrics?.followers_count) {
     return new Intl.NumberFormat('fr-FR')
       .format(depute?.twitter?.public_metrics?.followers_count)
@@ -16,18 +18,23 @@ function formatedFollowerCount(depute) {
   }
 }
 
-class DeputeDetail extends React.PureComponent {
+interface Props {bdd:BDD, pinned: DeputeApi | null, depute: DeputeApi, app: App}
+interface State {showmore: boolean}
 
-  constructor({bdd, pinned}) {
-    super();
+class DeputeDetail extends React.PureComponent<Props, State> {
+
+  pinned : DeputeApi | null
+
+  constructor(props: Props) {
+    super(props);
     //console.log(props)
-    this.pinned = pinned
+    this.pinned = props.pinned
     this.state = {
       showmore: false
     }
   }
 
-  getAge(birthDate) {
+  getAge(birthDate: Date) {
     var today = new Date();
     var age = today.getFullYear() - birthDate.getFullYear();
     var m = today.getMonth() - birthDate.getMonth();
