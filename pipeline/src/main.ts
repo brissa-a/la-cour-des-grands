@@ -4,13 +4,14 @@ import type { Job } from "./core/job.ts";
 import { communes } from "./jobs/communes.ts";
 import { hemicycle } from "./jobs/hemicycle.ts";
 import { init } from "./jobs/init.ts";
+import { majorVotes, votesByBill, votesCatalog } from "./jobs/votes.ts";
 
 const { values: options, positionals } = parseArgs({
   allowPositionals: true,
   options: { "push-to-remote": { type: "boolean", default: false } },
 });
 
-const files = [init, hemicycle, communes];
+const files = [init, hemicycle, communes, votesCatalog, majorVotes, votesByBill];
 const all = catalog(files);
 
 const jobs: Job<unknown>[] = [...files, all];
