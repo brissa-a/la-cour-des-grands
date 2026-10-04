@@ -4,44 +4,24 @@ import { gzipSync } from "node:zlib";
 import type { Entity } from "./entity.ts";
 import { type Dependencies, type Job, type Results, job, resolve } from "./job.ts";
 import type { IsoDate } from "./types.ts";
-
-export type HexColor = `#${string}`;
-export type Colors = Record<string, HexColor>;
+import type { ValueTable } from "./values.ts";
 
 type SimpleFeature = {
   title: string;
-  type: "text" | "date" | "code" | "list" | "link" | "image";
+  type: "text" | "number" | "date" | "code" | "list" | "link" | "image";
 };
 
-type NumberFeature = {
-  title: string;
-  type: "number";
-  gradient?: readonly [HexColor, HexColor];
-};
-
-type FixedCategoryFeature<V extends string = string> = {
+type CategoryFeature<V extends string = string> = {
   title: string;
   type: "category";
-  values: readonly V[];
-  colors: Record<V, HexColor>;
+  values: ValueTable<V>;
 };
 
-type DynamicCategoryFeature = {
-  title: string;
-  type: "category";
-};
-
-export function category<const V extends string>(
-  title: string,
-  values: readonly V[],
-  colors: { [K in NoInfer<V>]: HexColor },
-): FixedCategoryFeature<V> {
-  return { title, type: "category", values, colors };
-}
-
-export function dynamicCategory(title: string): DynamicCategoryFeature {
-  return { title, type: "category" };
-}
+export const category = <V extends string>(title: string, values: ValueTable<V>): CategoryFeature<V> => ({
+  title,
+  type: "category",
+  values,
+});
 
 type ReferenceFeature = {
   title: string;
@@ -49,10 +29,10 @@ type ReferenceFeature = {
   entity: string;
 };
 
-export type Feature = SimpleFeature | NumberFeature | FixedCategoryFeature | DynamicCategoryFeature | ReferenceFeature;
+export type Feature = SimpleFeature | CategoryFeature | ReferenceFeature;
 export type Features = Record<string, Feature>;
 
-export type Value<F extends Feature> = F extends { type: "category"; values: readonly (infer V)[] }
+export type Value<F extends Feature> = F extends { type: "category"; values: ValueTable<infer V> }
   ? V
   : F extends { type: "number" }
     ? number
@@ -64,24 +44,35 @@ export type Value<F extends Feature> = F extends { type: "category"; values: rea
 
 export type Row<F extends Features> = { [K in keyof F]: Value<F[K]> | null };
 
-type DynamicCategoryColumns<F extends Features> = {
-  [K in keyof F]: F[K] extends { type: "category" } ? (F[K] extends { values: unknown } ? never : K) : never;
-}[keyof F];
-
-type ColorsOption<R, D extends Dependencies, F extends Features> = [DynamicCategoryColumns<F>] extends [never]
-  ? { colors?: never }
-  : { colors: (items: R[], results: Results<D>) => Record<DynamicCategoryColumns<F>, Colors> };
-
 type Layout = { background: string };
 type LayoutOption<F extends Features> = F extends { x: { type: "number" }; y: { type: "number" } } ? Layout : never;
 
-type PublishedFeature = Feature & { column: string; colors?: Colors };
+type DescribedFeature = Exclude<Feature, CategoryFeature> | (Omit<CategoryFeature, "values"> & { values: string });
+type PublishedFeature = DescribedFeature & { column: string };
 
 type ColumnsOf = {
   entity: string;
   count: number;
-  feature: FixedCategoryFeature;
+  feature: DescribedFeature;
 };
+
+const describe = (feature: Feature): DescribedFeature =>
+  feature.type === "category" ? { ...feature, values: feature.values.path } : feature;
+
+async function checkValues(path: string, features: readonly (Feature & { column: string })[], rows: readonly Cell[][]) {
+  await Promise.all(
+    features.map(async (feature, i) => {
+      if (feature.type !== "category") return;
+      const allowed: ReadonlySet<string> = await feature.values.values.result();
+      for (const row of rows) {
+        const value = row[i];
+        if (typeof value === "string" && !allowed.has(value)) {
+          throw new Error(`${path}: ${feature.column} value "${value}" is not in ${feature.values.path}`);
+        }
+      }
+    }),
+  );
+}
 
 export type PublishedFile = {
   file: string;
@@ -93,11 +84,11 @@ export type PublishedFile = {
   layout?: Layout;
 } & ({ features: PublishedFeature[] } | { columnsOf: ColumnsOf });
 
-type Cell = string | number | readonly string[] | null;
+export type Cell = string | number | readonly string[] | null;
 
 export const OUTPUT_DIR = "output/v2";
 
-function cell(value: Cell): string {
+export function cell(value: Cell): string {
   if (value === null) return "";
   if (typeof value === "number") return String(value);
   if (typeof value !== "string") {
@@ -144,25 +135,15 @@ async function writeTable<R>(table: {
   };
 }
 
-function checkColors(path: string, column: string, colors: Colors, values: Iterable<Cell>): void {
-  for (const value of values) {
-    if (typeof value === "string" && !(value in colors)) {
-      throw new Error(`${path}: no color for ${column} value "${value}"`);
-    }
-  }
-}
-
-export function csv<R, const D extends Dependencies, const F extends Features>(
-  definition: {
-    entity: Entity<R>;
-    file: string;
-    dependencies: D;
-    features: F;
-    row: (item: R, results: Results<D>) => Row<F>;
-    layout?: LayoutOption<F>;
-    gzipBudget?: number;
-  } & ColorsOption<R, D, F>,
-): Job<PublishedFile> {
+export function csv<R, const D extends Dependencies, const F extends Features>(definition: {
+  entity: Entity<R>;
+  file: string;
+  dependencies: D;
+  features: F;
+  row: (item: R, results: Results<D>) => Row<F>;
+  layout?: LayoutOption<F>;
+  gzipBudget?: number;
+}): Job<PublishedFile> {
   const path = `${definition.entity.folder}/${definition.file}`;
   return job({
     name: path,
@@ -170,29 +151,19 @@ export function csv<R, const D extends Dependencies, const F extends Features>(
     async run({ items }) {
       const results = await resolve(definition.dependencies);
       const columns = Object.keys(definition.features) as (keyof F & string)[];
-      const dynamicColors: Partial<Record<string, Colors>> = definition.colors?.(items, results) ?? {};
-      const features = columns.map((column): PublishedFeature => {
-        const feature = definition.features[column] as Feature;
-        const colors = "colors" in feature ? feature.colors : dynamicColors[column];
-        return { ...feature, column, ...(colors ? { colors } : {}) };
-      });
+      const features = columns.map((column) => ({ ...(definition.features[column] as Feature), column }));
       const rows = items.map((item) => {
         const row = definition.row(item, results);
         return columns.map((c): Cell => row[c]);
       });
-      features.forEach((feature, i) => {
-        if (feature.type === "category") {
-          if (feature.colors === undefined) throw new Error(`${path}: category ${feature.column} has no colors`);
-          checkColors(path, feature.column, feature.colors, rows.map((row) => row[i] ?? null));
-        }
-      });
+      await checkValues(path, features, rows);
       const rowByItem = new Map(items.map((item, i) => [item, rows[i]!]));
       return writeTable({
         path,
         entity: definition.entity,
         items,
         columns,
-        description: { features },
+        description: { features: features.map((f) => ({ ...describe(f), column: f.column })) },
         cells: (item) => rowByItem.get(item)!,
         gzipBudget: definition.gzipBudget,
         layout: definition.layout as Layout | undefined,
@@ -208,7 +179,7 @@ export function generatedCsvs<R, C, const D extends Dependencies, const V extend
   entity: Entity<R>;
   columnEntity: Entity<C>;
   dependencies: D;
-  feature: FixedCategoryFeature<V>;
+  feature: CategoryFeature<V>;
   files: (columns: C[], results: Results<D>) => GeneratedFile<C>[];
   value: (item: R, column: C, results: Results<D>) => V | null;
   gzipBudget?: number;
@@ -219,9 +190,14 @@ export function generatedCsvs<R, C, const D extends Dependencies, const V extend
     async run({ items, columnItems }) {
       const results = await resolve(definition.dependencies);
       return Promise.all(
-        definition.files(columnItems, results).map(({ file, columns }) =>
-          writeTable({
-            path: `${definition.entity.folder}/${file}`,
+        definition.files(columnItems, results).map(async ({ file, columns }) => {
+          const path = `${definition.entity.folder}/${file}`;
+          const rows = items.map((item) => columns.map((column): Cell => definition.value(item, column, results)));
+          const sameFeature = columns.map((column) => ({ ...definition.feature, column: definition.columnEntity.id(column) }));
+          await checkValues(path, sameFeature, rows);
+          const rowByItem = new Map(items.map((item, i) => [item, rows[i]!]));
+          return writeTable({
+            path,
             entity: definition.entity,
             items,
             columns: columns.map((c) => definition.columnEntity.id(c)),
@@ -229,14 +205,14 @@ export function generatedCsvs<R, C, const D extends Dependencies, const V extend
               columnsOf: {
                 entity: definition.columnEntity.name,
                 count: columns.length,
-                feature: definition.feature,
+                feature: describe(definition.feature),
               },
             },
-            cells: (item) => columns.map((column) => definition.value(item, column, results)),
+            cells: (item) => rowByItem.get(item)!,
             gzipBudget: definition.gzipBudget,
             layout: undefined,
-          }),
-        ),
+          });
+        }),
       );
     },
   });

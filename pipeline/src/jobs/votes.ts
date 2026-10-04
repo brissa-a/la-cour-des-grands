@@ -1,6 +1,7 @@
 import { strFromU8, unzipSync } from "fflate";
-import { yesNo, yesNoCategory } from "../core/categories.ts";
+import { yesNo, yesNoValues } from "../core/categories.ts";
 import { category, csv, generatedCsvs, type GeneratedFile } from "../core/csv.ts";
+import { labelledValues } from "../core/values.ts";
 import { entity } from "../core/entity.ts";
 import { job } from "../core/job.ts";
 import { source } from "../core/source.ts";
@@ -15,20 +16,22 @@ const scrutins = source({
 
 export type VoteId = string & { readonly __brand: "VoteId" };
 
-const POSITIONS = ["for", "against", "abstain", "not_voting", "absent"] as const;
-type Position = (typeof POSITIONS)[number];
+type Position = "for" | "against" | "abstain" | "not_voting" | "absent";
 type CastPosition = Exclude<Position, "absent">;
 
-const KINDS = ["scrutin public ordinaire", "scrutin public solennel", "motion de censure"] as const;
-type Kind = (typeof KINDS)[number];
+const KIND_BY_AN_LABEL = {
+  "scrutin public ordinaire": "ordinary",
+  "scrutin public solennel": "solemn",
+  "motion de censure": "censure_motion",
+} as const;
+type Kind = (typeof KIND_BY_AN_LABEL)[keyof typeof KIND_BY_AN_LABEL];
 
-const RESULTS = ["adopté", "rejeté"] as const;
-type Result = (typeof RESULTS)[number];
+const RESULT_BY_AN_CODE = { adopté: "adopted", rejeté: "rejected" } as const;
+type Result = (typeof RESULT_BY_AN_CODE)[keyof typeof RESULT_BY_AN_CODE];
 
-function oneOf<const T extends string>(allowed: readonly T[], raw: string, what: string): T {
-  const found = allowed.find((a) => a === raw);
-  if (found === undefined) throw new Error(`Unknown ${what}: ${raw}`);
-  return found;
+function decode<const M extends Record<string, string>>(mapping: M, raw: string, what: string): M[keyof M] {
+  if (!Object.hasOwn(mapping, raw)) throw new Error(`Unknown ${what}: ${raw}`);
+  return mapping[raw as keyof M];
 }
 
 export type Ballot = {
@@ -85,7 +88,7 @@ export function billOf(title: string): string | null {
 }
 
 export function isMajor(title: string, kind: Kind): boolean {
-  return normalize(title).toLowerCase().startsWith("l'ensemble") || kind !== "scrutin public ordinaire";
+  return normalize(title).toLowerCase().startsWith("l'ensemble") || kind !== "ordinary";
 }
 
 const MAX_SLUG_LENGTH = 80;
@@ -112,14 +115,14 @@ function parse(raw: RawScrutin): Omit<Ballot, "file"> {
     }
   }
   const title = normalize(raw.titre);
-  const kind = oneOf(KINDS, raw.typeVote.libelleTypeVote, "vote kind");
+  const kind = decode(KIND_BY_AN_LABEL, raw.typeVote.libelleTypeVote, "vote kind");
   return {
     id: raw.uid as VoteId,
     number: Number(raw.numero),
     date: isoDate(raw.dateScrutin),
     title,
     kind,
-    result: oneOf(RESULTS, raw.sort.code, "vote result"),
+    result: decode(RESULT_BY_AN_CODE, raw.sort.code, "vote result"),
     major: isMajor(title, kind),
     bill: billOf(title),
     positions,
@@ -153,12 +156,30 @@ export const ballots = job({
   },
 });
 
+const VOTES_FOLDER = "votes";
+
 export const vote = entity({
   name: "vote",
-  folder: "votes",
+  folder: VOTES_FOLDER,
   key: "vote_id",
   rows: ballots,
   id: (b: Ballot) => b.id,
+});
+
+const kinds = labelledValues<Kind>(`${VOTES_FOLDER}/values/kind.csv`, {
+  ordinary: "Scrutin public ordinaire",
+  solemn: "Scrutin public solennel",
+  censure_motion: "Motion de censure",
+});
+
+const results = labelledValues<Result>(`${VOTES_FOLDER}/values/result.csv`, { adopted: "Adopté", rejected: "Rejeté" });
+
+const votePositions = labelledValues<Position>(`${deputy.folder}/values/vote_position.csv`, {
+  for: "Pour",
+  against: "Contre",
+  abstain: "Abstention",
+  not_voting: "Non-votant",
+  absent: "Absent",
 });
 
 export const votesCatalog = csv({
@@ -169,15 +190,12 @@ export const votesCatalog = csv({
     number: { title: "Numéro", type: "number" },
     date: { title: "Date", type: "date" },
     title: { title: "Objet", type: "text" },
-    kind: category("Type de scrutin", KINDS, {
-      "scrutin public ordinaire": "#90a4ae",
-      "scrutin public solennel": "#3949ab",
-      "motion de censure": "#c62828",
-    }),
-    result: category("Résultat", RESULTS, { adopté: "#2e7d32", rejeté: "#c62828" }),
-    major: yesNoCategory("Vote majeur"),
+    kind: category("Type de scrutin", kinds),
+    result: category("Résultat", results),
+    major: category("Vote majeur", yesNoValues(VOTES_FOLDER)),
     bill: { title: "Texte", type: "text" },
     file: { title: "Fichier des positions", type: "code" },
+    url: { title: "Scrutin sur le site de l'Assemblée", type: "link" },
   },
   row: (b) => ({
     number: b.number,
@@ -188,6 +206,7 @@ export const votesCatalog = csv({
     major: yesNo(b.major),
     bill: b.bill,
     file: `${deputy.folder}/${b.file}`,
+    url: `https://www.assemblee-nationale.fr/dyn/17/scrutins/${b.number}`,
   }),
 });
 
@@ -202,13 +221,7 @@ function positionFiles(name: string, files: (ballots: Ballot[]) => GeneratedFile
     entity: deputy,
     columnEntity: vote,
     dependencies: {},
-    feature: category("Position de vote", POSITIONS, {
-      for: "#2e7d32",
-      against: "#c62828",
-      abstain: "#f9a825",
-      not_voting: "#9e9e9e",
-      absent: "#e0e0e0",
-    }),
+    feature: category("Position de vote", votePositions),
     files,
     value: (d, ballot) => ballot.positions.get(d.id) ?? (inOfficeOn(d, ballot.date) ? "absent" : null),
     gzipBudget: 150_000,

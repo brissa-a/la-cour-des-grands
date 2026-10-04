@@ -48,7 +48,7 @@ function seatPositions(): Map<number, { x: number; y: number }> {
 
 type Seat = { number: number; x: number; y: number; deputy: DeputyId | null };
 
-const seats = job({
+export const seats = job({
   name: "seats",
   dependencies: { deputies },
   run({ deputies }): Seat[] {

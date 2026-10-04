@@ -1,8 +1,16 @@
-import { category } from "./csv.ts";
+import { type ValueTable, labelledValues } from "./values.ts";
 
-const YES_NO = ["yes", "no"] as const;
-export type YesNo = (typeof YES_NO)[number];
+export type YesNo = "yes" | "no";
 
 export const yesNo = (value: boolean): YesNo => (value ? "yes" : "no");
 
-export const yesNoCategory = (title: string) => category(title, YES_NO, { yes: "#2e7d32", no: "#bdbdbd" });
+const tables = new Map<string, ValueTable<YesNo>>();
+
+export function yesNoValues(folder: string): ValueTable<YesNo> {
+  let table = tables.get(folder);
+  if (table === undefined) {
+    table = labelledValues<YesNo>(`${folder}/values/yes_no.csv`, { yes: "Oui", no: "Non" });
+    tables.set(folder, table);
+  }
+  return table;
+}

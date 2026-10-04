@@ -1,5 +1,5 @@
 import { strFromU8, unzipSync } from "fflate";
-import type { HexColor } from "../core/csv.ts";
+import type { HexColor } from "../core/values.ts";
 import { entity } from "../core/entity.ts";
 import { job } from "../core/job.ts";
 import { source } from "../core/source.ts";
