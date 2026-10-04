@@ -7,7 +7,7 @@ const INIT_COLUMNS = [
   "constituency", "department", "department_number", "constituency_number", "group", "group_short",
 ] as const
 
-const SEAT_COLUMNS = ["constituency", "seat", "x", "y"] as const
+const SEAT_COLUMNS = ["seat", "x", "y", "deputy"] as const
 
 export type DeputyId = string & { readonly __brand: "DeputyId" }
 
@@ -25,6 +25,7 @@ export type Assembly = {
   deputies: Deputy[]
   byId: ReadonlyMap<DeputyId, Deputy>
   groups: Group[]
+  emptySeats: Seat[]
   background: Background
 }
 
@@ -34,17 +35,23 @@ export async function loadAssembly(): Promise<Assembly> {
   const [catalog, rows, seatRows, svg] = await Promise.all([
     loadCatalog(),
     loadCsv("deputies/init.csv", INIT_COLUMNS),
-    loadCsv("constituencies/hemicycle.csv", SEAT_COLUMNS),
-    fetchText("constituencies/hemicycle.svg"),
+    loadCsv("seats/hemicycle.csv", SEAT_COLUMNS),
+    fetchText("seats/hemicycle.svg"),
   ])
 
-  const seats = new Map(seatRows.map(r => [r.constituency, { number: r.seat, x: Number(r.x), y: Number(r.y) }]))
+  const seatOf = new Map<string, Seat>()
+  const emptySeats: Seat[] = []
+  for (const r of seatRows) {
+    const seat = { number: r.seat, x: Number(r.x), y: Number(r.y) }
+    if (r.deputy) seatOf.set(r.deputy, seat)
+    else emptySeats.push(seat)
+  }
   const seated: { row: InitRow; seat: Seat }[] = []
   for (const row of rows) {
     if (row.in_office !== "yes") continue
-    const seat = seats.get(row.constituency)
+    const seat = seatOf.get(row.deputy_id)
     if (seat) seated.push({ row, seat })
-    else console.warn(`${row.deputy_id} is in office but ${row.constituency} has no seat in hemicycle.csv`)
+    else console.warn(`${row.deputy_id} is in office but has no seat in seats/hemicycle.csv`)
   }
 
   const groupFeature = findFeature(catalog, "deputies/init.csv", "group")
@@ -65,6 +72,7 @@ export async function loadAssembly(): Promise<Assembly> {
     deputies,
     byId: new Map(deputies.map(d => [d.id, d])),
     groups: [...groups.values()].sort((a, b) => a.xSum / a.seatCount - b.xSum / b.seatCount),
+    emptySeats,
     background: parseBackground(svg),
   }
 }

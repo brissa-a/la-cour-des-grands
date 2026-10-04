@@ -54,6 +54,8 @@ a { color: var(--accent); }
 
 .seat { cursor: pointer; }
 
+.empty-seat { fill: none; stroke: var(--muted); stroke-width: 0.003; }
+
 .seat-dot {
   transition: fill 0.3s, transform 0.4s;
   transform-box: fill-box;

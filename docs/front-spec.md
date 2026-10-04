@@ -22,7 +22,7 @@ The current site (cour-des-grands.fr, Firebase) stays online and keeps reading `
 
 | Feature | Data |
 |---|---|
-| Hemicycle with pan and zoom (mouse, wheel, touch), deputies colored by political group, legend with seat count per group | `catalog.json`, `deputies/init.csv`, `constituencies/hemicycle.csv`, `constituencies/hemicycle.svg` |
+| Hemicycle with pan and zoom (mouse, wheel, touch), deputies colored by political group, legend with seat count per group | `catalog.json`, `deputies/init.csv`, `seats/hemicycle.csv`, `seats/hemicycle.svg` |
 | Optional photos on seats, stored in the URL (`?showPic=true`) | `photo` in `init.csv` |
 | Deputy profile on hover, pinned on click: photo, civility, name, birth date and age, seat, constituency, group, link to the official page | `init.csv`, `deputies/links.csv` |
 | Fuzzy search of deputies by last name, first name, group, department, department number, constituency number and commune, with match highlighting | `init.csv`, `deputies/communes.csv` |
@@ -32,7 +32,7 @@ Out of scope: charts, coloring by anything other than group, votes, search in vo
 
 ### Loading
 
-1. Before first render: `catalog.json`, `deputies/init.csv`, `constituencies/hemicycle.csv`, `constituencies/hemicycle.svg`.
+1. Before first render: `catalog.json`, `deputies/init.csv`, `seats/hemicycle.csv`, `seats/hemicycle.svg`.
 2. Right after: `deputies/links.csv`.
 3. On first focus of the search box: `deputies/communes.csv`. Search works on the other fields while it loads.
 
@@ -40,7 +40,9 @@ A failed load before first render shows an error screen. A failed later load onl
 
 ### Seat placement
 
-Only deputies with `in_office = yes` are drawn. A deputy goes to the seat of their `constituency` in `hemicycle.csv`. A deputy whose constituency has no seat is not drawn; the count is logged to the console.
+`seats/hemicycle.csv` has one row per seat of the room (582), with the deputy in office sitting there, if any. Deputies with `in_office = yes` are drawn at their seat; empty seats are drawn as outlines. A deputy in office without a seat is not drawn and is logged to the console.
+
+For past votes (later increment): seat → current deputy → their `constituency` → the deputy holding it at the vote date, from `mandate_periods`.
 
 ### Legend order
 

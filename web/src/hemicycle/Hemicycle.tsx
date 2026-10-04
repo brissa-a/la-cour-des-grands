@@ -25,6 +25,9 @@ export function Hemicycle({ assembly, highlighted, showPhotos, handlers }: Props
         </clipPath>
       </defs>
       <g className="hemicycle-background" dangerouslySetInnerHTML={{ __html: assembly.background.markup }} />
+      {assembly.emptySeats.map(seat => (
+        <circle key={seat.number} className="empty-seat" cx={seat.x} cy={seat.y} r={SEAT_RADIUS} />
+      ))}
       {assembly.deputies.map(deputy => (
         <DeputyDot
           key={deputy.id}
