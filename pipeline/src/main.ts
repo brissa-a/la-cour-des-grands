@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 import { catalog } from "./core/catalog.ts";
 import type { Job } from "./core/job.ts";
+import { communes } from "./jobs/communes.ts";
 import { hemicycle } from "./jobs/hemicycle.ts";
 import { init } from "./jobs/init.ts";
 
@@ -9,7 +10,7 @@ const { values: options, positionals } = parseArgs({
   options: { "push-to-remote": { type: "boolean", default: false } },
 });
 
-const files = [init, hemicycle];
+const files = [init, hemicycle, communes];
 const all = catalog(files);
 
 const jobs: Job<unknown>[] = [...files, all];
