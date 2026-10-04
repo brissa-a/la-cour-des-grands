@@ -1,14 +1,17 @@
+import { readFile } from "node:fs/promises";
 import { csv, writeOutput } from "../core/csv.ts";
 import { job } from "../core/job.ts";
-import { constituency } from "./constituencies.ts";
+import { entity } from "../core/entity.ts";
+import { type DeputyId, deputies, inOffice, lastMandate } from "./deputies.ts";
 
 // Seat numbers of each row of the room, from the front row to the back, left to right.
-// Numbers from 3000 are empty spots and from 4000 the government benches: they shape the rows but hold no deputy.
+// Numbers from 3000 are empty spots and from 4000 the government benches: they shape the rows but are not seats.
+const FIRST_NON_SEAT = 3000;
 const ROWS = [
   ["3001-3003", "75-77", "162-164", "4001-4009", "489-491", "3004-3007"],
   ["1-3", "78-80", "165-167", "4011-4019", "492-494", "576-578"],
   ["5-7", "81-84", "168-171", "248-251", "329-332", "409-412", "495-498", "580-582"],
-  ["8-11", "85-88", "171-175", "253-256", "333-336", "413-416", "499-502", "583-586"],
+  ["8-11", "85-88", "172-175", "253-256", "333-336", "413-416", "499-502", "583-586"],
   ["12-16", "89-93", "176-180", "257-261", "337-341", "417-421", "503-507", "587-591"],
   ["17-22", "94-99", "181-186", "262-267", "342-347", "422-427", "508-513", "592-597"],
   ["23-26", "27-28", "100-106", "187-193", "268-274", "348-354", "428-434", "514-520", "599-600", "601-604"],
@@ -43,44 +46,54 @@ function seatPositions(): Map<number, { x: number; y: number }> {
   return positions;
 }
 
-function backgroundSvg(): string {
-  const maxRadius = FIRST_ROW_RADIUS + ROWS.length - 1;
-  const arcs = ROWS.map((_, rowIndex) => {
-    const r = round((FIRST_ROW_RADIUS + rowIndex) / maxRadius);
-    return `  <path d="M ${-r} 0 A ${r} ${r} 0 0 1 ${r} 0" />`;
-  });
-  return [
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.05 -1.05 2.1 1.1">`,
-    `<g fill="none" stroke="currentColor" stroke-opacity="0.15" stroke-width="0.004">`,
-    ...arcs,
-    `</g>`,
-    `</svg>`,
-    "",
-  ].join("\n");
-}
+type Seat = { number: number; x: number; y: number; deputy: DeputyId | null };
 
-const SEATS = seatPositions();
-const BACKGROUND = "hemicycle.svg";
+const seats = job({
+  name: "seats",
+  dependencies: { deputies },
+  run({ deputies }): Seat[] {
+    const deputyBySeat = new Map<number, DeputyId>();
+    for (const d of deputies.filter(inOffice)) {
+      const seat = Number(lastMandate(d).seat);
+      if (!Number.isInteger(seat)) throw new Error(`No seat for ${d.id}`);
+      const other = deputyBySeat.get(seat);
+      if (other !== undefined) throw new Error(`Seat ${seat} held by both ${other} and ${d.id}`);
+      deputyBySeat.set(seat, d.id);
+    }
+    const plan = [...seatPositions()].filter(([number]) => number < FIRST_NON_SEAT);
+    const unknown = [...deputyBySeat.keys()].filter((n) => !plan.some(([number]) => number === n));
+    if (unknown.length > 0) throw new Error(`Seats not in the room plan: ${unknown.join(", ")}`);
+    return plan
+      .map(([number, position]) => ({ number, ...position, deputy: deputyBySeat.get(number) ?? null }))
+      .sort((a, b) => a.number - b.number);
+  },
+});
+
+export const seat = entity({
+  name: "seat",
+  folder: "seats",
+  key: "seat",
+  rows: seats,
+  id: (s: Seat) => String(s.number),
+});
+
+const BACKGROUND = `${seat.folder}/hemicycle.svg`;
 
 const background = job({
-  name: `${constituency.folder}/${BACKGROUND}`,
+  name: BACKGROUND,
   dependencies: {},
-  run: () => writeOutput(`${constituency.folder}/${BACKGROUND}`, backgroundSvg()),
+  run: async () => writeOutput(BACKGROUND, await readFile("assets/hemicycle.svg")),
 });
 
 export const hemicycle = csv({
-  entity: constituency,
+  entity: seat,
   file: "hemicycle.csv",
   dependencies: { background },
   features: {
-    seat: { title: "Siège", type: "code" },
     x: { title: "x", type: "number" },
     y: { title: "y", type: "number" },
+    deputy: { title: "Député", type: "reference", entity: "deputy" },
   },
-  layout: { background: `${constituency.folder}/${BACKGROUND}` },
-  row: (c) => {
-    const position = SEATS.get(c.seat);
-    if (position === undefined) throw new Error(`Seat ${c.seat} of ${c.code} is not in the room plan`);
-    return { seat: String(c.seat), ...position };
-  },
+  layout: { background: BACKGROUND },
+  row: (s) => ({ x: s.x, y: s.y, deputy: s.deputy }),
 });
