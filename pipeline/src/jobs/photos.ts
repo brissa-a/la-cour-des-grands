@@ -1,18 +1,18 @@
-import { access, copyFile, mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import { job } from "../core/job.ts";
 import { today } from "../core/types.ts";
 import { MODEL, backgroundRemover, briaModel } from "../photos/bria.ts";
-import { targetBranch } from "../options.ts";
+import { options, targetBranch } from "../options.ts";
 import { type OfficialPhoto, officialPhoto } from "../photos/officialPhoto.ts";
+import { PHOTOS_OUTPUT_DIR, cutoutPath } from "../photos/paths.ts";
 import { loadRegistry, saveRegistry } from "../photos/registry.ts";
 import { type Deputy, type DeputyId, deputies, inOffice } from "./deputies.ts";
 
-export const PHOTOS_OUTPUT_DIR = "output/photos";
+export { PHOTOS_OUTPUT_DIR };
 export const PHOTOS_REPOSITORY = "brissa-a/lcdg-nobg";
 export const PHOTOS_BASE_URL = `https://raw.githubusercontent.com/${PHOTOS_REPOSITORY}/${targetBranch}/v2`;
-const CUTOUTS_DIR = "cache/nobg/cutouts";
 const PARALLEL_DOWNLOADS = 8;
-const REGISTRY_SAVE_INTERVAL = 25;
+const PROGRESS_INTERVAL = 25;
 
 type Candidate = { deputy: Deputy; photo: OfficialPhoto };
 
@@ -39,7 +39,7 @@ export const photos = job({
       (
         await Promise.all(
           candidates.map(({ deputy }) =>
-            access(`${CUTOUTS_DIR}/${deputy.id}.webp`).then(
+            access(cutoutPath(deputy.id)).then(
               () => [deputy.id],
               () => [],
             ),
@@ -55,25 +55,22 @@ export const photos = job({
       .filter((c) => !isUpToDate(c))
       .sort((a, b) => Number(inOffice(b.deputy)) - Number(inOffice(a.deputy)));
 
-    if (todo.length > 0) {
+    if (todo.length > 0 && options.skipNewCutouts) {
+      console.log(`  ${todo.length} photos waiting for a cutout, skipped (--skip-new-cutouts)`);
+    } else if (todo.length > 0) {
       console.log(`  ${todo.length} photos to cut out with ${MODEL}`);
       const removeBackground = await backgroundRemover(briaModel);
-      await mkdir(CUTOUTS_DIR, { recursive: true });
+      await mkdir(PHOTOS_OUTPUT_DIR, { recursive: true });
       for (const [i, { deputy, photo }] of todo.entries()) {
-        await writeFile(`${CUTOUTS_DIR}/${deputy.id}.webp`, await removeBackground(photo.path));
+        await writeFile(cutoutPath(deputy.id), await removeBackground(photo.path));
         cutoutExists.add(deputy.id);
         registry.set(deputy.id, { model: MODEL, date: today(), originalSha256: photo.sha256 });
+        await saveRegistry(registry);
         const done = i + 1;
-        if (done % REGISTRY_SAVE_INTERVAL === 0 || done === todo.length) {
-          await saveRegistry(registry);
-          console.log(`  ${done}/${todo.length}`);
-        }
+        if (done % PROGRESS_INTERVAL === 0 || done === todo.length) console.log(`  ${done}/${todo.length}`);
       }
     }
 
-    const published = candidates.filter(isUpToDate).map((c) => c.deputy.id);
-    await mkdir(PHOTOS_OUTPUT_DIR, { recursive: true });
-    await Promise.all(published.map((id) => copyFile(`${CUTOUTS_DIR}/${id}.webp`, `${PHOTOS_OUTPUT_DIR}/${id}.webp`)));
-    return new Set(published);
+    return new Set(candidates.filter(isUpToDate).map((c) => c.deputy.id));
   },
 });

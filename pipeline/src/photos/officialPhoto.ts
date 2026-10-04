@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import type { DeputyId } from "../jobs/deputies.ts";
+import { ORIGINALS_DIR } from "./paths.ts";
 
-const ORIGINALS_DIR = "cache/nobg/originals";
 const MAX_AGE_HOURS = 24;
 
 export type OfficialPhoto = {
@@ -22,10 +22,15 @@ export async function officialPhoto(id: DeputyId): Promise<OfficialPhoto | "miss
     (s) => Date.now() - s.mtimeMs,
     () => Infinity,
   );
-  if (age < MAX_AGE_HOURS * 3600_000) return { path, sha256: sha256(await readFile(path)) };
+  const previous = async () => ({ path, sha256: sha256(await readFile(path)) });
+  if (age < MAX_AGE_HOURS * 3600_000) return previous();
   const response = await fetch(officialPhotoUrl(id));
   if (response.status === 404) return "missing";
-  if (!response.ok) throw new Error(`Photo of ${id}: HTTP ${response.status}`);
+  if (!response.ok) {
+    const fallback = age === Infinity ? "treated as missing" : "keeping the previous original";
+    console.warn(`  photo of ${id}: HTTP ${response.status}, ${fallback}`);
+    return age === Infinity ? "missing" : previous();
+  }
   const bytes = new Uint8Array(await response.arrayBuffer());
   await mkdir(ORIGINALS_DIR, { recursive: true });
   await writeFile(path, bytes);
