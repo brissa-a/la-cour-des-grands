@@ -1,12 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { gzipSync } from "node:zlib";
-import { type Deputy, deputies } from "../jobs/deputies.ts";
+import type { Entity } from "./entity.ts";
 import { type Dependencies, type Job, type Results, job, resolve } from "./job.ts";
 import type { IsoDate } from "./types.ts";
 
 type SimpleFeature = {
   title: string;
-  type: "text" | "number" | "date" | "code" | "list" | "link" | "image" | "position";
+  type: "text" | "number" | "date" | "code" | "list" | "link" | "image";
 };
 
 type CategoryFeature = {
@@ -15,7 +16,13 @@ type CategoryFeature = {
   values?: readonly string[];
 };
 
-export type Feature = SimpleFeature | CategoryFeature;
+type ReferenceFeature = {
+  title: string;
+  type: "reference";
+  entity: string;
+};
+
+export type Feature = SimpleFeature | CategoryFeature | ReferenceFeature;
 export type Features = Record<string, Feature>;
 
 type Value<F extends Feature> = F extends { type: "category"; values: readonly (infer V)[] }
@@ -32,12 +39,18 @@ export type Row<F extends Features> = { [K in keyof F]: Value<F[K]> | null };
 
 export type Colors = Record<string, string>;
 
+type Layout = { background: string };
+type LayoutOption<F extends Features> = F extends { x: { type: "number" }; y: { type: "number" } } ? Layout : never;
+
 export type PublishedFile = {
   file: string;
+  entity: string;
+  key: string;
   rows: number;
   size: number;
   gzipSize: number;
   features: (Feature & { column: string; colors?: Colors })[];
+  layout?: Layout;
 };
 
 export const OUTPUT_DIR = "output/v2";
@@ -53,34 +66,44 @@ function cell(value: string | number | readonly string[] | null): string {
   return /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 }
 
-export function csv<const D extends Dependencies, const F extends Features>(definition: {
+export async function writeOutput(path: string, content: Uint8Array | string): Promise<void> {
+  await mkdir(dirname(`${OUTPUT_DIR}/${path}`), { recursive: true });
+  await writeFile(`${OUTPUT_DIR}/${path}`, content);
+}
+
+export function csv<R, const D extends Dependencies, const F extends Features>(definition: {
+  entity: Entity<R>;
   file: string;
   dependencies: D;
   features: F;
-  row: (deputy: Deputy, results: Results<D>) => Row<F>;
-  colors?: (deputies: Deputy[], results: Results<D>) => Partial<Record<keyof F, Colors>>;
+  row: (item: R, results: Results<D>) => Row<F>;
+  colors?: (items: R[], results: Results<D>) => Partial<Record<keyof F, Colors>>;
+  layout?: LayoutOption<F>;
   gzipBudget?: number;
 }): Job<PublishedFile> {
+  const { entity } = definition;
+  const path = `${entity.folder}/${definition.file}`;
   return job({
-    name: definition.file,
-    dependencies: { deputies },
-    async run({ deputies }) {
+    name: path,
+    dependencies: { items: entity.rows },
+    async run({ items }) {
       const results = await resolve(definition.dependencies);
       const columns = Object.keys(definition.features) as (keyof F & string)[];
-      const lines = deputies.map((d) => {
-        const row = definition.row(d, results);
-        return [d.id, ...columns.map((c) => cell(row[c]))].join(",");
+      const lines = items.map((item) => {
+        const row = definition.row(item, results);
+        return [cell(entity.id(item)), ...columns.map((c) => cell(row[c]))].join(",");
       });
-      const content = new TextEncoder().encode([["deputy_id", ...columns].join(","), ...lines].join("\n") + "\n");
+      const content = new TextEncoder().encode([[entity.key, ...columns].join(","), ...lines].join("\n") + "\n");
       const gzipSize = gzipSync(content).length;
       if (definition.gzipBudget !== undefined && gzipSize > definition.gzipBudget) {
-        throw new Error(`${definition.file} exceeds its budget: ${gzipSize} > ${definition.gzipBudget} gzipped bytes`);
+        throw new Error(`${path} exceeds its budget: ${gzipSize} > ${definition.gzipBudget} gzipped bytes`);
       }
-      await mkdir(OUTPUT_DIR, { recursive: true });
-      await writeFile(`${OUTPUT_DIR}/${definition.file}`, content);
-      const colors: Partial<Record<keyof F, Colors>> = definition.colors?.(deputies, results) ?? {};
+      await writeOutput(path, content);
+      const colors: Partial<Record<keyof F, Colors>> = definition.colors?.(items, results) ?? {};
       return {
-        file: definition.file,
+        file: path,
+        entity: entity.name,
+        key: entity.key,
         rows: lines.length,
         size: content.length,
         gzipSize,
@@ -92,6 +115,7 @@ export function csv<const D extends Dependencies, const F extends Features>(defi
             ...(columnColors ? { colors: columnColors } : {}),
           };
         }),
+        ...(definition.layout ? { layout: definition.layout as Layout } : {}),
       };
     },
   });

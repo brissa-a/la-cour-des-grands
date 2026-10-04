@@ -1,6 +1,6 @@
 import { csv } from "../core/csv.ts";
 import { type IsoDate, today } from "../core/types.ts";
-import { inOffice, lastMandate } from "./deputies.ts";
+import { deputy, inOffice, lastMandate } from "./deputies.ts";
 
 function ageOn(birthDate: IsoDate, date: IsoDate): number {
   const years = Number(date.slice(0, 4)) - Number(birthDate.slice(0, 4));
@@ -8,6 +8,7 @@ function ageOn(birthDate: IsoDate, date: IsoDate): number {
 }
 
 export const init = csv({
+  entity: deputy,
   file: "init.csv",
   gzipBudget: 50_000,
   dependencies: {},
@@ -18,7 +19,7 @@ export const init = csv({
     birth_date: { title: "Date de naissance", type: "date" },
     age: { title: "Âge", type: "number" },
     in_office: { title: "En exercice", type: "category", values: ["yes", "no"] },
-    constituency: { title: "Circonscription", type: "position" },
+    constituency: { title: "Circonscription", type: "reference", entity: "constituency" },
     region: { title: "Région", type: "category" },
     department: { title: "Département", type: "text" },
     department_number: { title: "N° de département", type: "code" },

@@ -1,4 +1,5 @@
 import { strFromU8, unzipSync } from "fflate";
+import { entity } from "../core/entity.ts";
 import { job } from "../core/job.ts";
 import { source } from "../core/source.ts";
 import { type IsoDate, isoDate } from "../core/types.ts";
@@ -157,4 +158,12 @@ export const deputies = job({
     }
     return result.sort((a, b) => a.id.localeCompare(b.id));
   },
+});
+
+export const deputy = entity({
+  name: "deputy",
+  folder: "deputies",
+  key: "deputy_id",
+  rows: deputies,
+  id: (d: Deputy) => d.id,
 });
