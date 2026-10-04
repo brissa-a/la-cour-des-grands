@@ -13,10 +13,11 @@ type Props = {
   assembly: Assembly
   highlighted: ReadonlySet<DeputyId>
   showPhotos: boolean
+  colorOf: (id: DeputyId) => string
   handlers: DeputyHandlers
 }
 
-export function Hemicycle({ assembly, highlighted, showPhotos, handlers }: Props) {
+export function Hemicycle({ assembly, highlighted, showPhotos, colorOf, handlers }: Props) {
   return (
     <PanZoomSvg viewBox={assembly.background.viewBox}>
       <defs>
@@ -32,6 +33,7 @@ export function Hemicycle({ assembly, highlighted, showPhotos, handlers }: Props
         <DeputyDot
           key={deputy.id}
           deputy={deputy}
+          color={colorOf(deputy.id)}
           highlighted={highlighted.has(deputy.id)}
           showPhoto={showPhotos}
           handlers={handlers}
@@ -41,9 +43,9 @@ export function Hemicycle({ assembly, highlighted, showPhotos, handlers }: Props
   )
 }
 
-type DotProps = { deputy: Deputy; highlighted: boolean; showPhoto: boolean; handlers: DeputyHandlers }
+type DotProps = { deputy: Deputy; color: string; highlighted: boolean; showPhoto: boolean; handlers: DeputyHandlers }
 
-const DeputyDot = memo(function DeputyDot({ deputy, highlighted, showPhoto, handlers }: DotProps) {
+const DeputyDot = memo(function DeputyDot({ deputy, color, highlighted, showPhoto, handlers }: DotProps) {
   const { x, y } = deputy.seat
   return (
     <g
@@ -52,7 +54,7 @@ const DeputyDot = memo(function DeputyDot({ deputy, highlighted, showPhoto, hand
       onPointerEnter={() => handlers.show(deputy.id)}
       onClick={() => handlers.pin(deputy.id)}
     >
-      <circle className="seat-dot" r={SEAT_RADIUS} fill={deputy.politicalGroup.color} />
+      <circle className="seat-dot" r={SEAT_RADIUS} style={{ fill: color }} />
       {showPhoto && (
         <image
           href={deputy.photo}

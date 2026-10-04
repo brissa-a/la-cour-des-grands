@@ -12,7 +12,8 @@ export type CategoryFeature = FeatureBase & {
 export type Feature =
   | CategoryFeature
   | (FeatureBase & { type: "reference"; entity: Entity })
-  | (FeatureBase & { type: "text" | "number" | "date" | "code" | "list" | "link" | "image" })
+  | (FeatureBase & { type: "number" })
+  | (FeatureBase & { type: "text" | "date" | "code" | "list" | "link" | "image" })
 
 type FileBase = {
   file: string

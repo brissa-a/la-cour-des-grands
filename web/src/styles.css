@@ -71,9 +71,11 @@ a { color: var(--accent); }
 
 .legend {
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 56px;
-  transform: translateX(-50%);
+  width: fit-content;
+  margin-inline: auto;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -107,15 +109,51 @@ a { color: var(--accent); }
 
 .legend-count { color: var(--muted); font-variant-numeric: tabular-nums; }
 
-.photos-toggle {
+.controls {
   position: absolute;
   top: 12px;
   right: 12px;
-  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
   border-radius: 8px;
   font-size: 13px;
-  cursor: pointer;
 }
+
+.control { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+
+.control select {
+  font: inherit;
+  color: var(--fg);
+  background: #2b2b2b;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+.legend-gradient {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: min(360px, calc(100% - 32px));
+  padding: 10px 16px 8px;
+}
+
+.legend-title { text-align: center; }
+
+.gradient-bar { position: relative; height: 10px; border-radius: 5px; margin-bottom: 18px; }
+
+.gradient-tick {
+  position: absolute;
+  top: 14px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-gradient .legend-count { text-align: center; }
 
 .deputy-card {
   position: fixed;
@@ -181,7 +219,7 @@ a { color: var(--accent); }
   position: fixed;
   top: 0;
   left: var(--card-width);
-  width: min(480px, calc(100vw - var(--card-width) - 200px));
+  width: min(480px, calc(100vw - var(--card-width) - 300px));
   max-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -262,9 +300,9 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
   .pan-zoom { flex: 1; min-height: 0; }
 
-  .legend { position: static; transform: none; margin: 0 auto 8px; font-size: 12px; }
+  .legend { position: static; margin: 0 auto 8px; font-size: 12px; }
 
-  .photos-toggle { top: 4px; right: 8px; }
+  .controls { top: 4px; right: 8px; padding: 6px 8px; }
 
   .deputy-card { top: auto; bottom: 0; width: 100%; height: 38vh; }
 

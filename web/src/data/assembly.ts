@@ -1,4 +1,4 @@
-import { loadCatalog, valuesTablePath } from "./catalog.ts"
+import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { fetchText } from "./source.ts"
 
@@ -22,6 +22,8 @@ export type Group = { name: string; short: string; color: string; seatCount: num
 export type Background = { viewBox: string; markup: string }
 
 export type Assembly = {
+  catalog: Catalog
+  initRows: ReadonlyMap<DeputyId, Readonly<Record<string, string>>>
   deputies: Deputy[]
   byId: ReadonlyMap<DeputyId, Deputy>
   groups: Group[]
@@ -32,8 +34,10 @@ export type Assembly = {
 const GROUP_VALUE_COLUMNS = ["value", "label_fr", "short_fr", "color"] as const
 
 export async function loadAssembly(): Promise<Assembly> {
-  const [groupRows, rows, seatRows, svg] = await Promise.all([
-    loadCatalog().then(catalog => loadCsv(valuesTablePath(catalog, "deputies/init.csv", "group"), GROUP_VALUE_COLUMNS)),
+  const catalogLoaded = loadCatalog()
+  const [catalog, groupRows, rows, seatRows, svg] = await Promise.all([
+    catalogLoaded,
+    catalogLoaded.then(catalog => loadCsv(valuesTablePath(catalog, "deputies/init.csv", "group"), GROUP_VALUE_COLUMNS)),
     loadCsv("deputies/init.csv", INIT_COLUMNS),
     loadCsv("seats/hemicycle.csv", SEAT_COLUMNS),
     fetchText("seats/hemicycle.svg"),
@@ -64,6 +68,8 @@ export async function loadAssembly(): Promise<Assembly> {
   })
 
   return {
+    catalog,
+    initRows: new Map(rows.map(r => [r.deputy_id as DeputyId, r])),
     deputies,
     byId: new Map(deputies.map(d => [d.id, d])),
     groups: groups.filter(g => g.seatCount > 0),
