@@ -2,12 +2,14 @@ import { access, copyFile, mkdir, writeFile } from "node:fs/promises";
 import { job } from "../core/job.ts";
 import { today } from "../core/types.ts";
 import { MODEL, backgroundRemover, briaModel } from "../photos/bria.ts";
+import { targetBranch } from "../options.ts";
 import { type OfficialPhoto, officialPhoto } from "../photos/officialPhoto.ts";
 import { loadRegistry, saveRegistry } from "../photos/registry.ts";
 import { type Deputy, type DeputyId, deputies, inOffice } from "./deputies.ts";
 
 export const PHOTOS_OUTPUT_DIR = "output/photos";
-export const PHOTOS_BASE_URL = "https://raw.githubusercontent.com/brissa-a/lcdg-nobg/main/v2";
+export const PHOTOS_REPOSITORY = "brissa-a/lcdg-nobg";
+export const PHOTOS_BASE_URL = `https://raw.githubusercontent.com/${PHOTOS_REPOSITORY}/${targetBranch}/v2`;
 const CUTOUTS_DIR = "cache/nobg/cutouts";
 const PARALLEL_DOWNLOADS = 8;
 const REGISTRY_SAVE_INTERVAL = 25;
