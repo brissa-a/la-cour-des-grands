@@ -1,6 +1,7 @@
 :root {
   --bg: #212121;
   --panel: rgba(28, 28, 28, 0.72);
+  --panel-solid: rgba(30, 30, 30, 0.94);
   --fg: #f2f2f2;
   --muted: #9a9a9a;
   --line: rgba(255, 255, 255, 0.12);
@@ -28,10 +29,14 @@ a { color: var(--accent); }
 }
 
 .panel {
+  background: var(--panel-solid);
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.5);
+}
+
+.deputy-card, .search {
   background: var(--panel);
   backdrop-filter: blur(6px) saturate(60%);
   -webkit-backdrop-filter: blur(6px) saturate(60%);
-  box-shadow: 0 0 24px rgba(0, 0, 0, 0.5);
 }
 
 .stage {
@@ -67,7 +72,7 @@ a { color: var(--accent); }
 .empty-seat { fill: none; stroke: var(--muted); stroke-width: 0.003; }
 
 .seat-dot {
-  transition: fill 0.3s, transform 0.4s, r 0.9s;
+  transition: fill 0.3s, transform 0.4s;
   transform-box: fill-box;
   transform-origin: center;
 }

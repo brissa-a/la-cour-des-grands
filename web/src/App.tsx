@@ -97,7 +97,6 @@ export function App({ assembly, store, initialColoring }: Props) {
       </main>
       {deputy && (
         <DeputyCard
-          key={deputy.id}
           deputy={deputy}
           pinned={pinned !== null}
           officialPage={officialPages.get(deputy.id)}
