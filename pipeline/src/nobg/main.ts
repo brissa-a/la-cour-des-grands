@@ -39,11 +39,12 @@ console.log(`${todo.length} photos to process with ${MODEL}`);
 
 for (let i = 0; i < todo.length; i += BATCH_SIZE) {
   const batch = todo.slice(i, i + BATCH_SIZE);
-  await removeBackgrounds(
+  const produced = await removeBackgrounds(
     batch.map((c) => c.photo.path),
     IMAGES_DIR,
   );
   for (const { deputy, photo } of batch) {
+    if (!produced.has(deputy.id)) continue;
     registry.set(deputy.id, { model: MODEL, date: today(), originalSha256: photo.sha256 });
   }
   await saveRegistry(registry);
