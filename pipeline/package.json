@@ -7,6 +7,7 @@
   },
   "scripts": {
     "detourage": "node src/detourage/main.ts",
+    "pipeline": "node src/main.ts",
     "typecheck": "tsc"
   },
   "dependencies": {
