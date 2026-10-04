@@ -1,0 +1,276 @@
+:root {
+  --bg: #212121;
+  --panel: rgba(28, 28, 28, 0.72);
+  --fg: #f2f2f2;
+  --muted: #9a9a9a;
+  --line: rgba(255, 255, 255, 0.12);
+  --accent: #90caf9;
+  --card-width: 350px;
+  color-scheme: dark;
+  font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; overflow: hidden; }
+
+a { color: var(--accent); }
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.panel {
+  background: var(--panel);
+  backdrop-filter: blur(6px) saturate(60%);
+  -webkit-backdrop-filter: blur(6px) saturate(60%);
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.5);
+}
+
+.stage {
+  position: fixed;
+  inset: 0 0 0 var(--card-width);
+}
+
+.pan-zoom {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.pan-zoom.dragging { cursor: grabbing; }
+
+.hemicycle-background { color: var(--fg); }
+
+.seat { cursor: pointer; }
+
+.seat-dot {
+  transition: fill 0.3s, transform 0.4s;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.seat.highlighted .seat-dot {
+  transform: scale(1.35);
+  stroke: var(--fg);
+  stroke-width: 0.004;
+  transition: fill 0.3s, transform 0s;
+}
+
+.legend {
+  position: absolute;
+  left: 50%;
+  bottom: 56px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 4px;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 6px 8px;
+  list-style: none;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: default;
+}
+
+.legend li:hover { background: var(--line); }
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.legend-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.photos-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.deputy-card {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--card-width);
+  height: 100%;
+  overflow-y: auto;
+  text-align: center;
+}
+
+.portrait {
+  position: relative;
+  height: 197px;
+  display: grid;
+  place-items: center;
+  background: url("/colonnade-avec-les-drapeaux.jpg") center / cover;
+}
+
+.portrait-photo {
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  border: 2px solid;
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.unpin {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.deputy-card h2 { margin: 16px 12px 6px; font-weight: 400; font-size: 24px; }
+
+.civility { opacity: 0.4; font-size: 0.5em; }
+
+.small-details { display: flex; justify-content: center; gap: 14px; margin: 0; font-size: 14px; }
+
+.deputy-card dl { text-align: left; padding: 10px 20px; margin: 0; }
+
+.deputy-card dt { color: var(--muted); font-size: 12px; margin-top: 10px; }
+
+.deputy-card dd { margin: 2px 0 0; }
+
+.official-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px auto 16px;
+  font-size: 14px;
+}
+
+.search {
+  position: fixed;
+  top: 0;
+  left: var(--card-width);
+  width: min(480px, calc(100vw - var(--card-width) - 200px));
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.search input {
+  margin: 14px;
+  padding: 6px 2px;
+  font: inherit;
+  font-weight: 300;
+  color: var(--fg);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--fg);
+  outline: none;
+}
+
+.search-results { overflow-y: auto; }
+
+.search-status, .search-tips { margin: 0; padding: 8px 16px; font-size: 13px; color: var(--muted); }
+
+.search-tips ul { margin: 6px 0; padding-left: 20px; }
+
+.result {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.result:hover { background: var(--line); }
+
+.result-photo {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid;
+  object-fit: cover;
+  flex: none;
+}
+
+.result-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+.result-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+
+.result-constituency, .result-group { font-size: 13px; color: var(--muted); }
+
+.result-communes { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; color: var(--muted); }
+
+mark { background: none; color: var(--accent); font-weight: 700; }
+
+.footer {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  max-width: 320px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.footer nav { display: flex; gap: 14px; }
+
+.link-button { border: 0; padding: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+
+.legal p { margin: 8px 0 0; color: var(--muted); }
+
+@media (max-width: 760px) {
+  :root { --card-width: 0px; }
+
+  .stage { inset: 64px 0 38vh 0; display: flex; flex-direction: column; }
+
+  .pan-zoom { flex: 1; min-height: 0; }
+
+  .legend { position: static; transform: none; margin: 0 auto 8px; font-size: 12px; }
+
+  .photos-toggle { top: 4px; right: 8px; }
+
+  .deputy-card { top: auto; bottom: 0; width: 100%; height: 38vh; }
+
+  .portrait { height: 120px; }
+
+  .portrait-photo { width: 104px; height: 104px; }
+
+  .search { left: 0; width: 100%; max-height: 62vh; z-index: 2; }
+
+  .footer { display: none; }
+}
