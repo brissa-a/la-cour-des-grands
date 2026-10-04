@@ -1,6 +1,7 @@
 import { csv } from "../core/csv.ts";
 import { type IsoDate, today } from "../core/types.ts";
 import { deputy, inOffice, lastMandate } from "./deputies.ts";
+import { PHOTOS_BASE_URL, photos } from "./photos.ts";
 
 function ageOn(birthDate: IsoDate, date: IsoDate): number {
   const years = Number(date.slice(0, 4)) - Number(birthDate.slice(0, 4));
@@ -11,8 +12,9 @@ export const init = csv({
   entity: deputy,
   file: "init.csv",
   gzipBudget: 50_000,
-  dependencies: {},
+  dependencies: { photos },
   features: {
+    photo: { title: "Photo", type: "image" },
     last_name: { title: "Nom", type: "text" },
     first_name: { title: "Prénom", type: "text" },
     civility: { title: "Civilité", type: "category", values: ["M.", "Mme"] },
@@ -28,7 +30,8 @@ export const init = csv({
     group: { title: "Groupe politique", type: "category" },
     group_short: { title: "Groupe (sigle)", type: "category" },
   },
-  row: (d) => ({
+  row: (d, { photos }) => ({
+    photo: photos.has(d.id) ? `${PHOTOS_BASE_URL}/${d.id}.webp` : null,
     last_name: d.lastName,
     first_name: d.firstName,
     civility: d.civility,

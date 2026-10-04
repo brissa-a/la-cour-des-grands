@@ -31,3 +31,18 @@ export async function removeBackgrounds(photos: string[], outputDir: string): Pr
   await rm(work, { recursive: true });
   return new Set(produced.map((f) => parse(f).name));
 }
+
+const TO_WEBP = `
+import sys
+from PIL import Image
+out = sys.argv[1]
+for path in sys.argv[2:]:
+    name = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+    Image.open(path).save(f"{out}/{name}.webp", "WEBP", quality=80, method=6)
+`;
+
+export async function toWebp(pngs: string[], outputDir: string): Promise<void> {
+  if (pngs.length === 0) return;
+  await mkdir(outputDir, { recursive: true });
+  await promisify(execFile)(".venv-rembg/bin/python", ["-c", TO_WEBP, outputDir, ...pngs]);
+}
