@@ -1,4 +1,5 @@
 import { strFromU8, unzipSync } from "fflate";
+import type { HexColor } from "../core/csv.ts";
 import { entity } from "../core/entity.ts";
 import { job } from "../core/job.ts";
 import { source } from "../core/source.ts";
@@ -21,12 +22,46 @@ export function deputyId(value: string): DeputyId {
 
 export type ConstituencyCode = string & { readonly __brand: "ConstituencyCode" };
 
+export const REGIONS = [
+  "Auvergne-Rhône-Alpes",
+  "Bourgogne-Franche-Comté",
+  "Bretagne",
+  "Centre-Val de Loire",
+  "Corse",
+  "Grand Est",
+  "Hauts-de-France",
+  "Ile-de-France",
+  "Normandie",
+  "Nouvelle-Aquitaine",
+  "Occitanie",
+  "Pays de la Loire",
+  "Provence-Alpes-Côte d'Azur",
+  "Guadeloupe",
+  "Guyane",
+  "Martinique",
+  "Mayotte",
+  "Réunion",
+  "Nouvelle-Calédonie",
+  "Polynésie française",
+  "Saint-Barthélemy et Saint-Martin",
+  "Saint-Pierre-et-Miquelon",
+  "Wallis-et-Futuna",
+  "Français établis hors de France",
+] as const;
+export type Region = (typeof REGIONS)[number];
+
+function region(raw: string | undefined): Region {
+  const found = REGIONS.find((r) => r === raw);
+  if (found === undefined) throw new Error(`Unknown region: ${raw}`);
+  return found;
+}
+
 export type Mandate = {
   start: IsoDate;
   end: IsoDate | null;
   endReason: string | null;
   constituency: ConstituencyCode;
-  region: string;
+  region: Region;
   department: string;
   departmentNumber: string;
   constituencyNumber: string;
@@ -36,7 +71,7 @@ export type Mandate = {
 export type Group = {
   name: string;
   shortName: string;
-  color: string | null;
+  color: HexColor | null;
 };
 
 export type Deputy = {
@@ -87,6 +122,13 @@ const optionalDate = (x: unknown): IsoDate | null => {
   return value === null ? null : isoDate(value);
 };
 
+function hexColor(raw: unknown): HexColor | null {
+  const value = nonEmpty(raw);
+  if (value === null) return null;
+  if (!/^#[0-9a-f]{6}$/i.test(value)) throw new Error(`Invalid color: ${value}`);
+  return value as HexColor;
+}
+
 function mandate(raw: RawMandate): Mandate {
   const place = raw.election?.lieu ?? {};
   const departmentNumber = place.numDepartement ?? "";
@@ -96,7 +138,7 @@ function mandate(raw: RawMandate): Mandate {
     end: optionalDate(raw.dateFin),
     endReason: nonEmpty(raw.mandature?.causeFin),
     constituency: `${departmentNumber}-${constituencyNumber}` as ConstituencyCode,
-    region: place.region ?? "",
+    region: region(place.region),
     department: place.departement ?? "",
     departmentNumber,
     constituencyNumber,
@@ -126,7 +168,7 @@ export const deputies = job({
           groups.set(organ.uid, {
             name: organ.libelle,
             shortName: organ.libelleAbrev,
-            color: nonEmpty(organ.couleurAssociee),
+            color: hexColor(organ.couleurAssociee),
           });
         }
       } else {

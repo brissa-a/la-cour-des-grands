@@ -1,5 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
-import { csv, generatedCsvs, type GeneratedFile } from "../core/csv.ts";
+import { yesNo, yesNoCategory } from "../core/categories.ts";
+import { category, csv, generatedCsvs, type GeneratedFile } from "../core/csv.ts";
 import { entity } from "../core/entity.ts";
 import { job } from "../core/job.ts";
 import { source } from "../core/source.ts";
@@ -18,13 +19,25 @@ const POSITIONS = ["for", "against", "abstain", "not_voting", "absent"] as const
 type Position = (typeof POSITIONS)[number];
 type CastPosition = Exclude<Position, "absent">;
 
+const KINDS = ["scrutin public ordinaire", "scrutin public solennel", "motion de censure"] as const;
+type Kind = (typeof KINDS)[number];
+
+const RESULTS = ["adopté", "rejeté"] as const;
+type Result = (typeof RESULTS)[number];
+
+function oneOf<const T extends string>(allowed: readonly T[], raw: string, what: string): T {
+  const found = allowed.find((a) => a === raw);
+  if (found === undefined) throw new Error(`Unknown ${what}: ${raw}`);
+  return found;
+}
+
 export type Ballot = {
   id: VoteId;
   number: number;
   date: IsoDate;
   title: string;
-  kind: string;
-  result: string;
+  kind: Kind;
+  result: Result;
   major: boolean;
   bill: string | null;
   file: string;
@@ -71,7 +84,7 @@ export function billOf(title: string): string | null {
   return BILL.exec(normalize(title))?.[0] ?? null;
 }
 
-export function isMajor(title: string, kind: string): boolean {
+export function isMajor(title: string, kind: Kind): boolean {
   return normalize(title).toLowerCase().startsWith("l'ensemble") || kind !== "scrutin public ordinaire";
 }
 
@@ -99,14 +112,14 @@ function parse(raw: RawScrutin): Omit<Ballot, "file"> {
     }
   }
   const title = normalize(raw.titre);
-  const kind = raw.typeVote.libelleTypeVote;
+  const kind = oneOf(KINDS, raw.typeVote.libelleTypeVote, "vote kind");
   return {
     id: raw.uid as VoteId,
     number: Number(raw.numero),
     date: isoDate(raw.dateScrutin),
     title,
     kind,
-    result: raw.sort.code,
+    result: oneOf(RESULTS, raw.sort.code, "vote result"),
     major: isMajor(title, kind),
     bill: billOf(title),
     positions,
@@ -156,9 +169,13 @@ export const votesCatalog = csv({
     number: { title: "Numéro", type: "number" },
     date: { title: "Date", type: "date" },
     title: { title: "Objet", type: "text" },
-    kind: { title: "Type de scrutin", type: "category" },
-    result: { title: "Résultat", type: "category", values: ["adopté", "rejeté"] },
-    major: { title: "Vote majeur", type: "category", values: ["yes", "no"] },
+    kind: category("Type de scrutin", KINDS, {
+      "scrutin public ordinaire": "#90a4ae",
+      "scrutin public solennel": "#3949ab",
+      "motion de censure": "#c62828",
+    }),
+    result: category("Résultat", RESULTS, { adopté: "#2e7d32", rejeté: "#c62828" }),
+    major: yesNoCategory("Vote majeur"),
     bill: { title: "Texte", type: "text" },
     file: { title: "Fichier des positions", type: "code" },
   },
@@ -167,8 +184,8 @@ export const votesCatalog = csv({
     date: b.date,
     title: b.title,
     kind: b.kind,
-    result: b.result === "adopté" || b.result === "rejeté" ? b.result : null,
-    major: b.major ? "yes" : "no",
+    result: b.result,
+    major: yesNo(b.major),
     bill: b.bill,
     file: `${deputy.folder}/${b.file}`,
   }),
@@ -178,13 +195,6 @@ function inOfficeOn(d: Deputy, date: IsoDate): boolean {
   return d.mandates.some((m) => m.start <= date && (m.end === null || m.end >= date));
 }
 
-const POSITION_COLORS = {
-  for: "#2e7d32",
-  against: "#c62828",
-  abstain: "#f9a825",
-  not_voting: "#9e9e9e",
-  absent: "#e0e0e0",
-};
 
 function positionFiles(name: string, files: (ballots: Ballot[]) => GeneratedFile<Ballot>[]) {
   return generatedCsvs({
@@ -192,8 +202,13 @@ function positionFiles(name: string, files: (ballots: Ballot[]) => GeneratedFile
     entity: deputy,
     columnEntity: vote,
     dependencies: {},
-    feature: { title: "Position de vote", type: "category", values: POSITIONS },
-    colors: POSITION_COLORS,
+    feature: category("Position de vote", POSITIONS, {
+      for: "#2e7d32",
+      against: "#c62828",
+      abstain: "#f9a825",
+      not_voting: "#9e9e9e",
+      absent: "#e0e0e0",
+    }),
     files,
     value: (d, ballot) => ballot.positions.get(d.id) ?? (inOfficeOn(d, ballot.date) ? "absent" : null),
     gzipBudget: 150_000,
