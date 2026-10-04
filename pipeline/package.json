@@ -1,0 +1,19 @@
+{
+  "name": "lcdg-pipeline",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=23.6"
+  },
+  "scripts": {
+    "detourage": "node src/detourage/main.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2"
+  }
+}

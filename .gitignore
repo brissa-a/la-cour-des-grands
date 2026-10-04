@@ -41,3 +41,5 @@ jobs/dl_old/
 test_*.js
 jobs/work/
 jobs/work*
+
+.essais-nobg/
