@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId } from "./data/assembly.ts"
 import { colorableFeatures, type FeatureKey, type FeatureStore } from "./data/features.ts"
+import { buildChart } from "./layout/chart.ts"
 import { buildColoring, type Coloring } from "./coloring/coloring.ts"
-import { ColorPicker } from "./coloring/ColorPicker.tsx"
+import { FeaturePicker } from "./coloring/FeaturePicker.tsx"
+import { useColoring } from "./coloring/useColoring.ts"
 import { DEFAULT_COLORING, HIDDEN_FEATURES } from "./coloring/views.ts"
-import { Hemicycle, type DeputyHandlers } from "./hemicycle/Hemicycle.tsx"
-import { Legend } from "./hemicycle/Legend.tsx"
+import { SEAT_RADIUS, Stage, type DeputyHandlers } from "./layout/Stage.tsx"
+import { Legend } from "./layout/Legend.tsx"
 import { DeputyCard } from "./profile/DeputyCard.tsx"
 import { Search } from "./search/Search.tsx"
 import { Footer } from "./Footer.tsx"
@@ -22,8 +24,9 @@ export function App({ assembly, store, initialColoring }: Props) {
   const [searchResults, setSearchResults] = useState(NO_IDS)
   const [hoveredValue, setHoveredValue] = useState<string | null>(null)
   const [showPhotos, setShowPhotos] = useState(() => readParam("showPic") === "true")
-  const [coloring, setColoring] = useState(initialColoring)
-  const requestedColoring = useRef(initialColoring.key)
+  const [coloring, requestColoring] = useColoring(store, features, assembly.deputies, initialColoring)
+  const [chartKey, setChartKey] = useState<FeatureKey | null>(null)
+  const [chartBy, requestChartBy] = useColoring(store, features, assembly.deputies, null)
   const [officialPages, setOfficialPages] = useState<ReadonlyMap<DeputyId, string>>(new Map())
 
   useEffect(() => {
@@ -35,16 +38,27 @@ export function App({ assembly, store, initialColoring }: Props) {
     [],
   )
 
-  const selectColoring = (key: FeatureKey) => {
-    const source = features.find(f => f.key === key)
-    if (!source) return
+  const selectColoring = (key: FeatureKey | null) => {
+    if (!key) return
     writeParam("color", key === DEFAULT_COLORING ? null : key)
-    requestedColoring.current = key
-    buildColoring(store, source, assembly.deputies).then(
-      built => requestedColoring.current === built.key && setColoring(built),
-      (error: unknown) => console.error(error),
-    )
+    requestColoring(key)
   }
+
+  const selectChart = (key: FeatureKey | null) => {
+    writeParam("chart", key)
+    setChartKey(key)
+    if (key) requestChartBy(key)
+  }
+
+  useEffect(() => {
+    const requested = readParam("chart") as FeatureKey | null
+    if (requested && features.some(f => f.key === requested)) selectChart(requested)
+  }, [])
+
+  const chart = useMemo(
+    () => (chartKey && chartBy?.key === chartKey ? buildChart(chartBy, coloring, assembly.deputies, SEAT_RADIUS) : null),
+    [chartKey, chartBy, coloring, assembly],
+  )
 
   const cardId = pinned ?? shown
   const deputy = assembly.byId.get(cardId)
@@ -64,8 +78,9 @@ export function App({ assembly, store, initialColoring }: Props) {
   return (
     <div className="app">
       <main className="stage">
-        <Hemicycle
+        <Stage
           assembly={assembly}
+          chart={chart}
           highlighted={highlighted}
           showPhotos={showPhotos}
           colorOf={coloring.colorOf}
@@ -73,7 +88,8 @@ export function App({ assembly, store, initialColoring }: Props) {
         />
         <Legend coloring={coloring} onHover={setHoveredValue} />
         <div className="controls panel">
-          <ColorPicker features={features} selected={coloring.key} onSelect={selectColoring} />
+          <FeaturePicker label="Disposition" features={features} selected={chartKey} onSelect={selectChart} noneLabel="Hémicycle" />
+          <FeaturePicker label="Colorier par" features={features} selected={coloring.key} onSelect={selectColoring} />
           <label className="control">
             <input type="checkbox" checked={showPhotos} onChange={togglePhotos} /> Afficher les photos
           </label>

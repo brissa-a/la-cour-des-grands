@@ -74,11 +74,11 @@ Depends on the pipeline: values tables, `group_short` moved to `deputies/values/
 
 ### 2b. Charts
 
-- A "Disposition" selector: hemicycle or chart.
+- A "Disposition" selector: hemicycle, or a chart by any feature offered for coloring. Color and layout are independent.
 - Chart of a category: one column per value, in table order. Chart of a number: one column per bin, with round bin widths (5 years for age).
-- Columns are 10 deputies wide, deputies sorted by group inside a column. Deputies move between layouts with a transition.
+- Column width adapts so the chart fills the area; deputies are sorted by the current coloring inside a column. Deputies move between layouts with a transition.
 - Axes: column labels, deputy count. Only deputies drawn on the hemicycle are charted.
-- The selection is kept in the URL: `?layout=chart&by=<file>:<column>`.
+- The selection is kept in the URL: `?chart=<file>:<column>`.
 
 ### 2c. Major votes
 

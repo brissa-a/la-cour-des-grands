@@ -52,12 +52,22 @@ a { color: var(--accent); }
 
 .hemicycle-background { color: var(--fg); }
 
-.seat { cursor: pointer; }
+.seat { cursor: pointer; transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
+
+.room { transition: opacity 0.5s; }
+
+.room.hidden { opacity: 0; pointer-events: none; }
+
+.chart-axes { fill: var(--muted); }
+
+.chart-axes line { stroke: var(--line); stroke-width: 0.002; }
+
+.chart-axes .chart-baseline { stroke: var(--muted); }
 
 .empty-seat { fill: none; stroke: var(--muted); stroke-width: 0.003; }
 
 .seat-dot {
-  transition: fill 0.3s, transform 0.4s;
+  transition: fill 0.3s, transform 0.4s, r 0.9s;
   transform-box: fill-box;
   transform-origin: center;
 }

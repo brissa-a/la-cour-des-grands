@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { Assembly, DeputyId } from "../data/assembly.ts"
-import type { DeputyHandlers } from "../hemicycle/Hemicycle.tsx"
+import type { DeputyHandlers } from "../layout/Stage.tsx"
 import { addCommunes, createDeputySearch, type DeputyMatch, type DeputyResult } from "./deputySearch.ts"
 import { Highlight } from "./Highlight.tsx"
 

@@ -13,12 +13,12 @@ export const PALETTE = [
   "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ac",
 ]
 
-export type NumberView = { gradient: readonly [string, string]; ticks: number; unit: string }
+export type NumberView = { gradient: readonly [string, string]; ticks: number; unit: string; binWidth?: number }
 
 const GENERIC_NUMBER: NumberView = { gradient: ["#d6e6f5", "#08306b"], ticks: 3, unit: "" }
 
 const NUMBER_VIEWS: Partial<Record<FeatureKey, NumberView>> = {
-  "deputies/init.csv:age": { gradient: ["#fde0c5", "#7a2e0e"], ticks: 5, unit: "ans" },
+  "deputies/init.csv:age": { gradient: ["#fde0c5", "#7a2e0e"], ticks: 5, unit: "ans", binWidth: 5 },
 }
 
 export function numberView(key: FeatureKey): NumberView {

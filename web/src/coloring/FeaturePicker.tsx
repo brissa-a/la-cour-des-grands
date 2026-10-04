@@ -1,13 +1,22 @@
 import type { ColorableFeature, FeatureKey } from "../data/features.ts"
 
-type Props = { features: ColorableFeature[]; selected: FeatureKey; onSelect: (key: FeatureKey) => void }
+type Props = {
+  label: string
+  features: ColorableFeature[]
+  selected: FeatureKey | null
+  onSelect: (key: FeatureKey | null) => void
+  noneLabel?: string
+}
 
-export function ColorPicker({ features, selected, onSelect }: Props) {
+const NONE = ""
+
+export function FeaturePicker({ label, features, selected, onSelect, noneLabel }: Props) {
   const byFile = Map.groupBy(features, f => f.file)
   return (
     <label className="control">
-      Colorier par
-      <select value={selected} onChange={e => onSelect(e.target.value as FeatureKey)}>
+      {label}
+      <select value={selected ?? NONE} onChange={e => onSelect(e.target.value === NONE ? null : (e.target.value as FeatureKey))}>
+        {noneLabel !== undefined && <option value={NONE}>{noneLabel}</option>}
         {byFile.size === 1
           ? features.map(Option)
           : [...byFile].map(([file, inFile]) => (
