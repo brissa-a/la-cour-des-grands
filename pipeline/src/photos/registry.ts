@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import type { IsoDate } from "../core/types.ts";
 import type { DeputyId } from "../jobs/deputies.ts";
-import type { Model } from "./rembg.ts";
+import type { Model } from "./bria.ts";
 
 export type Cutout = {
   model: Model;
