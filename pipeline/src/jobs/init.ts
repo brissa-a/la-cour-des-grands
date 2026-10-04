@@ -1,35 +1,35 @@
-import { csv } from "../coeur/csv.ts";
-import { dernierMandat, enExercice } from "./deputes.ts";
+import { csv } from "../core/csv.ts";
+import { inOffice, lastMandate } from "./deputies.ts";
 
 export const init = csv({
-  fichier: "init.csv",
-  budgetCompresse: 50_000,
-  dependances: {},
+  file: "init.csv",
+  gzipBudget: 50_000,
+  dependencies: {},
   features: {
-    nom: { titre: "Nom", type: "texte" },
-    prenom: { titre: "Prénom", type: "texte" },
-    civilite: { titre: "Civilité", type: "categorie", valeurs: ["M.", "Mme"] },
-    en_exercice: { titre: "En exercice", type: "categorie", valeurs: ["oui", "non"] },
-    code_circo: { titre: "Circonscription", type: "position" },
-    periodes_mandat: { titre: "Périodes de mandat", type: "liste" },
-    groupe: { titre: "Groupe politique", type: "categorie" },
-    groupe_abrege: { titre: "Groupe (sigle)", type: "categorie" },
+    last_name: { title: "Nom", type: "text" },
+    first_name: { title: "Prénom", type: "text" },
+    civility: { title: "Civilité", type: "category", values: ["M.", "Mme"] },
+    in_office: { title: "En exercice", type: "category", values: ["yes", "no"] },
+    constituency: { title: "Circonscription", type: "position" },
+    mandate_periods: { title: "Périodes de mandat", type: "list" },
+    group: { title: "Groupe politique", type: "category" },
+    group_short: { title: "Groupe (sigle)", type: "category" },
   },
-  ligne: (d) => ({
-    nom: d.nom,
-    prenom: d.prenom,
-    civilite: d.civilite,
-    en_exercice: enExercice(d) ? "oui" : "non",
-    code_circo: dernierMandat(d).codeCirco,
-    periodes_mandat: d.mandats.map((m) => `${m.debut}/${m.fin ?? ""}`),
-    groupe: d.groupe?.libelle ?? null,
-    groupe_abrege: d.groupe?.abrege ?? null,
+  row: (d) => ({
+    last_name: d.lastName,
+    first_name: d.firstName,
+    civility: d.civility,
+    in_office: inOffice(d) ? "yes" : "no",
+    constituency: lastMandate(d).constituency,
+    mandate_periods: d.mandates.map((m) => `${m.start}/${m.end ?? ""}`),
+    group: d.group?.name ?? null,
+    group_short: d.group?.shortName ?? null,
   }),
-  couleurs: (deputes) => {
-    const groupes = deputes.flatMap((d) => (d.groupe?.couleur ? [d.groupe] : []));
+  colors: (deputies) => {
+    const groups = deputies.flatMap((d) => (d.group?.color ? [d.group] : []));
     return {
-      groupe: Object.fromEntries(groupes.map((g) => [g.libelle, g.couleur!])),
-      groupe_abrege: Object.fromEntries(groupes.map((g) => [g.abrege, g.couleur!])),
+      group: Object.fromEntries(groups.map((g) => [g.name, g.color!])),
+      group_short: Object.fromEntries(groups.map((g) => [g.shortName, g.color!])),
     };
   },
 });
