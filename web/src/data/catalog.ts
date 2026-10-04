@@ -1,13 +1,12 @@
 import { fetchText } from "./source.ts"
 
-export type Entity = "deputy" | "vote" | "constituency"
+export type Entity = "deputy" | "vote" | "seat"
 
 type FeatureBase = { column: string; title: string }
 
 export type CategoryFeature = FeatureBase & {
   type: "category"
-  values?: string[]
-  colors?: Record<string, string>
+  values: string
 }
 
 export type Feature =
@@ -34,9 +33,9 @@ export async function loadCatalog(): Promise<Catalog> {
   return JSON.parse(await fetchText("catalog.json")) as Catalog
 }
 
-export function findFeature(catalog: Catalog, file: string, column: string): Feature {
+export function valuesTablePath(catalog: Catalog, file: string, column: string): string {
   const entry = catalog.files.find(f => f.file === file)
   const feature = entry && "features" in entry ? entry.features.find(f => f.column === column) : undefined
-  if (!feature) throw new Error(`catalog.json: no feature ${file}#${column}`)
-  return feature
+  if (feature?.type !== "category") throw new Error(`catalog.json: no category feature ${file}:${column}`)
+  return feature.values
 }

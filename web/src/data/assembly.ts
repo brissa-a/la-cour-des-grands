@@ -1,10 +1,10 @@
-import { findFeature, loadCatalog } from "./catalog.ts"
+import { loadCatalog, valuesTablePath } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { fetchText } from "./source.ts"
 
 const INIT_COLUMNS = [
   "deputy_id", "photo", "last_name", "first_name", "civility", "birth_date", "age", "in_office",
-  "constituency", "department", "department_number", "constituency_number", "group", "group_short",
+  "constituency", "department", "department_number", "constituency_number", "group",
 ] as const
 
 const SEAT_COLUMNS = ["seat", "x", "y", "deputy"] as const
@@ -29,11 +29,11 @@ export type Assembly = {
   background: Background
 }
 
-const FALLBACK_COLOR = "#8D949A"
+const GROUP_VALUE_COLUMNS = ["value", "label_fr", "short_fr", "color"] as const
 
 export async function loadAssembly(): Promise<Assembly> {
-  const [catalog, rows, seatRows, svg] = await Promise.all([
-    loadCatalog(),
+  const [groupRows, rows, seatRows, svg] = await Promise.all([
+    loadCatalog().then(catalog => loadCsv(valuesTablePath(catalog, "deputies/init.csv", "group"), GROUP_VALUE_COLUMNS)),
     loadCsv("deputies/init.csv", INIT_COLUMNS),
     loadCsv("seats/hemicycle.csv", SEAT_COLUMNS),
     fetchText("seats/hemicycle.svg"),
@@ -54,24 +54,19 @@ export async function loadAssembly(): Promise<Assembly> {
     else console.warn(`${row.deputy_id} is in office but has no seat in seats/hemicycle.csv`)
   }
 
-  const groupFeature = findFeature(catalog, "deputies/init.csv", "group")
-  const colors = groupFeature.type === "category" ? (groupFeature.colors ?? {}) : {}
-  const groups = new Map<string, Group & { xSum: number }>()
+  const groups = groupRows.map((r): Group => ({ name: r.value, short: r.short_fr, color: r.color, seatCount: 0 }))
+  const groupByName = new Map(groups.map(g => [g.name, g]))
   const deputies = seated.map(({ row, seat }): Deputy => {
-    let group = groups.get(row.group)
-    if (!group) {
-      group = { name: row.group, short: row.group_short, color: colors[row.group] ?? FALLBACK_COLOR, seatCount: 0, xSum: 0 }
-      groups.set(row.group, group)
-    }
+    const group = groupByName.get(row.group)
+    if (!group) throw new Error(`deputies/values/group.csv: no group ${row.group}`)
     group.seatCount++
-    group.xSum += seat.x
     return { ...row, id: row.deputy_id as DeputyId, seat, politicalGroup: group }
   })
 
   return {
     deputies,
     byId: new Map(deputies.map(d => [d.id, d])),
-    groups: [...groups.values()].sort((a, b) => a.xSum / a.seatCount - b.xSum / b.seatCount),
+    groups: groups.filter(g => g.seatCount > 0),
     emptySeats,
     background: parseBackground(svg),
   }

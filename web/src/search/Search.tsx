@@ -105,7 +105,7 @@ function ResultRow({ assembly, result, handlers }: { assembly: Assembly; result:
         {groupMatched && (
           <span className="result-group">
             <Highlight value={deputy.group} matches={of("group")} /> (
-            <Highlight value={deputy.group_short} matches={of("group_short")} />)
+            <Highlight value={deputy.politicalGroup.short} matches={of("group_short")} />)
           </span>
         )}
         {communes.length > 0 && (

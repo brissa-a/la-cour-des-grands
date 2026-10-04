@@ -21,9 +21,10 @@ export type DeputyResult = SearchResult<DeputyId, SearchColumn>
 export function createDeputySearch(deputies: Deputy[]): FuzzyIndex<DeputyId, SearchColumn> {
   const index = new FuzzyIndex<DeputyId, SearchColumn>()
   for (const deputy of deputies) {
-    for (const column of ["last_name", "first_name", "department", "department_number", "constituency_number", "group", "group_short"] as const) {
+    for (const column of ["last_name", "first_name", "department", "department_number", "constituency_number", "group"] as const) {
       index.add(deputy.id, column, deputy[column], WEIGHTS[column])
     }
+    index.add(deputy.id, "group_short", deputy.politicalGroup.short, WEIGHTS.group_short)
   }
   return index
 }
