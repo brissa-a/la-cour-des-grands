@@ -5,6 +5,9 @@ import { PanZoomSvg } from "./PanZoomSvg.tsx"
 
 export const SEAT_RADIUS = 0.019
 
+// Chrome skips repainting SVG elements whose CSS transform transitions use coordinates around ±1.
+const DOT_SCALE = 100
+
 export type DeputyHandlers = {
   show: (id: DeputyId) => void
   pin: (id: DeputyId) => void
@@ -30,24 +33,34 @@ export function Stage({ assembly, chart, highlighted, showPhotos, colorOf, handl
       </defs>
       <g className={chart ? "room hidden" : "room"}>
         <g className="hemicycle-background" dangerouslySetInnerHTML={{ __html: assembly.background.markup }} />
-        {assembly.emptySeats.map(seat => (
-          <circle key={seat.number} className="empty-seat" cx={seat.x} cy={seat.y} r={SEAT_RADIUS} />
-        ))}
+        <g transform={`scale(${1 / DOT_SCALE})`}>
+          {assembly.emptySeats.map(seat => (
+            <circle
+              key={seat.number}
+              className="empty-seat"
+              cx={seat.x * DOT_SCALE}
+              cy={seat.y * DOT_SCALE}
+              r={SEAT_RADIUS * DOT_SCALE}
+            />
+          ))}
+        </g>
       </g>
       {chart && <ChartAxes chart={chart} />}
-      {assembly.deputies.map((deputy, index) => (
-        <DeputyDot
-          key={deputy.id}
-          deputy={deputy}
-          position={chart?.positions.get(deputy.id) ?? deputy.seat}
-          radius={radius}
-          delay={(index % 40) * 0.012}
-          color={colorOf(deputy.id)}
-          highlighted={highlighted.has(deputy.id)}
-          showPhoto={showPhotos}
-          handlers={handlers}
-        />
-      ))}
+      <g transform={`scale(${1 / DOT_SCALE})`}>
+        {assembly.deputies.map((deputy, index) => (
+          <DeputyDot
+            key={deputy.id}
+            deputy={deputy}
+            position={chart?.positions.get(deputy.id) ?? deputy.seat}
+            radius={radius}
+            delay={(index % 40) * 0.012}
+            color={colorOf(deputy.id)}
+            highlighted={highlighted.has(deputy.id)}
+            showPhoto={showPhotos}
+            handlers={handlers}
+          />
+        ))}
+      </g>
     </PanZoomSvg>
   )
 }
@@ -107,11 +120,12 @@ type DotProps = {
   handlers: DeputyHandlers
 }
 
-const DeputyDot = memo(function DeputyDot({ deputy, position, radius, delay, color, highlighted, showPhoto, handlers }: DotProps) {
+const DeputyDot = memo(function DeputyDot({ deputy, position, radius: unscaledRadius, delay, color, highlighted, showPhoto, handlers }: DotProps) {
+  const radius = unscaledRadius * DOT_SCALE
   return (
     <g
       className={highlighted ? "seat highlighted" : "seat"}
-      style={{ transform: `translate(${position.x}px, ${position.y}px)`, transitionDelay: `${delay}s` }}
+      style={{ transform: `translate(${position.x * DOT_SCALE}px, ${position.y * DOT_SCALE}px)`, transitionDelay: `${delay}s` }}
       onPointerEnter={() => handlers.show(deputy.id)}
       onClick={() => handlers.pin(deputy.id)}
     >

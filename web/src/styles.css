@@ -69,7 +69,7 @@ a { color: var(--accent); }
 
 .chart-axes .chart-baseline { stroke: var(--muted); }
 
-.empty-seat { fill: none; stroke: var(--muted); stroke-width: 0.003; }
+.empty-seat { fill: none; stroke: var(--muted); stroke-width: 0.3; }
 
 .seat-dot {
   transition: fill 0.3s, transform 0.4s;
@@ -80,7 +80,7 @@ a { color: var(--accent); }
 .seat.highlighted .seat-dot {
   transform: scale(1.35);
   stroke: var(--fg);
-  stroke-width: 0.004;
+  stroke-width: 0.4;
   transition: fill 0.3s, transform 0s;
 }
 
