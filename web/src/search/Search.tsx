@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { Assembly, DeputyId } from "../data/assembly.ts"
-import type { DeputyHandlers } from "../layout/Stage.tsx"
 import { addCommunes, createDeputySearch, type DeputyMatch, type DeputyResult } from "./deputySearch.ts"
 import { Highlight } from "./Highlight.tsx"
 
@@ -11,11 +10,12 @@ const DEBOUNCE_MS = 200
 type Props = {
   assembly: Assembly
   loadCommunes: () => Promise<ReadonlyMap<DeputyId, string>>
-  handlers: DeputyHandlers
+  onHalo: (id: DeputyId | null) => void
+  onSelect: (id: DeputyId) => void
   onResults: (ids: ReadonlySet<DeputyId>) => void
 }
 
-export function Search({ assembly, loadCommunes, handlers, onResults }: Props) {
+export function Search({ assembly, loadCommunes, onHalo, onSelect, onResults }: Props) {
   const index = useMemo(() => createDeputySearch(assembly.deputies), [assembly])
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<DeputyResult[]>([])
@@ -56,7 +56,7 @@ export function Search({ assembly, loadCommunes, handlers, onResults }: Props) {
   }
 
   return (
-    <div className="search panel" ref={wrapper}>
+    <div className="search panel" ref={wrapper} data-obstacle="">
       <input
         type="search"
         autoComplete="off"
@@ -70,7 +70,19 @@ export function Search({ assembly, loadCommunes, handlers, onResults }: Props) {
           {communesState === "loading" && <p className="search-status">Chargement des communes…</p>}
           {communesState === "failed" && <p className="search-status">Communes indisponibles.</p>}
           {results.length ? (
-            results.map(result => <ResultRow key={result.ref} assembly={assembly} result={result} handlers={handlers} />)
+            results.map(result => (
+              <ResultRow
+                key={result.ref}
+                assembly={assembly}
+                result={result}
+                onHalo={onHalo}
+                onSelect={id => {
+                  setOpen(false)
+                  onHalo(null)
+                  onSelect(id)
+                }}
+              />
+            ))
           ) : (
             <SearchTips />
           )}
@@ -80,7 +92,14 @@ export function Search({ assembly, loadCommunes, handlers, onResults }: Props) {
   )
 }
 
-function ResultRow({ assembly, result, handlers }: { assembly: Assembly; result: DeputyResult; handlers: DeputyHandlers }) {
+type RowProps = {
+  assembly: Assembly
+  result: DeputyResult
+  onHalo: (id: DeputyId | null) => void
+  onSelect: (id: DeputyId) => void
+}
+
+function ResultRow({ assembly, result, onHalo, onSelect }: RowProps) {
   const deputy = assembly.byId.get(result.ref)
   if (!deputy) return null
   const { matches } = result
@@ -88,7 +107,14 @@ function ResultRow({ assembly, result, handlers }: { assembly: Assembly; result:
   const communes = mostMatchedFirst(of("communes").map(m => m.token.value))
   const groupMatched = of("group").length > 0 || of("group_short").length > 0
   return (
-    <button className="result" onPointerEnter={() => handlers.show(deputy.id)} onClick={() => handlers.pin(deputy.id)}>
+    <button
+      className="result"
+      onPointerEnter={() => onHalo(deputy.id)}
+      onPointerLeave={() => onHalo(null)}
+      onFocus={() => onHalo(deputy.id)}
+      onBlur={() => onHalo(null)}
+      onClick={() => onSelect(deputy.id)}
+    >
       <img className="result-photo" src={deputy.photo} alt="" style={{ borderColor: deputy.politicalGroup.color }} />
       <span className="result-text">
         <span className="result-head">

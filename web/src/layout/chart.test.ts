@@ -11,7 +11,7 @@ function deputies(count: number): Deputy[] {
 
 function numberColoring(key: FeatureKey, values: Record<string, string>): Coloring {
   return {
-    kind: "number", key, title: "n", gradient: ["#000", "#fff"], ticks: [], mean: 0, unit: "", missing: 0,
+    kind: "number", key, title: "n", gradient: ["#000", "#fff"], min: 0, max: 0, ticks: [], mean: 0, unit: "", missing: 0,
     colorOf: () => "", valueOf: id => values[id] ?? "",
   }
 }

@@ -3,7 +3,7 @@ import { useState } from "react"
 export function Footer() {
   const [legalOpen, setLegalOpen] = useState(false)
   return (
-    <footer className="footer panel">
+    <footer className="footer panel" data-obstacle="">
       <nav>
         <button className="link-button" onClick={() => setLegalOpen(!legalOpen)}>
           Mentions légales

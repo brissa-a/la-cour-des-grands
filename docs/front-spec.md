@@ -1,6 +1,6 @@
 # Front v2 — specification
 
-Status: increment 1 done (PR #3), increment 2 being specified. Later increments are listed at the end and will be specified when started.
+Status: increment 1 done (PR #3), increment 2 in progress (2a and 2b done), increment 3 specified. Later increments are listed at the end and will be specified when started.
 
 ## Goal
 
@@ -94,6 +94,51 @@ Depends on the pipeline: values tables, `group_short` moved to `deputies/values/
 - The search box gets two modes: deputies, votes.
 - Vote search is fuzzy over the titles of `votes/votes.csv`, ranked by score then date.
 - Picking a vote loads the file named in its `file` column, whole, and colors by that vote.
+
+## Increment 3 — preview card and deputy panel
+
+Replaces the profile shown on hover and pinned on click. Design: [Fiche d'aperçu des députés](https://claude.ai/artifact/DuFbgM5bngB6uYaQNirbL3).
+
+### Behavior
+
+- Hovering a seat shows a preview card anchored to it. Clicking a seat opens the full deputy panel on the right. Hovering never changes the open panel, so there is no pin.
+- The selection is either none or one open deputy; the preview is separate state.
+- No random deputy at load: a hint above the legend ("Survolez un point pour voir qui siège là · cliquez pour ouvrir sa fiche").
+- The hovered seat gets a halo; the open deputy's seat gets a double ring that follows them across layouts.
+- The legend stays visible: the hovered value is lit (chip outlined, or marker on the gradient), and the open deputy's value is marked at rest.
+
+### Preview card
+
+- 300 px wide, not hoverable, nothing clickable in it: to do more, open the panel.
+- Content: round 88 px photo ringed with the group color, name, group short name, constituency ("Gironde (33) · 12ᵉ circ."), then the value of the current coloring with its exact dot color, unless the coloring is the group. In a chart whose layout differs from the coloring, a second line gives the layout value. A "Cliquer pour ouvrir la fiche" hint until the first click.
+- Left out, kept in the panel: civility, birth date, seat number, full group name, official link.
+- Placement: next to the seat, 10 px from its ring, with an arrow. Of left, right, below and above, the side covering the fewest dots without overlapping the search box, the controls, the legend, the footer or the panel; ties go towards the rostrum. The side is kept while sweeping. In a chart the card sits above the columns, linked to the dot by a thin line.
+- Size depends on the coloring, the layout and the hint; a long name or constituency may take a second line, never more. Initials until the photo is decoded.
+- Timing follows the pointer speed, measured over the last 100 ms. During a fast sweep only the halo and the legend react. The card opens once the pointer slows under 100 px/s, even if it still moves, and not before 100 ms after the pointer enters the stage. It then follows the seats in the same frame while the pointer stays under twice that speed, and hides on a faster move to another seat until the pointer calms down again.
+- Leaving the seats: 200 ms hold, then a 100 ms fade. Hidden during pan, zoom, layout transitions and stage resizes. Escape hides it until the pointer moves to another seat.
+
+### Deputy panel
+
+- 380 px on the right, over the stage. Content: copy link, close button, colonnade banner with photo, civility and name, full group name, constituency, birth date and age, seat, the value in the current view, official link, a placeholder for votes.
+- When it opens, the stage shrinks to the space left of the panel and the hemicycle or chart is refitted to always show whole; it is refitted to full width when the panel closes.
+- Closed by the close button, Escape, a click on empty space, or Back. Clicking another seat switches deputy; clicking the open one does nothing.
+- URL: `?deputy=<deputy_id>`, pushed when the panel opens, replaced when switching deputy. Loading with it opens the panel.
+
+### Phone
+
+- No floating card: a reader bar at the bottom shows the touched deputy, with buttons to step to the neighbouring seat. Touching the bar opens the panel as a sheet at 60 % of the height.
+
+### Settings
+
+- A gear next to the photos checkbox opens an editable JSON of options, checked on save: unknown keys and invalid values are listed and nothing is applied. A saved option applies at once.
+- Hovering a key shows what the option does, the expected values and the default. Unknown keys say they will be refused.
+- Kept in the browser per visitor; Reset returns to the defaults. If the browser refuses to store it, the option still applies for the visit and the panel says it is not saved.
+- Options: `preview.openSpeedPxPerS` (100), `preview.speedWindowMs` (100), `preview.holdMs` (200).
+
+### Open
+
+- Reserve room under charts for the slanted labels, which touch the legend.
+- Keyboard browsing of seats, long press on phone: later.
 
 ## Later increments
 

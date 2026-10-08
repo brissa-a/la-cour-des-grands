@@ -18,6 +18,8 @@ export type Coloring =
   | (ColoringBase & {
       kind: "number"
       gradient: readonly [string, string]
+      min: number
+      max: number
       ticks: { value: number; ratio: number }[]
       mean: number
       unit: string
@@ -53,6 +55,8 @@ export async function buildColoring(store: FeatureStore, source: ColorableFeatur
     ...base,
     kind: "number",
     gradient: view.gradient,
+    min,
+    max,
     ticks: Array.from({ length: view.ticks }, (_, i) => {
       const value = Math.round(min + (span * i) / (view.ticks - 1))
       return { value, ratio: ratio(value) }

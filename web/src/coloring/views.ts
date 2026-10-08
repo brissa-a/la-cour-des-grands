@@ -6,6 +6,12 @@ export const HIDDEN_FEATURES: ReadonlySet<FeatureKey> = new Set<FeatureKey>([
   "deputies/init.csv:in_office",
 ])
 
+export const PREVIEW_HEADER_FEATURES: ReadonlySet<FeatureKey> = new Set<FeatureKey>([
+  "deputies/init.csv:group",
+  "deputies/init.csv:department",
+  "deputies/init.csv:department_number",
+])
+
 export const NEUTRAL = "#5f6368"
 
 export const PALETTE = [

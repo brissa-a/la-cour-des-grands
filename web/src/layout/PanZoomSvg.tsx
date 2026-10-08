@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PointerEvent, type ReactNode } from "react"
+import { useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode } from "react"
 
 type Point = { x: number; y: number }
 type View = Point & { scale: number }
@@ -7,13 +7,26 @@ const MIN_SCALE = 0.5
 const MAX_SCALE = 20
 const WHEEL_FACTOR = 1.1
 const DRAG_THRESHOLD_PX = 4
+const WHEEL_END_MS = 150
 
-export function PanZoomSvg({ viewBox, children }: { viewBox: string; children: ReactNode }) {
+export type PointerHandlers = {
+  onHover: (e: PointerEvent) => void
+  onLeave: () => void
+  onDown: (e: PointerEvent) => void
+  onTap: (e: MouseEvent) => void
+  onGesture: (active: boolean) => void
+}
+
+type Props = PointerHandlers & { viewBox: string; children: ReactNode }
+
+export function PanZoomSvg({ viewBox, children, onHover, onLeave, onDown, onTap, onGesture }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const groupRef = useRef<SVGGElement>(null)
   const view = useRef<View>({ x: 0, y: 0, scale: 1 })
   const pointers = useRef(new Map<number, { client: Point; start: Point }>())
   const dragged = useRef(false)
+  const handlers = useRef({ onGesture })
+  handlers.current = { onGesture }
 
   const toSvg = (client: Point): Point => {
     const matrix = svgRef.current?.getScreenCTM()?.inverse()
@@ -37,12 +50,22 @@ export function PanZoomSvg({ viewBox, children }: { viewBox: string; children: R
   useEffect(() => {
     const svg = svgRef.current
     if (!svg) return
+    let wheelEnd: ReturnType<typeof setTimeout> | undefined
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
+      if (wheelEnd === undefined) handlers.current.onGesture(true)
+      clearTimeout(wheelEnd)
+      wheelEnd = setTimeout(() => {
+        wheelEnd = undefined
+        handlers.current.onGesture(false)
+      }, WHEEL_END_MS)
       zoomAround(toSvg({ x: e.clientX, y: e.clientY }), e.deltaY < 0 ? WHEEL_FACTOR : 1 / WHEEL_FACTOR)
     }
     svg.addEventListener("wheel", onWheel, { passive: false })
-    return () => svg.removeEventListener("wheel", onWheel)
+    return () => {
+      clearTimeout(wheelEnd)
+      svg.removeEventListener("wheel", onWheel)
+    }
   }, [])
 
   const centroidAndSpread = (): { center: Point; spread: number } => {
@@ -58,11 +81,15 @@ export function PanZoomSvg({ viewBox, children }: { viewBox: string; children: R
 
   const onPointerMove = (e: PointerEvent) => {
     const pointer = pointers.current.get(e.pointerId)
-    if (!pointer) return
+    if (!pointer) {
+      onHover(e)
+      return
+    }
     const before = centroidAndSpread()
     pointer.client = { x: e.clientX, y: e.clientY }
     const after = centroidAndSpread()
     if (!dragged.current && Math.hypot(e.clientX - pointer.start.x, e.clientY - pointer.start.y) < DRAG_THRESHOLD_PX) return
+    if (!dragged.current) onGesture(true)
     dragged.current = true
     const from = toSvg(before.center)
     const to = toSvg(after.center)
@@ -72,8 +99,9 @@ export function PanZoomSvg({ viewBox, children }: { viewBox: string; children: R
   }
 
   const release = (e: PointerEvent) => {
-    pointers.current.delete(e.pointerId)
-    if (!pointers.current.size) svgRef.current?.classList.remove("dragging")
+    if (!pointers.current.delete(e.pointerId) || pointers.current.size) return
+    svgRef.current?.classList.remove("dragging")
+    if (dragged.current) onGesture(false)
   }
 
   return (
@@ -86,13 +114,17 @@ export function PanZoomSvg({ viewBox, children }: { viewBox: string; children: R
         const client = { x: e.clientX, y: e.clientY }
         pointers.current.set(e.pointerId, { client, start: client })
         svgRef.current?.classList.add("dragging")
+        onDown(e)
       }}
       onPointerMove={onPointerMove}
       onPointerUp={release}
       onPointerCancel={release}
-      onPointerLeave={release}
-      onClickCapture={e => {
-        if (dragged.current) e.stopPropagation()
+      onPointerLeave={e => {
+        release(e)
+        onLeave()
+      }}
+      onClick={e => {
+        if (!dragged.current) onTap(e)
       }}
     >
       <g ref={groupRef}>{children}</g>
