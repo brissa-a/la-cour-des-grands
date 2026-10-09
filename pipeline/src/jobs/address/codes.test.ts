@@ -41,9 +41,12 @@ test("code parsers reject malformed codes and pad 4-digit commune codes", () => 
   assert.throws(() => constituencyCode("100-1"));
   assert.throws(() => constituencyCode("75-0"));
   assert.throws(() => constituencyCode("75-04"));
+  assert.throws(() => constituencyCode("20-1"));
+  assert.throws(() => constituencyCode("96-1"));
   assert.equal(communeCode("2A004"), "2A004");
   assert.throws(() => communeCode("1001"));
   assert.equal(paddedCommuneCode("1001"), "01001");
+  assert.throws(() => paddedCommuneCode("101"));
 });
 
 test("constituencies sort by department then number", () => {

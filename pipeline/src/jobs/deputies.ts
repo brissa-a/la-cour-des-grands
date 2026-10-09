@@ -23,7 +23,7 @@ export function deputyId(value: string): DeputyId {
 export type ConstituencyCode = string & { readonly __brand: "ConstituencyCode" };
 
 export function constituencyCode(value: string): ConstituencyCode {
-  if (!/^(0[1-9]|[1-8]\d|9[0-5]|2[AB]|97[1-7]|98[678]|099)-[1-9]\d?$/.test(value)) {
+  if (!/^(0[1-9]|1\d|2[1-9AB]|[3-8]\d|9[0-5]|97[1-7]|98[678]|099)-[1-9]\d?$/.test(value)) {
     throw new Error(`Invalid constituency code: ${value}`);
   }
   return value as ConstituencyCode;
