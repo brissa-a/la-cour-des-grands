@@ -36,6 +36,7 @@ test("a feature that does not follow the published format rejects the file", () 
     collection(feature({ commune_code: "75115" })),
     collection(feature({ commune_code: "75115", constituency: "75-12" }, { type: "MultiPolygon", coordinates: [[[["0", "0"], ...ring.slice(1)]]] })),
     collection(feature({ commune_code: "75115", constituency: "75-12" }, { type: "MultiPolygon", coordinates: [] })),
+    collection(feature({ commune_code: "75115", constituency: "75-12" }, { type: "MultiPolygon", coordinates: [[ring.slice(2)]] })),
   ]
   for (const json of invalid) assert.throws(() => parseContours(json), /constituency-contours\.geojson/)
 })

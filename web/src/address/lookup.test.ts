@@ -39,6 +39,7 @@ const ROLLS = new Map<CommuneCode, Roll>([
         { address: "108 Rue Blomet", number: "108", constituencies: "75-12" },
         { address: "Rue de Viroflay", number: "", constituencies: "75-13" },
         { address: "Village Suisse", number: "", constituencies: "75-13" },
+        { address: "Le Hameau", number: "", constituencies: "75-12|75-13" },
       ],
       "75115.csv",
     ),
@@ -192,17 +193,19 @@ test("a former commune still in the table answers for itself", async () => {
   assert.deepEqual(summary(unknown), { kind: "located", constituency: "01-4", basis: { kind: "commune" } })
 })
 
-test("a split commune picked as a whole, or a mixed street without a number, asks for precision", async () => {
+test("a split commune picked as a whole, or a mixed street or lieu-dit without a number, asks for precision", async () => {
   assert.deepEqual(summary(await lookup(municipality("31555"), sources(), BOUNDARY_METERS)), {
     kind: "imprecise",
     candidates: ["31-1", "31-2", "31-3"],
     reason: "municipality",
   })
-  assert.deepEqual(summary(await lookup(street("75115", FAR, "Rue Blomet"), sources(), BOUNDARY_METERS)), {
-    kind: "imprecise",
-    candidates: ["75-12", "75-13"],
-    reason: "mixed-street",
-  })
+  for (const address of [street("75115", FAR, "Rue Blomet"), locality("75115", FAR, "Le Hameau")]) {
+    assert.deepEqual(summary(await lookup(address, sources(), BOUNDARY_METERS)), {
+      kind: "imprecise",
+      candidates: ["75-12", "75-13"],
+      reason: "mixed-street",
+    })
+  }
 })
 
 test("an unknown commune and an unavailable table are told apart", async () => {

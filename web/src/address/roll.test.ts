@@ -17,6 +17,8 @@ const roll = parseRoll(
     { address: "108 Rue Blomet", number: "108", constituencies: "75-13" },
     { address: "16 bis Rue Blomet", number: "16 bis", constituencies: "75-12" },
     { address: "2 Rue Bausset", number: "2", constituencies: "75-12|75-13" },
+    { address: "3 Rue Bausset", number: "3", constituencies: "75-12" },
+    { address: "3 rue Bausset", number: "3", constituencies: "75-13" },
     { address: "Rue de Viroflay", number: "", constituencies: "75-12" },
     { address: "Rue du Stand", number: "", constituencies: "75-12" },
     { address: "rue du stand", number: "", constituencies: "75-13" },
@@ -57,8 +59,9 @@ test("a number missing from a mixed street, or an unknown street, is not found",
   assert.deepEqual(findInRoll(roll, keys(null, "rue inconnue")), { kind: "none" })
 })
 
-test("an address the REU puts in two constituencies keeps both", () => {
+test("an address the REU puts in two constituencies keeps both, on one row or across spellings", () => {
   assert.deepEqual(findInRoll(roll, keys("2", "rue bausset")), { kind: "address", constituencies: ["75-12", "75-13"] })
+  assert.deepEqual(findInRoll(roll, keys("3", "rue bausset")), { kind: "address", constituencies: ["75-12", "75-13"] })
 })
 
 test("a bracketed former commune keeps its street apart from a homonym, and brackets are dropped only for a spelling the roll lacks", () => {

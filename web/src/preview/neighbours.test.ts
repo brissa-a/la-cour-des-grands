@@ -21,16 +21,17 @@ test("hemicycle neighbours follow the row, left towards the left wing", () => {
   assert.equal(neighbour(positions, "c", "left", HEMICYCLE), null)
 })
 
-test("chart neighbours stay on the same row across columns", () => {
+test("chart neighbours stay on the same row, within the chart's tolerance, across columns", () => {
   const positions = new Map([
     ["a", { x: 0.1, y: 0.05 }],
     ["b", { x: 0.2, y: 0.05 }],
-    ["above", { x: 0.15, y: 0.01 }],
+    ["above", { x: 0.15, y: 0.03 }],
     ["far", { x: 0.6, y: 0.05 }],
   ])
   const chart: Layout = { kind: "chart", rowTolerance: 0.01 }
   assert.equal(neighbour(positions, "b", "right", chart), "far")
   assert.equal(neighbour(positions, "b", "left", chart), "a")
+  assert.equal(neighbour(positions, "b", "left", { kind: "chart", rowTolerance: 0.05 }), "above")
 })
 
 test("seats on the bottom row step along their own wing", () => {

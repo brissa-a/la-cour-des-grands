@@ -6,14 +6,14 @@ import { keySpans, pathLabel } from "./jsonKeys.ts"
 const paths = (text: string) => keySpans(text).map(span => pathLabel(span.path))
 
 test("keys get their full path, values are not keys", () => {
-  const text = '{\n  "preview": {\n    "mode": "rest",\n    "holdMs": 200\n  },\n  "other": { "a": "b:c" }\n}'
+  const text = '{\n  "preview": {\n    "mode": "rest",\n    "holdMs" : 200\n  },\n  "other": { "a": "b:c" }\n}'
   assert.deepEqual(paths(text), ["preview", "preview.mode", "preview.holdMs", "other", "other.a"])
   const [, mode] = keySpans(text)
   assert.equal(mode && text.slice(mode.start, mode.end), '"mode"')
 })
 
 test("escaped quotes, arrays and one-line JSON keep paths right", () => {
-  assert.deepEqual(paths('{"a\\"b": [1, {"c": 2}], "d": {"e": [], "f": 3}}'), ['a"b', 'a"b.[].c', "d", "d.e", "d.f"])
+  assert.deepEqual(paths('{"a\\"b": [1, {"c": 2}, {"g": 4}], "d": {"e": [], "f": 3}}'), ['a"b', 'a"b.[].c', 'a"b.[].g', "d", "d.e", "d.f"])
 })
 
 test("a key inside an array never gets the help of a real option", () => {

@@ -26,7 +26,7 @@ test("ages are binned by 5 years from the first multiple of 5, with a column for
   )
 })
 
-test("every deputy gets a position inside the chart area", () => {
+test("every deputy gets its own position inside the chart area", () => {
   const ds = deputies(569)
   const values = Object.fromEntries(ds.map((d, i) => [d.id, String(i % 3)]))
   const coloring: Coloring = {
@@ -35,6 +35,7 @@ test("every deputy gets a position inside the chart area", () => {
   }
   const chart = buildChart(coloring, coloring, ds, 0.02)
   assert.equal(chart.positions.size, 569)
+  assert.equal(new Set([...chart.positions.values()].map(({ x, y }) => `${x},${y}`)).size, 569)
   for (const { x, y } of chart.positions.values()) {
     assert.ok(x > -1 && x < 1.1 && y > -1 && y < 0.1, `${x},${y}`)
   }

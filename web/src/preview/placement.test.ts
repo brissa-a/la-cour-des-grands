@@ -42,6 +42,7 @@ test("keeps the previous side while it stays clear", () => {
   const dots = grid(520, 300, 800, 500)
   assert.equal(placeBeside(input({ dots })).side !== "right", true)
   assert.equal(placeBeside(input({ dots, keep: "right" })).side, "right")
+  assert.notEqual(placeBeside(input({ anchor: { x: 900, y: 400, radius: 15 }, keep: "right" })).side, "right")
 })
 
 test("slides along the free axis and keeps the arrow facing the anchor", () => {

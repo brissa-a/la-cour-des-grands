@@ -30,13 +30,14 @@ test("invalid JSON, unknown keys and wrong values are reported and nothing is ap
   const before = store.get()
   const broken = store.save("{ preview: }")
   assert.equal(broken.ok, false)
-  const wrong = store.save('{ "preview": { "openSpeedPxPerS": "fast", "holdMs": -1, "extra": true, "constructor": 1 }, "other": 1, "toString": 1 }')
+  const wrong = store.save('{ "preview": { "openSpeedPxPerS": "fast", "speedWindowMs": 1.5, "holdMs": -1, "extra": true, "constructor": 1 }, "other": 1, "toString": 1 }')
   assert.deepEqual(wrong.ok ? [] : wrong.errors, [
     "other : clé inconnue",
     "toString : clé inconnue",
     "preview.extra : clé inconnue",
     "preview.constructor : clé inconnue",
     "preview.openSpeedPxPerS doit être un entier entre 0 et 2000",
+    "preview.speedWindowMs doit être un entier entre 0 et 2000",
     "preview.holdMs doit être un entier entre 0 et 2000",
   ])
   assert.equal(store.get(), before)
@@ -64,6 +65,7 @@ test("saving keeps unchanged branches identical so only affected readers update"
   assert.equal(notified, 0)
   store.save('{ "preview": { "holdMs": 300 } }')
   assert.notEqual(store.get().preview, before.preview)
+  assert.equal(store.get().zoom, before.zoom)
   assert.equal(notified, 1)
 })
 

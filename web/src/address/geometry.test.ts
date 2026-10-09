@@ -20,12 +20,12 @@ test("a point is inside an outer ring unless it is in one of its holes", () => {
   assert.equal(contains(withHole, [1.5, 1.5]), false)
 })
 
-test("overlapping parts of one shape never cancel each other out", () => {
+test("a shape covers each of its parts, and overlapping parts never cancel each other out", () => {
   const overlapping: Shape = [
     { outer: square(0, 0, 2, 2), holes: [] },
     { outer: square(1, 1, 3, 3), holes: [] },
   ]
-  assert.equal(contains(overlapping, [1.5, 1.5]), true)
+  for (const point of [[0.5, 0.5], [1.5, 1.5], [2.5, 2.5]] as const) assert.equal(contains(overlapping, point), true)
 })
 
 test("distance is measured in metres in a plane local to the point", () => {

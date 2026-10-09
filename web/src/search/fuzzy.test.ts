@@ -13,6 +13,7 @@ function index() {
 
 test("tolerates typos and accents", () => {
   assert.equal(index().search("melanchon")[0]?.ref, "a")
+  assert.equal(index().search("melenchon")[0]?.score, 1)
 })
 
 test("matches word prefixes", () => {
@@ -22,6 +23,7 @@ test("matches word prefixes", () => {
 test("codes match by exact prefix only", () => {
   assert.deepEqual(index().search("75001").map(r => r.ref), ["c"])
   assert.deepEqual(index().search("7600").map(r => r.ref), ["d"])
+  assert.deepEqual(index().search("001").map(r => r.ref), [])
 })
 
 test("token slices point into the original value", () => {
