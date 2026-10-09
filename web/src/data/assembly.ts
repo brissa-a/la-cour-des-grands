@@ -1,3 +1,4 @@
+import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
 import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { fetchText } from "./source.ts"
@@ -21,6 +22,8 @@ export type Civility = (typeof CIVILITIES)[number]
 
 export type Deputy = Omit<InitRow, "civility"> & { civility: Civility; id: DeputyId; seat: Seat; politicalGroup: Group }
 
+export type ConstituencyLabel = Pick<InitRow, "department" | "department_number" | "constituency_number">
+
 export type Group = { name: string; short: string; color: string; seatCount: number }
 
 export type Background = { viewBox: string; markup: string }
@@ -30,6 +33,8 @@ export type Assembly = {
   initRows: ReadonlyMap<DeputyId, Readonly<Record<string, string>>>
   deputies: Deputy[]
   byId: ReadonlyMap<DeputyId, Deputy>
+  byConstituency: ReadonlyMap<ConstituencyCode, Deputy>
+  constituencyLabels: ReadonlyMap<ConstituencyCode, ConstituencyLabel>
   groups: Group[]
   emptySeats: Seat[]
   background: Background
@@ -78,10 +83,36 @@ export async function loadAssembly(): Promise<Assembly> {
     initRows: new Map(rows.map(r => [r.deputy_id as DeputyId, r])),
     deputies,
     byId: new Map(deputies.map(d => [d.id, d])),
+    byConstituency: byConstituency(deputies),
+    constituencyLabels: constituencyLabels(rows),
     groups: groups.filter(g => g.seatCount > 0),
     emptySeats,
     background: parseBackground(svg),
   }
+}
+
+function byConstituency(deputies: readonly Deputy[]): ReadonlyMap<ConstituencyCode, Deputy> {
+  const map = new Map<ConstituencyCode, Deputy>()
+  for (const deputy of deputies) {
+    const code = constituencyCode(deputy.constituency)
+    if (code === null) {
+      console.warn(`deputies/init.csv: ${deputy.id} has constituency ${deputy.constituency}`)
+      continue
+    }
+    const holder = map.get(code)
+    if (holder) console.warn(`deputies/init.csv: ${holder.id} and ${deputy.id} both hold ${code}`)
+    else map.set(code, deputy)
+  }
+  return map
+}
+
+function constituencyLabels(rows: readonly InitRow[]): ReadonlyMap<ConstituencyCode, ConstituencyLabel> {
+  const labels = new Map<ConstituencyCode, ConstituencyLabel>()
+  for (const { constituency, department, department_number, constituency_number } of rows) {
+    const code = constituencyCode(constituency)
+    if (code) labels.set(code, { department, department_number, constituency_number })
+  }
+  return labels
 }
 
 function parseBackground(svg: string): Background {

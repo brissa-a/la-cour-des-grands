@@ -17,6 +17,10 @@ export function Footer() {
           <p>
             Données : open data de l'Assemblée nationale. Photos : Assemblée nationale, détourées avec RMBG-2.0 de BRIA AI.
           </p>
+          <p>
+            Recherche par adresse : géocodage par le service de l'IGN (Géoplateforme), circonscriptions d'après les contours et
+            la liste électorale publiés par l'INSEE (2022).
+          </p>
         </div>
       )}
     </footer>

@@ -1,6 +1,6 @@
 import { fetchText } from "./source.ts"
 
-export type Entity = "deputy" | "vote" | "seat"
+export type Entity = "deputy" | "vote" | "seat" | "commune" | "address"
 
 type FeatureBase = { column: string; title: string }
 
@@ -25,7 +25,7 @@ type FileBase = {
 }
 
 export type CatalogFile =
-  | (FileBase & { features: Feature[]; layout?: { background: string } })
+  | (FileBase & { features: Feature[]; layout?: { background: string }; geometry?: "MultiPolygon" })
   | (FileBase & { columnsOf: { entity: Entity; count: number; feature: Feature } })
 
 export type Catalog = { generated: string; files: CatalogFile[] }

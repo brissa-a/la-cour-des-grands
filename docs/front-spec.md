@@ -1,6 +1,6 @@
 # Front v2 — specification
 
-Status: increment 1 done (PR #3), increment 2 in progress (2a and 2b done), increment 3 specified. Later increments are listed at the end and will be specified when started.
+Status: increment 1 done (PR #3), increment 2 in progress (2a and 2b done), increment 3 specified, increment 4 (address → deputy) built and waiting for its data to be published. Later increments are listed at the end and will be specified when started.
 
 ## Goal
 
@@ -16,7 +16,7 @@ The current site (cour-des-grands.fr, Firebase) stays online and keeps reading `
 - **Category values tables.** A `category` feature points to a values table, `<entity>/values/<column>.csv`, one row per possible value in display order: `value` (the code written in data files), `label_fr`, and optional columns such as `short_fr` (groups) or `color`. Several files with the same kind of value share one table (e.g. `deputies/values/vote_position.csv` for every vote file). The catalog only links to it: `"values": "<path>"`.
 - **Dedicated views over a generic fallback.** Every known feature, identified by (file, column), may get a dedicated view (color, legend, chart, profile row). Anything without one, user imports included, uses the generic view of its type.
 - **Colors.** A values table has a `color` column only for official colors (groups) or colors deliberately chosen for that data. Otherwise colors are front style: palettes for categories, gradients for numbers. In an import, a `<column>_color` column gives the color of `<column>`; on conflict the first row wins and the conflict is reported in "Mes données".
-- **Data branch** is a single constant (`test-v2` for now).
+- **Data branch** is a single constant (`test-v2` for now). In development only, `VITE_DATA_ROOT` may point to a local pipeline output (see increment 4).
 
 ## Increment 1 — hemicycle by group
 
@@ -144,8 +144,107 @@ Replaces the profile shown on hover and pinned on click. Design: [Fiche d'aperç
 - Reserve room under charts for the slanted labels, which touch the legend.
 - Keyboard browsing of seats, long press on phone: later.
 
+## Increment 4 — find your deputy by address
+
+A visitor types a postal address in the search box, picks one of the suggestions and gets the deputy of that address's constituency.
+
+### Scope
+
+| Feature | Data |
+|---|---|
+| Address suggestions in the search box, from the IGN geocoder | `https://data.geopf.fr/geocodage/search` (Géoplateforme) |
+| Constituency of a commune or municipal arrondissement | `communes/constituencies.csv` |
+| Constituency contours of the communes split between constituencies | `communes/constituency-contours.geojson` |
+| Electoral roll addresses of each split commune | `communes/addresses/<commune_code>.csv` |
+| The answer opens the deputy panel, with the address and how it was located | `deputies/init.csv` |
+
+Out of scope: the 11 constituencies of French citizens abroad (no country table yet).
+
+### Data
+
+- `communes/constituencies.csv`: `commune_code` (INSEE code of every commune and municipal arrondissement, COG 2026, plus the overseas collectivities), `constituencies` (list, `33-2` format). Paris, Lyon and Marseille as whole cities hold the union of their arrondissements.
+- `communes/constituency-contours.geojson`: one MultiPolygon feature per split commune and candidate constituency, properties `commune_code` and `constituency`. INSEE's 2022 contours clipped to 1 km around the commune's addresses, simplified at 5 m. A commune is published only when its contours agree with the electoral roll for at least 90 % of its addresses; 6 are left out today (14672, 27089, 38152, 60256, 86053, 97611). The contours are exact within 1 km of every published commune's addresses.
+- `communes/addresses/<commune_code>.csv`, one per split commune: `address`, `number`, `constituencies`, as INSEE's "Bureaux de vote et adresses de leurs électeurs" (REU) writes them. A street wholly in one constituency is one row with an empty `number`; otherwise one row per number, and `address` is `{number} {street}`. A row may list two constituencies.
+- Catalog: the GeoJSON entry carries `geometry: "MultiPolygon"`; the entities are `commune` and `address`. When the catalog does not list `communes/constituencies.csv`, the address search is off: no address is sent to IGN and the tips do not mention it.
+
+### Lookup
+
+The geocoded address's commune is its `oldcitycode` when the table still has it (a commune merged on 1 January, until the yearly COG bump), else its `citycode`.
+
+1. **Commune.** A commune with one constituency answers at once, whatever the address type. Contours and roll are not loaded.
+2. **Contours.** A commune picked as a whole (`municipality`) asks for a number and street. Otherwise the point is ranked by distance to each candidate's contours. A housenumber inside a contour and farther than `address.boundaryMeters` from every other candidate is answered by the contours.
+3. **Electoral roll.** Everything else reads the commune's roll file: a point near another candidate, a point inside no contour, a street or lieu-dit (one point of something long), and any address of a commune without contours.
+   - Street and number are normalised on both sides (accents, case, punctuation; `12 bis` = `12bis`); spellings of one street are merged. Brackets name a former commune (`Rue Gambetta (Saint-Pol-sur-Mer)`), so a street is first matched with them; they are dropped only when the roll has no such spelling, which merges homonyms.
+   - Matching order: number and street; then a street wholly in one constituency (it answers for a number the roll lacks); then, without a number, a street in several constituencies asks for the number.
+   - A roll value outside the commune's candidates is ignored.
+4. **Fallback.** No roll match: the contours answer, flagged "à confirmer" with the distance to the other constituency. Without contours, the visitor is asked to be more precise. An address the roll puts in two constituencies is ranked among those two only.
+
+Loading: `communes/constituencies.csv` loads when the first address-like query is typed, the contours on the first pick in a split commune, a roll file on its commune's first pick that reaches step 3. All are kept for the visit; a failed load is retried on the next pick.
+
+### Search box
+
+- A query is sent to IGN only when it looks like an address: at least 3 characters, a digit and a word of 3 letters. 250 ms debounce, the previous request is cancelled, no referrer is sent. Up to 5 suggestions.
+- An "Adresses" section lists them, first when the query starts with a number followed by two words (`12 rue Blomet`), after the deputies otherwise (`33 Gironde`). Row: `12 Rue Blomet` then `75015 Paris`, with a "voie", "lieu-dit" or "commune" marker for anything but a housenumber.
+- Picking a row shows "Recherche de la circonscription…". Only the latest pick counts: a new pick, a new query or closing the dropdown drops the pending one.
+- A located address whose seat is held closes the dropdown and opens the deputy panel, as any other opening (URL, history). Otherwise the dropdown stays open with a message under the picked row:
+
+| case | message |
+|---|---|
+| geocoder failure, 429 | Recherche d'adresse indisponible. |
+| no suggestion | Aucune adresse trouvée en France. + the abroad hint |
+| every score below 0.5 | the suggestions + the abroad hint |
+| data unavailable | Circonscription introuvable : données indisponibles. Réessayez. |
+| commune not in the table | {city} : commune absente des données (code INSEE {code}). |
+| split commune picked as a whole | {city} compte {n} circonscriptions : précisez le numéro et la rue. + candidate deputies |
+| street in several constituencies | {street} : voie partagée entre {n} circonscriptions, précisez le numéro. + candidate deputies |
+| no contours and not in the roll | {city} compte {n} circonscriptions ; cette adresse n'a pas pu être située précisément. + link "Interroger sa situation électorale" + candidate deputies |
+| vacant seat | Siège vacant · Gironde (33), 11ᵉ circonscription |
+
+- Abroad hint: "Vous vivez à l'étranger ? Les 11 députés des Français de l'étranger sont élus par zone : cherchez la ville de votre consulat (Londres, Montréal, Dakar…) ou « hors de France »." Foreign addresses are not geocoded abroad: IGN returns nothing or French homonyms with low scores.
+- Candidate deputies are ordinary result rows and are highlighted on the stage.
+- Tips gain "une adresse (numéro et rue)" and "L'adresse saisie est envoyée au service de géocodage de l'IGN (Géoplateforme) ; ce site ne la conserve pas."
+
+### Deputy panel
+
+Above the facts, an address block, value first:
+
+- `12 Rue Blomet, 75015 Paris` · adresse recherchée
+- the source: "Commune entière", "Contours officiels (INSEE, 2022)" or "Liste électorale (INSEE, 2022)" · source
+- when unconfirmed: "≈ 40 m de la 13ᵉ circonscription" (10 m steps under 100 m, 50 m above, km from 1 km; "Sur la limite avec …" under 5 m), "Résultat à confirmer : {reason}." with the "Interroger sa situation électorale" link, and a button to the other constituency's deputy ("Siège vacant" when it has none). That deputy's panel keeps the block, marked "autre circonscription possible", with a button back.
+
+The block goes away when the panel closes or another deputy is opened from the stage, the search results or the preview.
+
+### Setting
+
+`address.boundaryMeters` (300, 0 to 1000): distance under which a housenumber near another constituency is checked in the electoral roll. The maximum is the contours' clipping margin.
+
+### Privacy
+
+Only address-like queries leave the browser, to IGN. The address is never put in the URL, history state, browser storage or logs, and is lost on reload. The legal notice names the IGN geocoder and the INSEE sources.
+
+### Vintage
+
+Electoral roll extracted in September 2022, polling stations 2022, INSEE contours May 2022, COG 2026. Constituencies have not changed since the 2010 redistricting. The COG is bumped every January; the next REU is expected around 2027.
+
+### Developing against local data
+
+`VITE_DATA_ROOT` replaces the published data root in `npm run dev` only; a production build always reads the published branch. `vite.config.ts` allows a `/@fs/` root in the dev server:
+
+```sh
+VITE_DATA_ROOT=/@fs/<absolute path to pipeline/output/v2>/ npm run dev
+```
+
+The same line can go in `web/.env.development.local`, which git ignores.
+
+### Done when
+
+- The addresses of the visual check give the expected constituency with the local data (single commune, Paris and Marseille arrondissements, near a boundary, commune without contours, mixed street, whole split commune, address abroad).
+- `npm run check` and `npm test` pass in `web/`; the pipeline's typecheck, tests and validations pass.
+- Nothing is pushed until Alexis approves the data push.
+
 ## Later increments
 
 - User imports (IndexedDB, "Mes données").
 - Feature types shared with `pipeline/` so a renamed column breaks the front build.
 - Switch cour-des-grands.fr to the new front.
+- Constituencies of French citizens abroad: a country → `099-n` table, checked by hand against the Code électoral.

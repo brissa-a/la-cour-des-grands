@@ -48,6 +48,14 @@ const SCHEMA = {
       "Durée, en millisecondes, du mouvement qui amène le zoom à sa cible après un cran de molette. Un nouveau cran prolonge le mouvement sans le freiner. À 0, le zoom saute directement à sa cible.",
     ),
   },
+  address: {
+    boundaryMeters: integer(
+      0,
+      1000,
+      300,
+      "Distance, en mètres, sous laquelle une adresse proche d'une autre circonscription est vérifiée dans la liste électorale de l'INSEE. Au-delà, les contours suffisent. Une voie ou un lieu-dit sans numéro est toujours vérifié, de même que toute adresse d'une commune sans contours publiés. À 0, la liste n'est consultée que dans ces cas et pour les adresses hors de tout contour.",
+    ),
+  },
 } satisfies Schema
 
 export type Config = ConfigOf<typeof SCHEMA>

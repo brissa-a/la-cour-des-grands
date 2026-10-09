@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { MISSING, type Coloring } from "../coloring/coloring.ts"
 import type { Deputy } from "../data/assembly.ts"
 import type { Chart } from "../layout/chart.ts"
@@ -14,10 +14,11 @@ type Props = {
   layoutBy: Coloring | null
   total: number
   officialPage: string | undefined
+  address: ReactNode
   onClose: () => void
 }
 
-export function DeputyPanel({ deputy, open, coloring, chart, layoutBy, total, officialPage, onClose }: Props) {
+export function DeputyPanel({ deputy, open, coloring, chart, layoutBy, total, officialPage, address, onClose }: Props) {
   const scroller = useRef<HTMLElement>(null)
   const color = deputy.politicalGroup.color
 
@@ -54,6 +55,7 @@ export function DeputyPanel({ deputy, open, coloring, chart, layoutBy, total, of
           {deputy.politicalGroup.name} ({deputy.politicalGroup.short})
         </span>
       </div>
+      {address}
       <ul className="panel-facts">
         <li>{constituencyLong(deputy)}</li>
         <li>

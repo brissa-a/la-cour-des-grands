@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { AddressBlock } from "./address/AddressBlock.tsx"
+import type { Located } from "./address/lookup.ts"
+import { createLookupSources } from "./address/sources.ts"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId } from "./data/assembly.ts"
 import { colorableFeatures, type FeatureKey, type FeatureStore } from "./data/features.ts"
 import { buildChart } from "./layout/chart.ts"
@@ -43,6 +46,8 @@ export function App({ assembly, store, initialColoring }: Props) {
   const [chartBy, requestChartBy] = useColoring(store, features, assembly.deputies, null)
   const [officialPages, setOfficialPages] = useState<ReadonlyMap<DeputyId, string>>(new Map())
   const [configOpen, setConfigOpen] = useState(false)
+  const lookupSources = useMemo(() => createLookupSources(assembly.catalog), [assembly])
+  const [addressContext, setAddressContext] = useState<Located | null>(null)
   const phone = useMediaQuery(PHONE)
   const touchOnly = useMediaQuery(TOUCH_ONLY)
 
@@ -59,6 +64,17 @@ export function App({ assembly, store, initialColoring }: Props) {
 
   const open = (id: DeputyId) => {
     if (id === selected) return
+    setAddressContext(null)
+    show(id)
+  }
+
+  const openFromAddress = (id: DeputyId, located: Located) => {
+    setAddressContext(located)
+    show(id)
+  }
+
+  const show = (id: DeputyId) => {
+    if (id === selected) return
     if (selected === null) pushParam("deputy", id, PANEL_HISTORY_STATE)
     else writeParam("deputy", id)
     rememberPanelOpened()
@@ -69,6 +85,7 @@ export function App({ assembly, store, initialColoring }: Props) {
 
   const close = () => {
     if (selected === null) return
+    setAddressContext(null)
     if (isPanelHistoryEntry(history.state)) {
       history.back()
       return
@@ -99,6 +116,7 @@ export function App({ assembly, store, initialColoring }: Props) {
       const id = deputyInUrl(assembly)
       setSelected(id)
       if (id) setPanelId(id)
+      else setAddressContext(null)
       writeParam("color", coloring.key === DEFAULT_COLORING ? null : coloring.key)
       writeParam("chart", chartKey)
       writeParam("showPic", showPhotos ? "true" : null)
@@ -223,14 +241,19 @@ export function App({ assembly, store, initialColoring }: Props) {
           layoutBy={layoutBy}
           total={assembly.deputies.length}
           officialPage={officialPages.get(panelDeputy.id)}
+          address={
+            addressContext && <AddressBlock located={addressContext} deputy={panelDeputy} assembly={assembly} onOpen={show} />
+          }
           onClose={close}
         />
       )}
       <Search
         assembly={assembly}
         loadCommunes={loadCommunes}
+        lookupSources={lookupSources}
         onHalo={preview.halo}
         onSelect={open}
+        onAddress={openFromAddress}
         onResults={setSearchResults}
       />
       <Footer />

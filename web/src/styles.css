@@ -645,6 +645,42 @@ a { color: var(--accent); }
 
 .result-communes { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; color: var(--muted); }
 
+.search-section-title { margin: 0; padding: 10px 16px 2px; font-size: 12px; font-weight: 400; color: var(--muted); }
+
+.address.picked { background: rgba(255, 255, 255, 0.05); }
+
+.address-result { flex-direction: column; gap: 2px; padding: 8px 16px; }
+
+.address-name { font-size: 15px; color: var(--cream); }
+
+.address-place { font-size: 13px; color: var(--muted); }
+
+.address-marker { margin-left: 8px; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; font-size: 11px; color: var(--muted); }
+
+.address-outcome { margin: 0; padding: 2px 16px 10px; font-size: 13px; line-height: 18px; }
+
+.address-value { font-weight: 500; color: var(--cream); }
+
+.address-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 20px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 232, 218, 0.25);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 19px;
+}
+
+.address-block p { margin: 0; }
+
+.address-warning { color: #ffcc80; }
+
+.address-other { align-self: flex-start; }
+
+.address-other:hover { background: var(--line); }
+
 mark { background: none; color: var(--accent); font-weight: 700; }
 
 .footer {
