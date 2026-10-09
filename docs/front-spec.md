@@ -133,7 +133,11 @@ Replaces the profile shown on hover and pinned on click. Design: [Fiche d'aperç
 - A gear next to the photos checkbox opens an editable JSON of options, checked on save: unknown keys and invalid values are listed and nothing is applied. A saved option applies at once.
 - Hovering a key shows what the option does, the expected values and the default. Unknown keys say they will be refused.
 - Kept in the browser per visitor; Reset returns to the defaults. If the browser refuses to store it, the option still applies for the visit and the panel says it is not saved.
-- Options: `preview.openSpeedPxPerS` (100), `preview.speedWindowMs` (100), `preview.holdMs` (200).
+- Options: `preview.openSpeedPxPerS` (100), `preview.speedWindowMs` (100), `preview.holdMs` (200), and for zoom:
+  - `zoom.scrollRate` (0.002): zoom per pixel of two-finger trackpad scroll or notchless wheel, as `exp(-deltaY × rate)`. The inertia after lifting the fingers follows the same rate, so the zoom slows down with it.
+  - `zoom.pinchRate` (0.01): zoom per pixel of a trackpad pinch in Chrome, Firefox and Edge, which send it as a wheel with `ctrlKey`. 0.01 keeps the point under the fingers in Chrome. Safari pinches follow the fingers exactly through its gesture events.
+  - `zoom.wheelStepPercent` (10): zoom per mouse wheel notch; a large accelerated delta counts as several notches (one per 100 px). A wheel event is a mouse wheel notch when it is in lines or pages or a multiple of the macOS wheel tick (4.000244140625 px), and a trackpad under 50 px otherwise. Larger pixel deltas are read like the event before them in the burst, since trackpad inertia can be that large, and as a notch when they start one.
+  - `zoom.wheelAnimationMs` (200): ease-out from the current zoom to the wheel target; a new notch moves the target without slowing the motion. 0 jumps.
 
 ### Open
 

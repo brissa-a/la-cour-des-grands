@@ -1,5 +1,5 @@
 import type { Segment } from "./jsonKeys.ts"
-import { defaults, integer, isLeaf, nodeAt, parseConfig, type ConfigOf, type Schema } from "./schema.ts"
+import { decimal, defaults, integer, isLeaf, nodeAt, parseConfig, type ConfigOf, type Schema } from "./schema.ts"
 
 const SCHEMA = {
   preview: {
@@ -20,6 +20,32 @@ const SCHEMA = {
       2000,
       200,
       "Temps pendant lequel la carte reste affichée après avoir quitté un siège, en millisecondes. Revenir sur un siège pendant ce temps la garde ouverte.",
+    ),
+  },
+  zoom: {
+    scrollRate: decimal(
+      0,
+      0.02,
+      0.002,
+      "Zoom produit par le défilement vertical à deux doigts sur le trackpad, ou par une molette sans crans, par pixel défilé. L'inertie après avoir levé les doigts suit le même taux, le zoom ralentit donc avec elle.",
+    ),
+    pinchRate: decimal(
+      0,
+      0.1,
+      0.01,
+      "Zoom produit par un pincement sur le trackpad dans Chrome, Firefox et Edge, par pixel envoyé par le navigateur. À 0.01, le point sous les doigts reste en place dans Chrome. Safari suit les doigts sans ce réglage.",
+    ),
+    wheelStepPercent: integer(
+      1,
+      100,
+      10,
+      "Zoom produit par un cran de molette de souris, en pour cent. Un coup de molette rapide sur une souris accélérée peut compter pour plusieurs crans.",
+    ),
+    wheelAnimationMs: integer(
+      0,
+      1000,
+      200,
+      "Durée, en millisecondes, du mouvement qui amène le zoom à sa cible après un cran de molette. Un nouveau cran prolonge le mouvement sans le freiner. À 0, le zoom saute directement à sa cible.",
     ),
   },
 } satisfies Schema

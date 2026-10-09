@@ -42,6 +42,18 @@ test("invalid JSON, unknown keys and wrong values are reported and nothing is ap
   assert.equal(store.get(), before)
 })
 
+test("decimal options take fractions within their range", () => {
+  const store = createConfigStore(memoryStorage())
+  assert.equal(store.save('{ "zoom": { "scrollRate": 0.0035 } }').ok, true)
+  assert.equal(store.get().zoom.scrollRate, 0.0035)
+  const wrong = store.save('{ "zoom": { "scrollRate": 1, "pinchRate": "0.01" } }')
+  assert.deepEqual(wrong.ok ? [] : wrong.errors, [
+    "zoom.scrollRate doit être un nombre entre 0 et 0.02",
+    "zoom.pinchRate doit être un nombre entre 0 et 0.1",
+  ])
+  assert.equal(store.get().zoom.scrollRate, 0.0035)
+})
+
 test("saving keeps unchanged branches identical so only affected readers update", () => {
   const store = createConfigStore(memoryStorage())
   const before = store.get()

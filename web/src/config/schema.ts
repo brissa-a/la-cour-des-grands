@@ -38,6 +38,16 @@ export function integer(min: number, max: number, fallback: number, description:
   }
 }
 
+export function decimal(min: number, max: number, fallback: number, description: string): Leaf<number> {
+  return {
+    [LEAF]: true,
+    fallback,
+    description,
+    expected: `un nombre entre ${min} et ${max}`,
+    read: value => (typeof value === "number" && value >= min && value <= max ? value : undefined),
+  }
+}
+
 export function defaults<S extends Schema>(schema: S): ConfigOf<S> {
   return Object.fromEntries(
     Object.entries(schema).map(([key, node]) => [key, isLeaf(node) ? node.fallback : defaults(node)]),
