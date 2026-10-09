@@ -38,8 +38,7 @@ export function Legend({ coloring, store, selected, onHover }: Props) {
   const span = coloring.max - coloring.min || 1
   const percent = (value: string) => `${((Number(value) - coloring.min) / span) * 100}%`
   return (
-    <div className="legend legend-gradient panel" data-obstacle="">
-      <span className="legend-title">{coloring.title}</span>
+    <div className="legend legend-gradient panel" role="group" aria-label={coloring.title} data-obstacle="">
       <div className="gradient-bar" style={{ background: `linear-gradient(to right in oklab, ${from}, ${to})` }}>
         {coloring.ticks.map(tick => (
           <span key={tick.value} className="gradient-tick" style={{ left: `${tick.ratio * 100}%` }}>
@@ -57,9 +56,10 @@ export function Legend({ coloring, store, selected, onHover }: Props) {
         )}
       </div>
       <span className="legend-count">
-        Moyenne : {numberFormat.format(coloring.mean)}
-        {unit}
+        {numberFormat.format(coloring.mean)}
+        {unit} en moyenne
         {coloring.missing > 0 && ` · ${coloring.missing} non renseigné${coloring.missing > 1 ? "s" : ""}`}
+        {!coloring.unit && ` · ${coloring.title}`}
       </span>
     </div>
   )

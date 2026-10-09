@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react"
-import type { Coloring } from "../coloring/coloring.ts"
+import { MISSING, type Coloring } from "../coloring/coloring.ts"
 import type { Deputy } from "../data/assembly.ts"
 import type { Chart } from "../layout/chart.ts"
-import { constituencyLong, formatDate, numberFormat, viewValue } from "./format.ts"
+import { birth, captionFor, constituencyLong, numberFormat, viewValue } from "./format.ts"
 
 const COPIED_MS = 1500
 
@@ -54,16 +54,15 @@ export function DeputyPanel({ deputy, open, coloring, chart, layoutBy, total, of
           {deputy.politicalGroup.name} ({deputy.politicalGroup.short})
         </span>
       </div>
-      <dl className="panel-facts">
-        <dt>Circonscription</dt>
-        <dd>{constituencyLong(deputy)}</dd>
-        <dt>Naissance</dt>
-        <dd>
-          {formatDate(deputy.birth_date)} ({deputy.age} ans)
-        </dd>
-        <dt>Siège</dt>
-        <dd>n° {deputy.seat.number}</dd>
-      </dl>
+      <ul className="panel-facts">
+        <li>{constituencyLong(deputy)}</li>
+        <li>
+          {birth(deputy)} · {deputy.age} ans
+        </li>
+        <li>
+          n° {deputy.seat.number} <span className="fact-label">siège</span>
+        </li>
+      </ul>
       <section className="panel-section">
         <h3>Dans la vue actuelle</h3>
         <CurrentValue coloring={coloring} deputy={deputy} total={total} />
@@ -114,7 +113,7 @@ function CurrentValue({ coloring, deputy, total }: { coloring: Coloring; deputy:
         <span className="dot" style={{ background: value.color }} />
         <span className="panel-value-label">{value.label}</span>
         <span className="muted">
-          · {count} député{count > 1 ? "s" : ""} sur {total}
+          {value.caption && `· ${value.caption} `}· {count} député{count > 1 ? "s" : ""} sur {total}
         </span>
       </p>
     )
@@ -126,8 +125,8 @@ function CurrentValue({ coloring, deputy, total }: { coloring: Coloring; deputy:
   return (
     <div className="panel-scale">
       <p className="panel-value">
-        <span className="muted">{coloring.title} · </span>
         <span className="panel-value-label">{value.label}</span>
+        {value.caption && <span className="muted">· {value.caption}</span>}
       </p>
       <div className="mini-scale" style={{ background: `linear-gradient(to right in oklab, ${from}, ${to})` }}>
         <span className="mini-mean" style={{ left: percent(coloring.mean) }} />
@@ -136,8 +135,8 @@ function CurrentValue({ coloring, deputy, total }: { coloring: Coloring; deputy:
       <div className="mini-labels">
         <span>{numberFormat.format(coloring.min)}</span>
         <span className="mini-mean-label" style={{ left: percent(coloring.mean) }}>
-          moyenne {numberFormat.format(coloring.mean)}
-          {coloring.unit && ` ${coloring.unit}`}
+          {numberFormat.format(coloring.mean)}
+          {coloring.unit && ` ${coloring.unit}`} en moyenne
         </span>
         <span>{numberFormat.format(coloring.max)}</span>
       </div>
@@ -149,13 +148,17 @@ function LayoutValue({ chart, layoutBy, deputy }: { chart: Chart; layoutBy: Colo
   const position = chart.positions.get(deputy.id)
   const column = position && chart.columns.find(c => position.x >= c.x && position.x <= c.x + c.width)
   if (!column) return null
+  const unit = layoutBy.kind === "number" && layoutBy.unit && column.key !== MISSING ? ` ${layoutBy.unit}` : ""
+  const caption = captionFor(layoutBy, column.key)
   return (
     <p className="panel-value">
-      <span className="muted">Disposition : </span>
-      {layoutBy.title} · colonne {column.label}
+      <span className="column-glyph" />
+      <span className="panel-value-label">
+        {column.label}
+        {unit}
+      </span>
       <span className="muted">
-        {" "}
-        ({column.count} député{column.count > 1 ? "s" : ""})
+        {caption && `· ${caption} `}· {column.count} député{column.count > 1 ? "s" : ""} dans la colonne
       </span>
     </p>
   )

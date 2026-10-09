@@ -80,13 +80,19 @@ export function PreviewCard({ store, assembly, coloring, layoutBy, selected, hin
           {colorLine && (
             <span className={`preview-value${colorLine.missing ? " missing" : ""}`}>
               <span className="value-dot" style={{ background: colorLine.color }} />
-              {colorLine.label}
+              <span>
+                {colorLine.label}
+                {colorLine.caption && <span className="value-caption"> · {colorLine.caption}</span>}
+              </span>
             </span>
           )}
           {layoutLine && (
             <span className={`preview-value${layoutLine.missing ? " missing" : ""}`}>
               <span className="column-glyph" />
-              {layoutLine.label}
+              <span>
+                {layoutLine.label}
+                {layoutLine.caption && <span className="value-caption"> · {layoutLine.caption}</span>}
+              </span>
             </span>
           )}
           {hint && !touch && <span className="preview-hint">Cliquer pour ouvrir la fiche</span>}

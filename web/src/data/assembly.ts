@@ -15,7 +15,11 @@ export type Seat = { number: string; x: number; y: number }
 
 type InitRow = Row<(typeof INIT_COLUMNS)[number]>
 
-export type Deputy = InitRow & { id: DeputyId; seat: Seat; politicalGroup: Group }
+const CIVILITIES = ["M.", "Mme"] as const
+
+export type Civility = (typeof CIVILITIES)[number]
+
+export type Deputy = Omit<InitRow, "civility"> & { civility: Civility; id: DeputyId; seat: Seat; politicalGroup: Group }
 
 export type Group = { name: string; short: string; color: string; seatCount: number }
 
@@ -63,8 +67,10 @@ export async function loadAssembly(): Promise<Assembly> {
   const deputies = seated.map(({ row, seat }): Deputy => {
     const group = groupByName.get(row.group)
     if (!group) throw new Error(`deputies/values/group.csv: no group ${row.group}`)
+    const civility = CIVILITIES.find(c => c === row.civility)
+    if (!civility) throw new Error(`deputies/init.csv: ${row.deputy_id} has civility ${row.civility}`)
     group.seatCount++
-    return { ...row, id: row.deputy_id as DeputyId, seat, politicalGroup: group }
+    return { ...row, civility, id: row.deputy_id as DeputyId, seat, politicalGroup: group }
   })
 
   return {

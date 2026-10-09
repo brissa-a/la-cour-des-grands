@@ -290,8 +290,6 @@ a { color: var(--accent); }
   padding: 10px 16px 8px;
 }
 
-.legend-title { text-align: center; }
-
 .gradient-bar { position: relative; height: 10px; margin: 16px 0 18px; border-radius: 5px; }
 
 .gradient-tick {
@@ -449,6 +447,8 @@ a { color: var(--accent); }
 
 .preview-value.missing { color: var(--muted); font-weight: 400; }
 
+.value-caption { font-size: 12px; font-weight: 400; color: var(--muted); }
+
 .column-glyph { width: 6px; height: 10px; margin: 0 2px; flex: none; border-radius: 1px; background: rgba(239, 232, 218, 0.6); }
 
 .preview-hint { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--muted); }
@@ -540,11 +540,9 @@ a { color: var(--accent); }
 
 .panel-group .dot { width: 10px; height: 10px; }
 
-.panel-facts { margin: 0; padding: 4px 20px 14px; }
+.panel-facts { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 12px 20px 16px; list-style: none; font-size: 15px; line-height: 20px; }
 
-.panel-facts dt { margin-top: 10px; font-size: 12px; color: var(--muted); }
-
-.panel-facts dd { margin: 2px 0 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.fact-label { font-size: 12px; line-height: 1; color: var(--muted); }
 
 .panel-section { display: flex; flex-direction: column; gap: 10px; padding: 14px 20px 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
 
@@ -777,4 +775,6 @@ mark { background: none; color: var(--accent); font-weight: 700; }
   .reader-main .preview-name { font-size: 16px; line-height: 20px; }
 
   .reader-main .preview-name, .reader-main .preview-group, .reader-main .preview-value { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .reader-main .dot, .reader-main .value-dot { margin-right: 6px; }
 }

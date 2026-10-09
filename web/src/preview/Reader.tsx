@@ -58,6 +58,7 @@ export function Reader({ store, assembly, coloring, onOpen, onStep }: Props) {
               <span className={`preview-value${value.missing ? " missing" : ""}`}>
                 <span className="value-dot" style={{ background: value.color }} />
                 {value.label}
+                {value.caption && <span className="value-caption"> · {value.caption}</span>}
               </span>
             )}
           </span>
