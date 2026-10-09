@@ -2,6 +2,7 @@ import { catalog } from "./core/catalog.ts";
 import { OUTPUT_DIR } from "./core/csv.ts";
 import type { Job } from "./core/job.ts";
 import { publish } from "./core/publish.ts";
+import { communeConstituencyTable, constituencyContours, electoralRollFiles } from "./jobs/address/published.ts";
 import { communes } from "./jobs/communes.ts";
 import { hemicycle } from "./jobs/hemicycle.ts";
 import { init } from "./jobs/init.ts";
@@ -12,7 +13,18 @@ import { options } from "./options.ts";
 
 const DATA_REPOSITORY = "brissa-a/lcdg-data";
 
-const files = [init, hemicycle, communes, links, votesCatalog, majorVotes, votesByBill];
+const files = [
+  init,
+  hemicycle,
+  communes,
+  links,
+  votesCatalog,
+  majorVotes,
+  votesByBill,
+  communeConstituencyTable,
+  constituencyContours,
+  electoralRollFiles,
+];
 const all = catalog(files);
 
 const publications = options.publishTo
