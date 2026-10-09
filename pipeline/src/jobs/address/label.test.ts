@@ -23,6 +23,9 @@ test("street and locality labels keep a leading number in the name", () => {
   assert.deepEqual(parseReuLabel("Le Bourg 01350 Culoz-Béon", "locality"), { number: null, street: "Le Bourg" });
 });
 
+// @ts-expect-error municipality rows have no street to parse
+() => parseReuLabel("01350 Culoz-Béon", "municipality");
+
 test("a label without postcode is not parsed", () => {
   assert.equal(parseReuLabel("Rue sans code", "street"), null);
 });

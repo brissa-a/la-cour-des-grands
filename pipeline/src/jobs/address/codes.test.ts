@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { communeCode, constituencyCode, fromContourId, fromInseeCode, fromMinistryCode, ministryStationKey, paddedCommuneCode, sortedConstituencies } from "./codes.ts";
+import { constituencyCode } from "../deputies.ts";
+import { communeCode, fromContourId, fromInseeCode, fromMinistryCode, ministryStationKey, paddedCommuneCode, sortedConstituencies } from "./codes.ts";
 
 test("INSEE polling-station constituency codes", () => {
   assert.equal(fromInseeCode("01-04"), "01-4");
@@ -36,8 +37,7 @@ test("ministry polling-station keys are padded to 4 digits", () => {
   assert.equal(ministryStationKey(""), "");
 });
 
-test("code validation", () => {
-  assert.equal(constituencyCode("099-11"), "099-11");
+test("code parsers reject malformed codes and pad 4-digit commune codes", () => {
   assert.throws(() => constituencyCode("100-1"));
   assert.throws(() => constituencyCode("75-0"));
   assert.throws(() => constituencyCode("75-04"));

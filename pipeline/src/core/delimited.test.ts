@@ -20,8 +20,10 @@ test("empty fields and a last line without newline", () => {
   ]);
 });
 
-test("one streamed line", () => {
+test("a streamed line must hold exactly one record", () => {
   assert.deepEqual(parseDelimitedLine('75115,"104 Rue Blomet, bât. B",housenumber', ","), ["75115", "104 Rue Blomet, bât. B", "housenumber"]);
+  assert.throws(() => parseDelimitedLine('75115,"104 Rue Blomet', ","), /Unterminated quoted field/);
+  assert.throws(() => parseDelimitedLine("a\nb", ","), /Expected one record, got 2/);
 });
 
 test("readTable picks columns by name and rejects ragged rows", () => {

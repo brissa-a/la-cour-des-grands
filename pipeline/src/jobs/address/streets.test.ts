@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ConstituencyCode } from "../deputies.ts";
-import { constituencyCode } from "./codes.ts";
+import { constituencyCode } from "../deputies.ts";
 import { type Street, addToStreet, compressStreets } from "./streets.ts";
 
-const [c12, c13] = ["75-12", "75-13"].map(constituencyCode) as [ConstituencyCode, ConstituencyCode];
+const c12 = constituencyCode("75-12");
+const c13 = constituencyCode("75-13");
 
 test("a street in one constituency is a single row, whatever its numbers", () => {
   const streets = new Map<string, Street>();

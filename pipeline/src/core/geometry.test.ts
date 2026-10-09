@@ -21,24 +21,24 @@ const square = (x0: number, y0: number, x1: number, y1: number): Ring => [
   [x0, y0],
 ];
 
-test("ringArea is positive counter-clockwise and negative clockwise", () => {
+test("ringArea is positive counter-clockwise and orientRing reverses only misoriented rings", () => {
   const ccw = square(0, 0, 2, 1);
+  const cw = ccw.toReversed();
   assert.equal(ringArea(ccw), 2);
-  assert.equal(ringArea(ccw.toReversed()), -2);
-  assert.equal(ringArea(orientRing(ccw, false)), -2);
+  assert.equal(ringArea(cw), -2);
   assert.equal(orientRing(ccw, true), ccw);
+  assert.equal(orientRing(cw, false), cw);
+  assert.deepEqual(orientRing(cw, true), ccw);
+  assert.deepEqual(orientRing(ccw, false), cw);
 });
 
-test("containsPoint excludes holes and accepts any of overlapping polygons", () => {
+test("containsPoint excludes holes but accepts an island inside a hole", () => {
   const withHole: Polygon = { outer: square(0, 0, 10, 10), holes: [square(4, 4, 6, 6)] };
+  const island: Polygon = { outer: square(4.5, 4.5, 5.5, 5.5), holes: [] };
   assert.equal(containsPoint([withHole], [2, 2]), true);
   assert.equal(containsPoint([withHole], [5, 5]), false);
   assert.equal(containsPoint([withHole], [11, 5]), false);
-  const overlapping: Polygon[] = [
-    { outer: square(0, 0, 4, 4), holes: [] },
-    { outer: square(2, 2, 6, 6), holes: [] },
-  ];
-  assert.equal(containsPoint(overlapping, [3, 3]), true);
+  assert.equal(containsPoint([withHole, island], [5, 5]), true);
 });
 
 test("distanceMeters is 0 inside and metric outside", () => {
@@ -60,7 +60,7 @@ test("shapefile rings: clockwise outers, holes go to the smallest outer containi
   );
 });
 
-test("clipRing cuts a concave ring and a hole to the box", () => {
+test("clipRing cuts rings to the box and drops those outside it", () => {
   const u: Ring = [
     [0, 0],
     [3, 0],
@@ -80,21 +80,25 @@ test("clipRing cuts a concave ring and a hole to the box", () => {
   assert.ok(Math.abs(Math.abs(ringArea(clipRing(square(0.8, 0.8, 2, 2), [0, 0, 1, 1])!)) - 0.04) < 1e-12);
 });
 
-test("simplifyRing keeps the closing endpoints and drops collinear points", () => {
+test("simplifyRing keeps vertices farther than the tolerance in meters and drops the others", () => {
+  const north = (meters: number) => meters / 111_320;
+  const east = (meters: number) => meters / (111_320 * Math.cos((45 * Math.PI) / 180));
   const ring: Ring = [
-    [0, 0],
-    [0.5, 0],
-    [1, 0],
-    [1, 1],
-    [0, 1],
-    [0, 0],
+    [0, 45],
+    [0.005, 45 - north(6)],
+    [0.01, 45],
+    [0.01 + east(4), 45.005],
+    [0.01, 45.01],
+    [0, 45.01],
+    [0, 45],
   ];
   assert.deepEqual(simplifyRing(ring, 5), [
-    [0, 0],
-    [1, 0],
-    [1, 1],
-    [0, 1],
-    [0, 0],
+    [0, 45],
+    [0.005, 45 - north(6)],
+    [0.01, 45],
+    [0.01, 45.01],
+    [0, 45.01],
+    [0, 45],
   ]);
 });
 

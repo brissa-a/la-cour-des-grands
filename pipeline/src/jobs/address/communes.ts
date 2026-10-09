@@ -31,8 +31,8 @@ const MAX_UNITS_WITHOUT_CONSTITUENCY = 10;
 export type CommuneCodes = {
   names: ReadonlyMap<CommuneCode, string>;
   wholeCityOf: ReadonlyMap<CommuneCode, CommuneCode>;
-  reestablishedFrom: ReadonlyMap<CommuneCode, string>;
-  current: (code2022: string) => string;
+  reestablishedFrom: ReadonlyMap<CommuneCode, CommuneCode>;
+  current: (code2022: CommuneCode) => CommuneCode;
 };
 
 export const communeCodes = job({
@@ -48,15 +48,15 @@ export const communeCodes = job({
       if (row.TYPECOM === "ARM") wholeCityOf.set(code, communeCode(row.COMPARENT));
     }
 
-    const successor = new Map<string, string>();
-    const reestablishedFrom = new Map<CommuneCode, string>();
+    const successor = new Map<CommuneCode, CommuneCode>();
+    const reestablishedFrom = new Map<CommuneCode, CommuneCode>();
     const events = readTable(await readFile(cogEvents, "utf8"), ",", ["MOD", "DATE_EFF", "COM_AV", "TYPECOM_AP", "COM_AP"]);
     for (const row of events) {
       if (row.DATE_EFF <= POLLING_STATIONS_EXTRACTED || row.TYPECOM_AP !== "COM" || row.COM_AV === row.COM_AP) continue;
-      if (MERGES_AND_RECODINGS.has(row.MOD)) successor.set(row.COM_AV, row.COM_AP);
-      if (row.MOD === REESTABLISHMENT) reestablishedFrom.set(communeCode(row.COM_AP), row.COM_AV);
+      if (MERGES_AND_RECODINGS.has(row.MOD)) successor.set(communeCode(row.COM_AV), communeCode(row.COM_AP));
+      if (row.MOD === REESTABLISHMENT) reestablishedFrom.set(communeCode(row.COM_AP), communeCode(row.COM_AV));
     }
-    const current = (code2022: string) => {
+    const current = (code2022: CommuneCode) => {
       let code = code2022;
       for (let hops = 0; hops < MAX_HOPS; hops++) {
         const next = successor.get(code);
@@ -77,7 +77,7 @@ export const communeConstituencies = job({
   dependencies: { communeCodes, pollingStations, deputies },
   run({ communeCodes, pollingStations, deputies }): CommuneConstituencies[] {
     const { names, wholeCityOf, reestablishedFrom, current } = communeCodes;
-    const byUnit = new Map<string, Set<ConstituencyCode>>();
+    const byUnit = new Map<CommuneCode, Set<ConstituencyCode>>();
     for (const [code2022, constituencies] of pollingStations.byCommune2022) {
       const unit = current(code2022);
       const set = byUnit.get(unit) ?? new Set();
@@ -90,7 +90,7 @@ export const communeConstituencies = job({
       byUnit.set(city, set);
     }
 
-    const codes = new Set<CommuneCode>([...names.keys(), ...[...byUnit.keys()].filter((c) => OVERSEAS_COLLECTIVITY.test(c)).map(communeCode)]);
+    const codes = new Set<CommuneCode>([...names.keys(), ...[...byUnit.keys()].filter((c) => OVERSEAS_COLLECTIVITY.test(c))]);
     const units: CommuneConstituencies[] = [];
     const missing: string[] = [];
     for (const code of [...codes].sort()) {

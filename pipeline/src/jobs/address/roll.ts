@@ -3,7 +3,7 @@ import type { BBox } from "../../core/geometry.ts";
 import { job } from "../../core/job.ts";
 import { lines } from "../../core/lines.ts";
 import type { ConstituencyCode } from "../deputies.ts";
-import type { CommuneCode } from "./codes.ts";
+import { type CommuneCode, communeCode } from "./codes.ts";
 import { type SplitUnit, communeCodes, splitCommunes } from "./communes.ts";
 import { isReuGeoType, parseReuLabel } from "./label.ts";
 import { pollingStations } from "./stations.ts";
@@ -25,12 +25,12 @@ export const electoralRoll = job({
   name: "electoral roll of split communes",
   dependencies: { reuAddresses, pollingStations, communeCodes, splitCommunes },
   async run({ reuAddresses, pollingStations, communeCodes, splitCommunes }): Promise<ReadonlyMap<CommuneCode, RollUnit>> {
-    const splitByCode = new Map<string, SplitUnit>(splitCommunes.map((u) => [u.code, u]));
+    const splitByCode = new Map<CommuneCode, SplitUnit>(splitCommunes.map((u) => [u.code, u]));
     const unitOf2022 = new Map<string, SplitUnit | null>();
     const unitOf = (code2022: string) => {
       let unit = unitOf2022.get(code2022);
       if (unit === undefined) {
-        unit = splitByCode.get(communeCodes.current(code2022)) ?? null;
+        unit = splitByCode.get(communeCodes.current(communeCode(code2022))) ?? null;
         unitOf2022.set(code2022, unit);
       }
       return unit;

@@ -1,4 +1,4 @@
-import type { ConstituencyCode } from "../deputies.ts";
+import { type ConstituencyCode, constituencyCode } from "../deputies.ts";
 
 export type CommuneCode = string & { readonly __brand: "CommuneCode" };
 
@@ -8,13 +8,6 @@ export function communeCode(value: string): CommuneCode {
 }
 
 export const paddedCommuneCode = (value: string): CommuneCode => communeCode(/^\d{4}$/.test(value) ? `0${value}` : value);
-
-export function constituencyCode(value: string): ConstituencyCode {
-  if (!/^(0[1-9]|[1-8]\d|9[0-5]|2[AB]|97[1-7]|98[678]|099)-[1-9]\d?$/.test(value)) {
-    throw new Error(`Invalid constituency code: ${value}`);
-  }
-  return value as ConstituencyCode;
-}
 
 const constituency = (department: string, number: string) => constituencyCode(`${department}-${Number(number)}`);
 

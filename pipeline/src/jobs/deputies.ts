@@ -22,6 +22,13 @@ export function deputyId(value: string): DeputyId {
 
 export type ConstituencyCode = string & { readonly __brand: "ConstituencyCode" };
 
+export function constituencyCode(value: string): ConstituencyCode {
+  if (!/^(0[1-9]|[1-8]\d|9[0-5]|2[AB]|97[1-7]|98[678]|099)-[1-9]\d?$/.test(value)) {
+    throw new Error(`Invalid constituency code: ${value}`);
+  }
+  return value as ConstituencyCode;
+}
+
 export const REGIONS = [
   "Auvergne-Rhône-Alpes",
   "Bourgogne-Franche-Comté",
@@ -137,7 +144,7 @@ function mandate(raw: RawMandate): Mandate {
     start: isoDate(raw.dateDebut),
     end: optionalDate(raw.dateFin),
     endReason: nonEmpty(raw.mandature?.causeFin),
-    constituency: `${departmentNumber}-${constituencyNumber}` as ConstituencyCode,
+    constituency: constituencyCode(`${departmentNumber}-${constituencyNumber}`),
     region: region(place.region),
     department: place.departement ?? "",
     departmentNumber,
