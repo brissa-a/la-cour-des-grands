@@ -7,7 +7,8 @@
   },
   "scripts": {
     "pipeline": "node src/main.ts",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test": "node --test 'src/**/*.test.ts'"
   },
   "dependencies": {
     "fflate": "^0.8.3",

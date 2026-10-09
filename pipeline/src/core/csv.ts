@@ -48,7 +48,7 @@ type Layout = { background: string };
 type LayoutOption<F extends Features> = F extends { x: { type: "number" }; y: { type: "number" } } ? Layout : never;
 
 type DescribedFeature = Exclude<Feature, CategoryFeature> | (Omit<CategoryFeature, "values"> & { values: string });
-type PublishedFeature = DescribedFeature & { column: string };
+export type PublishedFeature = DescribedFeature & { column: string };
 
 type ColumnsOf = {
   entity: string;
@@ -56,10 +56,10 @@ type ColumnsOf = {
   feature: DescribedFeature;
 };
 
-const describe = (feature: Feature): DescribedFeature =>
+export const describe = (feature: Feature): DescribedFeature =>
   feature.type === "category" ? { ...feature, values: feature.values.path } : feature;
 
-async function checkValues(path: string, features: readonly (Feature & { column: string })[], rows: readonly Cell[][]) {
+export async function checkValues(path: string, features: readonly (Feature & { column: string })[], rows: readonly Cell[][]) {
   await Promise.all(
     features.map(async (feature, i) => {
       if (feature.type !== "category") return;
@@ -82,7 +82,7 @@ export type PublishedFile = {
   size: number;
   gzipSize: number;
   layout?: Layout;
-} & ({ features: PublishedFeature[] } | { columnsOf: ColumnsOf });
+} & ({ features: PublishedFeature[]; geometry?: "MultiPolygon" } | { columnsOf: ColumnsOf });
 
 export type Cell = string | number | readonly string[] | null;
 
@@ -135,6 +135,35 @@ async function writeTable<R>(table: {
   };
 }
 
+async function featureTable<R, const F extends Features>(table: {
+  path: string;
+  entity: Entity<R>;
+  items: R[];
+  features: F;
+  row: (item: R) => Row<F>;
+  gzipBudget: number | undefined;
+  layout: Layout | undefined;
+}): Promise<PublishedFile> {
+  const columns = Object.keys(table.features) as (keyof F & string)[];
+  const features = columns.map((column) => ({ ...(table.features[column] as Feature), column }));
+  const rows = table.items.map((item) => {
+    const row = table.row(item);
+    return columns.map((c): Cell => row[c]);
+  });
+  await checkValues(table.path, features, rows);
+  const rowByItem = new Map(table.items.map((item, i) => [item, rows[i]!]));
+  return writeTable({
+    path: table.path,
+    entity: table.entity,
+    items: table.items,
+    columns,
+    description: { features: features.map((f) => ({ ...describe(f), column: f.column })) },
+    cells: (item) => rowByItem.get(item)!,
+    gzipBudget: table.gzipBudget,
+    layout: table.layout,
+  });
+}
+
 export function csv<R, const D extends Dependencies, const F extends Features>(definition: {
   entity: Entity<R>;
   file: string;
@@ -150,24 +179,47 @@ export function csv<R, const D extends Dependencies, const F extends Features>(d
     dependencies: { items: definition.entity.rows },
     async run({ items }) {
       const results = await resolve(definition.dependencies);
-      const columns = Object.keys(definition.features) as (keyof F & string)[];
-      const features = columns.map((column) => ({ ...(definition.features[column] as Feature), column }));
-      const rows = items.map((item) => {
-        const row = definition.row(item, results);
-        return columns.map((c): Cell => row[c]);
-      });
-      await checkValues(path, features, rows);
-      const rowByItem = new Map(items.map((item, i) => [item, rows[i]!]));
-      return writeTable({
+      return featureTable({
         path,
         entity: definition.entity,
         items,
-        columns,
-        description: { features: features.map((f) => ({ ...describe(f), column: f.column })) },
-        cells: (item) => rowByItem.get(item)!,
+        features: definition.features,
+        row: (item) => definition.row(item, results),
         gzipBudget: definition.gzipBudget,
         layout: definition.layout as Layout | undefined,
       });
+    },
+  });
+}
+
+export function partitionedCsvs<R, const D extends Dependencies, const F extends Features>(definition: {
+  name: string;
+  entity: Entity<R>;
+  dependencies: D;
+  partition: (item: R) => string;
+  features: F;
+  row: (item: R, results: Results<D>) => Row<F>;
+  gzipBudget?: number;
+}): Job<PublishedFile[]> {
+  return job({
+    name: definition.name,
+    dependencies: { items: definition.entity.rows },
+    async run({ items }) {
+      const results = await resolve(definition.dependencies);
+      const partitions = [...Map.groupBy(items, definition.partition)].sort(([a], [b]) => (a < b ? -1 : 1));
+      return Promise.all(
+        partitions.map(([file, partItems]) =>
+          featureTable({
+            path: `${definition.entity.folder}/${file}`,
+            entity: definition.entity,
+            items: partItems,
+            features: definition.features,
+            row: (item) => definition.row(item, results),
+            gzipBudget: definition.gzipBudget,
+            layout: undefined,
+          }),
+        ),
+      );
     },
   });
 }
