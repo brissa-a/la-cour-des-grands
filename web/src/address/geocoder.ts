@@ -25,17 +25,19 @@ export type GeocodedAddress =
 
 export type PreciseAddress = Exclude<GeocodedAddress, { type: "municipality" }>
 
-export function addressQuery(text: string): string | null {
+export type AddressQuery = string & { readonly __brand: "AddressQuery" }
+
+export function addressQuery(text: string): AddressQuery | null {
   const query = text.replace(/\s+/g, " ").trim().replace(/^[^\p{L}\p{N}]+/u, "").slice(0, MAX_LENGTH)
   if (query.length < MIN_LENGTH || !/\d/.test(query) || !/\p{L}{3,}/u.test(query)) return null
-  return query
+  return query as AddressQuery
 }
 
 export function addressesFirst(text: string): boolean {
   return /^\s*\d+\S*(\s+\S*\p{L}\S*){2,}/u.test(text)
 }
 
-export async function searchAddresses(query: string, signal: AbortSignal): Promise<GeocodedAddress[]> {
+export async function searchAddresses(query: AddressQuery, signal: AbortSignal): Promise<GeocodedAddress[]> {
   const url = `${ENDPOINT}?${new URLSearchParams({ q: query, limit: String(LIMIT) })}`
   const response = await fetch(url, { signal, referrerPolicy: "no-referrer" })
   if (!response.ok) throw new Error(`geocoder: HTTP ${response.status}`)

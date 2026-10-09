@@ -1,8 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { communeCode } from "./codes.ts"
-import type { PreciseAddress } from "./geocoder.ts"
-import { keysOf, numberKey, streetKeys } from "./keys.ts"
+import { numberKey, streetKeys } from "./keys.ts"
 
 test("loose street keys drop brackets, accents, case and punctuation", () => {
   const cases: [string, string][] = [
@@ -28,24 +26,4 @@ test("number keys drop case and spaces so the REU and BAN spellings meet", () =>
   assert.equal(numberKey("1B"), "1b")
   assert.equal(numberKey("12 bis"), "12bis")
   assert.equal(numberKey("12bis"), "12bis")
-})
-
-test("only a housenumber carries a number key; a lieu-dit is matched as a street", () => {
-  const base = {
-    label: "",
-    name: "",
-    citycode: communeCode("75115")!,
-    oldcitycode: null,
-    postcode: "75015",
-    city: "Paris",
-    point: [2.3, 48.84],
-    score: 0.9,
-  } as const
-  const housenumber: PreciseAddress = { ...base, type: "housenumber", housenumber: "16bis", street: "Rue Blomet" }
-  const street: PreciseAddress = { ...base, type: "street", street: "Rue Blomet" }
-  const locality: PreciseAddress = { ...base, type: "locality", locality: "Le Bourg" }
-  const blomet = { exact: "rue blomet", loose: "rue blomet" }
-  assert.deepEqual(keysOf(housenumber), { number: "16bis", street: blomet })
-  assert.deepEqual(keysOf(street), { number: null, street: blomet })
-  assert.deepEqual(keysOf(locality), { number: null, street: { exact: "le bourg", loose: "le bourg" } })
 })

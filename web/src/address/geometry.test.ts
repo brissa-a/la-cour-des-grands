@@ -55,7 +55,6 @@ test("candidates are ranked by distance, ties keeping candidate order", () => {
     rank([0.5, 45.5], shapes, candidates)?.map(r => r.constituency),
     ["33-2", "33-1", "33-3"],
   )
-  assert.equal(rank([0.5, 45.5], undefined, candidates), null)
   shapes.delete(code("33-3"))
   assert.equal(rank([0.5, 45.5], shapes, candidates), null)
 })

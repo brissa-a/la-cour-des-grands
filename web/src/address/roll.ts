@@ -1,5 +1,5 @@
 import { constituencyList, type CommuneCode, type ConstituencyCode } from "./codes.ts"
-import { numberKey, streetKeys, type RollKeys } from "./keys.ts"
+import { numberKey, streetKeys, type NumberKey, type RollKeys, type StreetKey } from "./keys.ts"
 
 export const ROLL_COLUMNS = ["address", "number", "constituencies"] as const
 
@@ -9,7 +9,7 @@ export function rollFile(commune: CommuneCode): string {
 
 type StreetIndex = {
   byNumberAndStreet: ReadonlyMap<string, readonly ConstituencyCode[]>
-  byStreet: ReadonlyMap<string, { constituencies: readonly ConstituencyCode[]; hasNumberRows: boolean }>
+  byStreet: ReadonlyMap<StreetKey, { constituencies: readonly ConstituencyCode[]; hasNumberRows: boolean }>
 }
 
 export type Roll = { exact: StreetIndex; loose: StreetIndex }
@@ -20,7 +20,7 @@ export type RollMatch =
 
 type IndexBuilder = {
   byNumberAndStreet: Map<string, Set<ConstituencyCode>>
-  byStreet: Map<string, { constituencies: Set<ConstituencyCode>; hasNumberRows: boolean }>
+  byStreet: Map<StreetKey, { constituencies: Set<ConstituencyCode>; hasNumberRows: boolean }>
 }
 
 export function parseRoll(rows: readonly { address: string; number: string; constituencies: string }[], file: string): Roll {
@@ -41,7 +41,7 @@ function indexBuilder(): IndexBuilder {
   return { byNumberAndStreet: new Map(), byStreet: new Map() }
 }
 
-function addRow(index: IndexBuilder, street: string, number: string | null, codes: readonly ConstituencyCode[]) {
+function addRow(index: IndexBuilder, street: StreetKey, number: NumberKey | null, codes: readonly ConstituencyCode[]) {
   const entry = index.byStreet.get(street) ?? { constituencies: new Set(), hasNumberRows: false }
   index.byStreet.set(street, entry)
   addAll(entry.constituencies, codes)

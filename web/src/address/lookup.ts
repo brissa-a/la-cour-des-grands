@@ -62,7 +62,10 @@ export async function lookup(address: GeocodedAddress, sources: LookupSources, b
   if (address.type === "municipality") return imprecise(candidates, "municipality")
 
   const ranking = await sources.contours().then(
-    contours => rank(address.point, contours.get(unit), candidates),
+    contours => {
+      const unitShapes = contours.get(unit)
+      return unitShapes === undefined ? null : rank(address.point, unitShapes, candidates)
+    },
     () => null,
   )
   const near =

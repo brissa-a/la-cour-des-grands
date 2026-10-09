@@ -164,7 +164,7 @@ export function App({ assembly, store, initialColoring }: Props) {
 
   const step = (from: DeputyId, direction: Direction) => {
     const positions = chart?.positions ?? seatPositions
-    const next = neighbour(positions, from, direction, chart ? "chart" : "hemicycle", (chart?.pitch ?? 0) / 2)
+    const next = neighbour(positions, from, direction, chart ? { kind: "chart", rowTolerance: chart.pitch / 2 } : { kind: "hemicycle" })
     if (next) preview.show(next, null)
   }
 

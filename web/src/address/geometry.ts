@@ -51,10 +51,9 @@ export function distanceMeters(shape: Shape, point: LonLat): number {
 
 export function rank(
   point: LonLat,
-  unitShapes: ReadonlyMap<ConstituencyCode, Shape> | undefined,
+  unitShapes: ReadonlyMap<ConstituencyCode, Shape>,
   candidates: AtLeastTwo<ConstituencyCode>,
 ): AtLeastTwo<Ranked> | null {
-  if (unitShapes === undefined) return null
   const ranked: Ranked[] = []
   for (const constituency of candidates) {
     const shape = unitShapes.get(constituency)

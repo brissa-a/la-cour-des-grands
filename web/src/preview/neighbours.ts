@@ -2,7 +2,7 @@ import type { Point } from "./placement.ts"
 
 export type Direction = "left" | "right"
 
-export type Layout = "hemicycle" | "chart"
+export type Layout = { kind: "hemicycle" } | { kind: "chart"; rowTolerance: number }
 
 const HEMICYCLE_ROW_TOLERANCE = 0.025
 
@@ -11,13 +11,12 @@ export function neighbour<Id>(
   id: Id,
   direction: Direction,
   layout: Layout,
-  chartRowTolerance: number,
 ): Id | null {
   const origin = positions.get(id)
   if (!origin) return null
-  const project = layout === "hemicycle" ? polar : cartesian
+  const project = layout.kind === "hemicycle" ? polar : cartesian
   const from = project(origin)
-  const tolerance = layout === "hemicycle" ? HEMICYCLE_ROW_TOLERANCE : chartRowTolerance
+  const tolerance = layout.kind === "hemicycle" ? HEMICYCLE_ROW_TOLERANCE : layout.rowTolerance
   let best: { id: Id; distance: number } | null = null
   for (const [other, point] of positions) {
     if (other === id) continue

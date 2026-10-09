@@ -1,24 +1,28 @@
 import type { PreciseAddress } from "./geocoder.ts"
 
-export type StreetKeys = { exact: string; loose: string }
+export type StreetKey = string & { readonly __brand: "StreetKey" }
 
-export type RollKeys = { number: string | null; street: StreetKeys }
+export type NumberKey = string & { readonly __brand: "NumberKey" }
+
+export type StreetKeys = { exact: StreetKey; loose: StreetKey }
+
+export type RollKeys = { number: NumberKey | null; street: StreetKeys }
 
 export function streetKeys(street: string): StreetKeys {
   return { exact: normalise(street), loose: normalise(street.replace(/\([^)]*\)/g, " ")) }
 }
 
-function normalise(text: string): string {
+function normalise(text: string): StreetKey {
   return text
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
-    .trim()
+    .trim() as StreetKey
 }
 
-export function numberKey(number: string): string {
-  return number.toLowerCase().replace(/\s+/g, "")
+export function numberKey(number: string): NumberKey {
+  return number.toLowerCase().replace(/\s+/g, "") as NumberKey
 }
 
 export function keysOf(address: PreciseAddress): RollKeys {

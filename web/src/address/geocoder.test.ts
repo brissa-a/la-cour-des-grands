@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { addressesFirst, addressQuery, parseGeocoderResponse } from "./geocoder.ts"
+import { addressesFirst, addressQuery, parseGeocoderResponse, searchAddresses } from "./geocoder.ts"
 
 const RESPONSE = {
   type: "FeatureCollection",
@@ -101,6 +101,9 @@ test("a real response gives one address per usable feature and drops the rest", 
   assert.deepEqual(rest, [])
   assert.deepEqual(parseGeocoderResponse({ error: "rate limited" }), [])
 })
+
+// @ts-expect-error only text that addressQuery lets through is sent to the geocoder
+void (() => searchAddresses("12 rue x", AbortSignal.abort()))
 
 test("only address-like text is sent to the geocoder, trimmed and capped", () => {
   assert.equal(addressQuery("12 rue x"), "12 rue x")

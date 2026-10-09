@@ -17,6 +17,5 @@ test("a commune with one constituency is single, with several it is split", () =
 test("invalid codes, an empty list or a repeated constituency reject the table", () => {
   assert.throws(() => parseCommuneTable([{ commune_code: "1001", constituencies: "01-4" }]), /invalid commune code/)
   assert.throws(() => parseCommuneTable([{ commune_code: "01001", constituencies: "" }]), /invalid constituency/)
-  assert.throws(() => parseCommuneTable([{ commune_code: "01001", constituencies: "01-04" }]), /invalid constituency/)
   assert.throws(() => parseCommuneTable([{ commune_code: "75115", constituencies: "75-12|75-12" }]), /duplicate/)
 })

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { neighbour } from "./neighbours.ts"
+import { neighbour, type Layout } from "./neighbours.ts"
+
+const HEMICYCLE: Layout = { kind: "hemicycle" }
 
 const arc = (radius: number, degrees: number) => {
   const angle = (degrees * Math.PI) / 180
@@ -14,9 +16,9 @@ test("hemicycle neighbours follow the row, left towards the left wing", () => {
     ["c", arc(0.5, 50)],
     ["outer", arc(0.56, 41)],
   ])
-  assert.equal(neighbour(positions, "b", "left", "hemicycle", 0), "c")
-  assert.equal(neighbour(positions, "b", "right", "hemicycle", 0), "a")
-  assert.equal(neighbour(positions, "c", "left", "hemicycle", 0), null)
+  assert.equal(neighbour(positions, "b", "left", HEMICYCLE), "c")
+  assert.equal(neighbour(positions, "b", "right", HEMICYCLE), "a")
+  assert.equal(neighbour(positions, "c", "left", HEMICYCLE), null)
 })
 
 test("chart neighbours stay on the same row across columns", () => {
@@ -26,8 +28,9 @@ test("chart neighbours stay on the same row across columns", () => {
     ["above", { x: 0.15, y: 0.01 }],
     ["far", { x: 0.6, y: 0.05 }],
   ])
-  assert.equal(neighbour(positions, "b", "right", "chart", 0.01), "far")
-  assert.equal(neighbour(positions, "b", "left", "chart", 0.01), "a")
+  const chart: Layout = { kind: "chart", rowTolerance: 0.01 }
+  assert.equal(neighbour(positions, "b", "right", chart), "far")
+  assert.equal(neighbour(positions, "b", "left", chart), "a")
 })
 
 test("seats on the bottom row step along their own wing", () => {
@@ -37,8 +40,8 @@ test("seats on the bottom row step along their own wing", () => {
     ["rightEnd", { x: 0.375, y: 0 }],
     ["rightNext", arc(0.375, 8)],
   ])
-  assert.equal(neighbour(positions, "leftEnd", "left", "hemicycle", 0), null)
-  assert.equal(neighbour(positions, "leftEnd", "right", "hemicycle", 0), "leftNext")
-  assert.equal(neighbour(positions, "rightEnd", "right", "hemicycle", 0), null)
-  assert.equal(neighbour(positions, "rightEnd", "left", "hemicycle", 0), "rightNext")
+  assert.equal(neighbour(positions, "leftEnd", "left", HEMICYCLE), null)
+  assert.equal(neighbour(positions, "leftEnd", "right", HEMICYCLE), "leftNext")
+  assert.equal(neighbour(positions, "rightEnd", "right", HEMICYCLE), null)
+  assert.equal(neighbour(positions, "rightEnd", "left", HEMICYCLE), "rightNext")
 })

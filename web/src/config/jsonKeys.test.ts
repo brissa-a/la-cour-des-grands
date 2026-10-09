@@ -17,8 +17,8 @@ test("escaped quotes, arrays and one-line JSON keep paths right", () => {
 })
 
 test("a key inside an array never gets the help of a real option", () => {
-  const [, , inner] = keySpans('{"x": [{"preview": {"holdMs": 1}}]}')
-  assert.equal(inner && pathLabel(inner.path), "x.[].preview.holdMs")
+  const [, inner] = keySpans('{"preview": [{"holdMs": 1}]}')
+  assert.equal(inner && pathLabel(inner.path), "preview.[].holdMs")
   assert.deepEqual(inner && keyHelp(inner.path), { kind: "unknown" })
   assert.equal(keyHelp(["preview", "holdMs"]).kind, "option")
 })

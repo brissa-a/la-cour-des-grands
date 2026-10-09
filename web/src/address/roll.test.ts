@@ -1,11 +1,14 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { streetKeys } from "./keys.ts"
+import { numberKey, streetKeys, type RollKeys } from "./keys.ts"
 import { findInRoll, parseRoll } from "./roll.ts"
 
 const FILE = "communes/addresses/75115.csv"
 
-const keys = (number: string | null, street: string) => ({ number, street: streetKeys(street) })
+const keys = (number: string | null, street: string): RollKeys => ({
+  number: number === null ? null : numberKey(number),
+  street: streetKeys(street),
+})
 
 const roll = parseRoll(
   [
@@ -23,6 +26,9 @@ const roll = parseRoll(
   ],
   FILE,
 )
+
+// @ts-expect-error the roll is only searched with keys normalised like its own rows
+void (() => findInRoll(roll, { number: "16 bis", street: streetKeys("Rue Blomet") }))
 
 test("the street of a number row is its address without the number and a space", () => {
   assert.deepEqual(findInRoll(roll, keys("16bis", "rue blomet")), { kind: "address", constituencies: ["75-12"] })

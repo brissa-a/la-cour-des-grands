@@ -1,4 +1,4 @@
-import { atLeastTwo, communeCode, constituencyList, type AtLeastTwo, type CommuneCode, type ConstituencyCode } from "./codes.ts"
+import { communeCode, constituencyList, type AtLeastTwo, type CommuneCode, type ConstituencyCode } from "./codes.ts"
 
 export const COMMUNE_TABLE = "communes/constituencies.csv"
 
@@ -15,9 +15,11 @@ export function parseCommuneTable(rows: readonly { commune_code: string; constit
   for (const row of rows) {
     const code = communeCode(row.commune_code)
     if (code === null) throw new Error(`${COMMUNE_TABLE}: invalid commune code "${row.commune_code}"`)
-    const list = constituencyList(row.constituencies, `${COMMUNE_TABLE} ${code}`)
-    const split = atLeastTwo(list)
-    table.set(code, split ? { kind: "split", constituencies: split } : { kind: "single", constituency: list[0]! })
+    const [first, second, ...rest] = constituencyList(row.constituencies, `${COMMUNE_TABLE} ${code}`)
+    table.set(
+      code,
+      second === undefined ? { kind: "single", constituency: first } : { kind: "split", constituencies: [first, second, ...rest] },
+    )
   }
   return table
 }

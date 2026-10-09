@@ -38,6 +38,7 @@ const ROLLS = new Map<CommuneCode, Roll>([
         { address: "104 Rue Blomet", number: "104", constituencies: "75-13" },
         { address: "108 Rue Blomet", number: "108", constituencies: "75-12" },
         { address: "Rue de Viroflay", number: "", constituencies: "75-13" },
+        { address: "Village Suisse", number: "", constituencies: "75-13" },
       ],
       "75115.csv",
     ),
@@ -91,6 +92,8 @@ const housenumber = (citycode: string, point: LonLat, number: string, street: st
 
 const street = (citycode: string, point: LonLat, name: string): GeocodedAddress => ({ ...base(citycode, point, null), type: "street", street: name })
 
+const locality = (citycode: string, point: LonLat, name: string): GeocodedAddress => ({ ...base(citycode, point, null), type: "locality", locality: name })
+
 const municipality = (citycode: string): GeocodedAddress => ({ ...base(citycode, FAR, null), type: "municipality" })
 
 function summary(outcome: LookupOutcome): unknown {
@@ -116,10 +119,12 @@ test("a housenumber far from any other constituency is answered by the contours 
 })
 
 test("a street or a lieu-dit always goes to the roll, even far from a boundary", async () => {
-  const fake = sources()
-  const outcome = await lookup(street("75115", FAR, "Rue de Viroflay"), fake, BOUNDARY_METERS)
-  assert.deepEqual(summary(outcome), { kind: "located", constituency: "75-13", basis: { kind: "roll", match: "street" } })
-  assert.deepEqual(fake.calls, ["communes", "contours", "roll 75115"])
+  for (const address of [street("75115", FAR, "Rue de Viroflay"), locality("75115", FAR, "Village Suisse")]) {
+    const fake = sources()
+    const outcome = await lookup(address, fake, BOUNDARY_METERS)
+    assert.deepEqual(summary(outcome), { kind: "located", constituency: "75-13", basis: { kind: "roll", match: "street" } })
+    assert.deepEqual(fake.calls, ["communes", "contours", "roll 75115"])
+  }
 })
 
 test("near a boundary, the roll overrides the contours", async () => {

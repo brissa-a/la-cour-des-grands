@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { searchAddresses, type GeocodedAddress } from "./geocoder.ts"
+import { searchAddresses, type AddressQuery, type GeocodedAddress } from "./geocoder.ts"
 import type { LookupSources } from "./lookup.ts"
 
 const DEBOUNCE_MS = 250
@@ -8,7 +8,7 @@ export type Suggestions =
   | { status: "idle" | "failed" }
   | { status: "loading" | "ready"; addresses: readonly GeocodedAddress[] }
 
-export function useAddressSuggestions(query: string | null, sources: LookupSources | null): Suggestions {
+export function useAddressSuggestions(query: AddressQuery | null, sources: LookupSources | null): Suggestions {
   const [suggestions, setSuggestions] = useState<Suggestions>({ status: "idle" })
 
   useEffect(() => {
