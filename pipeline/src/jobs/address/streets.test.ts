@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { constituencyCode } from "../deputies.ts";
+import { constituencyCode } from "./codes.ts";
 import { type Street, addToStreet, compressStreets } from "./streets.ts";
 
 const c12 = constituencyCode("75-12");

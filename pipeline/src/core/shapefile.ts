@@ -17,7 +17,7 @@ function readDbfField(dbf: Uint8Array, name: string): string[] {
   let offset = 1;
   for (let d = 32; dbf[d] !== DBF_HEADER_TERMINATOR; d += DBF_FIELD_DESCRIPTOR_BYTES) {
     const fieldName = decoder.decode(dbf.subarray(d, d + 11)).replace(/\0.*$/s, "");
-    const length = dbf[d + 16]!;
+    const length = data.getUint8(d + 16);
     if (fieldName === name) {
       return Array.from({ length: count }, (_, r) => {
         const record = headerLength + r * recordLength;
@@ -63,5 +63,9 @@ export function readPolygonShapes(shp: Uint8Array, dbf: Uint8Array, idField: str
   const ids = readDbfField(dbf, idField);
   const shapes = readRings(shp);
   if (ids.length !== shapes.length) throw new Error(`${ids.length} dbf records for ${shapes.length} shapes`);
-  return ids.map((id, i) => ({ id, rings: shapes[i]! }));
+  return ids.map((id, i) => {
+    const rings = shapes[i];
+    if (rings === undefined) throw new Error(`No shape for dbf record ${i}`);
+    return { id, rings };
+  });
 }

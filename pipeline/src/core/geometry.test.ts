@@ -73,11 +73,13 @@ test("clipRing cuts rings to the box and drops those outside it", () => {
     [0, 0],
   ];
   const clipped = clipRing(u, [0.5, 0.5, 2.5, 2]);
-  assert.notEqual(clipped, null);
-  assert.equal(Math.abs(ringArea(clipped!)), 2 * 1.5 - 1 * 1);
-  assert.deepEqual(clipped![0], clipped!.at(-1));
+  assert.ok(clipped !== null);
+  assert.equal(Math.abs(ringArea(clipped)), 2 * 1.5 - 1 * 1);
+  assert.deepEqual(clipped[0], clipped.at(-1));
   assert.equal(clipRing(square(4, 4, 5, 5), [0, 0, 1, 1]), null);
-  assert.ok(Math.abs(Math.abs(ringArea(clipRing(square(0.8, 0.8, 2, 2), [0, 0, 1, 1])!)) - 0.04) < 1e-12);
+  const corner = clipRing(square(0.8, 0.8, 2, 2), [0, 0, 1, 1]);
+  assert.ok(corner !== null);
+  assert.ok(Math.abs(Math.abs(ringArea(corner)) - 0.04) < 1e-12);
 });
 
 test("simplifyRing keeps vertices farther than the tolerance in meters and drops the others", () => {

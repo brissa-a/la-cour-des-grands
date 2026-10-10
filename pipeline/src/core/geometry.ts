@@ -6,22 +6,32 @@ export type BBox = readonly [west: number, south: number, east: number, north: n
 const METERS_PER_DEGREE = 111_320;
 const RADIANS_PER_DEGREE = Math.PI / 180;
 
+const samePosition = (a: Position, b: Position): boolean => a[0] === b[0] && a[1] === b[1];
+
+function endsWith(points: readonly Position[], position: Position): boolean {
+  const last = points.at(-1);
+  return last !== undefined && samePosition(last, position);
+}
+
 export function ringArea(ring: Ring): number {
   let twice = 0;
-  for (let i = 1; i < ring.length; i++) {
-    const [x0, y0] = ring[i - 1]!;
-    const [x1, y1] = ring[i]!;
-    twice += x0 * y1 - x1 * y0;
+  let previous: Position | undefined;
+  for (const current of ring) {
+    if (previous !== undefined) twice += previous[0] * current[1] - current[0] * previous[1];
+    previous = current;
   }
   return twice / 2;
 }
 
 export function ringContains(ring: Ring, [x, y]: Position): boolean {
+  const last = ring.at(-1);
+  if (last === undefined) return false;
   let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i]!;
-    const [xj, yj] = ring[j]!;
+  let [xj, yj] = last;
+  for (const [xi, yi] of ring) {
     if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    xj = xi;
+    yj = yi;
   }
   return inside;
 }
@@ -36,27 +46,37 @@ export function distanceMeters(polygons: readonly Polygon[], p: Position): numbe
   let best = Infinity;
   for (const polygon of polygons) {
     for (const ring of [polygon.outer, ...polygon.holes]) {
-      for (let i = 1; i < ring.length; i++) {
-        const ax = (ring[i - 1]![0] - px) * xScale;
-        const ay = (ring[i - 1]![1] - py) * METERS_PER_DEGREE;
-        const dx = (ring[i]![0] - px) * xScale - ax;
-        const dy = (ring[i]![1] - py) * METERS_PER_DEGREE - ay;
-        const length2 = dx * dx + dy * dy;
-        const t = length2 === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / length2));
-        best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
+      let previous: Position | undefined;
+      for (const current of ring) {
+        if (previous !== undefined) {
+          const ax = (previous[0] - px) * xScale;
+          const ay = (previous[1] - py) * METERS_PER_DEGREE;
+          const dx = (current[0] - px) * xScale - ax;
+          const dy = (current[1] - py) * METERS_PER_DEGREE - ay;
+          const length2 = dx * dx + dy * dy;
+          const t = length2 === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / length2));
+          best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
+        }
+        previous = current;
       }
     }
   }
   return best;
 }
 
+type Outer = { readonly outer: Ring; readonly area: number; readonly holes: Ring[] };
+
 export function polygonsFromShapefileRings(rings: readonly Ring[]): Polygon[] {
-  const outers = rings.filter((r) => ringArea(r) < 0).map((outer) => ({ outer, area: -ringArea(outer), holes: [] as Ring[] }));
+  const outers = rings.filter((r) => ringArea(r) < 0).map((outer): Outer => ({ outer, area: -ringArea(outer), holes: [] }));
   const orphans: Ring[] = [];
   for (const hole of rings.filter((r) => ringArea(r) >= 0)) {
-    const owner = outers
-      .filter((o) => ringContains(o.outer, hole[0]!))
-      .reduce<(typeof outers)[number] | undefined>((smallest, o) => (smallest === undefined || o.area < smallest.area ? o : smallest), undefined);
+    const [start] = hole;
+    const owner =
+      start === undefined
+        ? undefined
+        : outers
+            .filter((o) => ringContains(o.outer, start))
+            .reduce<Outer | undefined>((smallest, o) => (smallest === undefined || o.area < smallest.area ? o : smallest), undefined);
     if (owner === undefined) orphans.push(hole);
     else owner.holes.push(hole);
   }
@@ -82,45 +102,53 @@ function boxEdges([west, south, east, north]: BBox): Edge[] {
   ];
 }
 
-const close = (open: readonly Position[]): Ring => [...open, open[0]!];
+function closed(open: readonly Position[]): Ring | null {
+  const [first] = open;
+  return open.length < 3 || first === undefined ? null : [...open, first];
+}
 
 export function clipRing(ring: Ring, box: BBox): Ring | null {
   let points = ring.slice(0, -1);
   for (const { inside, cut } of boxEdges(box)) {
+    let previous = points.at(-1);
+    if (previous === undefined) return null;
     const kept: Position[] = [];
-    for (let i = 0; i < points.length; i++) {
-      const current = points[i]!;
-      const previous = points[(i + points.length - 1) % points.length]!;
+    for (const current of points) {
       if (inside(current)) {
         if (!inside(previous)) kept.push(cut(previous, current));
         kept.push(current);
       } else if (inside(previous)) kept.push(cut(previous, current));
+      previous = current;
     }
     points = kept;
-    if (points.length === 0) return null;
   }
-  return points.length < 3 ? null : close(points);
+  return closed(points);
 }
 
+type Vertex = { readonly position: Position; readonly x: number; readonly y: number; kept: boolean };
+type Stretch = { readonly start: Vertex; readonly inner: readonly Vertex[]; readonly end: Vertex };
+
 export function simplifyRing(ring: Ring, toleranceMeters: number): Ring {
-  if (ring.length < 4) return ring;
-  const xScale = Math.cos(ring[0]![1] * RADIANS_PER_DEGREE) * METERS_PER_DEGREE;
-  const x = ring.map((p) => p[0] * xScale);
-  const y = ring.map((p) => p[1] * METERS_PER_DEGREE);
-  const keep = new Uint8Array(ring.length);
-  keep[0] = 1;
-  keep[ring.length - 1] = 1;
-  const stack: [number, number][] = [[0, ring.length - 1]];
-  while (stack.length > 0) {
-    const [a, b] = stack.pop()!;
-    const dx = x[b]! - x[a]!;
-    const dy = y[b]! - y[a]!;
+  const [first] = ring;
+  if (ring.length < 4 || first === undefined) return ring;
+  const xScale = Math.cos(first[1] * RADIANS_PER_DEGREE) * METERS_PER_DEGREE;
+  const vertices = ring.map((position): Vertex => ({ position, x: position[0] * xScale, y: position[1] * METERS_PER_DEGREE, kept: false }));
+  const [head, ...inner] = vertices;
+  const tail = inner.pop();
+  if (head === undefined || tail === undefined) return ring;
+  head.kept = true;
+  tail.kept = true;
+  const stack: Stretch[] = [{ start: head, inner, end: tail }];
+  for (let stretch = stack.pop(); stretch !== undefined; stretch = stack.pop()) {
+    const { start, end } = stretch;
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
     const length2 = dx * dx + dy * dy;
     let farthest = -1;
     let farthestDistance = -1;
-    for (let i = a + 1; i < b; i++) {
-      const ex = x[i]! - x[a]!;
-      const ey = y[i]! - y[a]!;
+    for (const [i, vertex] of stretch.inner.entries()) {
+      const ex = vertex.x - start.x;
+      const ey = vertex.y - start.y;
       const t = length2 === 0 ? 0 : Math.max(0, Math.min(1, (ex * dx + ey * dy) / length2));
       const distance = Math.hypot(ex - t * dx, ey - t * dy);
       if (distance > farthestDistance) {
@@ -128,12 +156,13 @@ export function simplifyRing(ring: Ring, toleranceMeters: number): Ring {
         farthest = i;
       }
     }
-    if (farthestDistance > toleranceMeters) {
-      keep[farthest] = 1;
-      stack.push([a, farthest], [farthest, b]);
+    const kept = stretch.inner[farthest];
+    if (kept !== undefined && farthestDistance > toleranceMeters) {
+      kept.kept = true;
+      stack.push({ start, inner: stretch.inner.slice(0, farthest), end: kept }, { start: kept, inner: stretch.inner.slice(farthest + 1), end });
     }
   }
-  return ring.filter((_, i) => keep[i] === 1);
+  return vertices.filter((v) => v.kept).map((v) => v.position);
 }
 
 export function roundRing(ring: Ring, decimals: number): Ring | null {
@@ -142,11 +171,11 @@ export function roundRing(ring: Ring, decimals: number): Ring | null {
   const points: Position[] = [];
   for (const [lon, lat] of ring.slice(0, -1)) {
     const p: Position = [round(lon), round(lat)];
-    const last = points.at(-1);
-    if (last === undefined || last[0] !== p[0] || last[1] !== p[1]) points.push(p);
+    if (!endsWith(points, p)) points.push(p);
   }
-  while (points.length > 1 && points.at(-1)![0] === points[0]![0] && points.at(-1)![1] === points[0]![1]) points.pop();
-  return points.length < 3 ? null : close(points);
+  const [first] = points;
+  while (points.length > 1 && first !== undefined && endsWith(points, first)) points.pop();
+  return closed(points);
 }
 
 export const orientRing = (ring: Ring, counterClockwise: boolean): Ring =>

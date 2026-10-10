@@ -1,5 +1,5 @@
 import { gzipSync } from "node:zlib";
-import { type Feature, type Features, type PublishedFile, type Row, checkValues, describe, writeOutput } from "./csv.ts";
+import { type Features, type PublishedFile, type Row, checkValues, describe, featureColumns, writeOutput } from "./csv.ts";
 import type { Entity } from "./entity.ts";
 import { type Polygon, orientRing } from "./geometry.ts";
 import { type Dependencies, type Job, type Results, job, resolve } from "./job.ts";
@@ -23,8 +23,8 @@ export function geojson<R, const D extends Dependencies, const F extends Feature
     dependencies: { items: entity.rows },
     async run({ items }) {
       const results = await resolve(definition.dependencies);
-      const columns = Object.keys(definition.features) as (keyof F & string)[];
-      const features = columns.map((column) => ({ ...(definition.features[column] as Feature), column }));
+      const features = featureColumns(definition.features);
+      const columns = features.map((f) => f.column);
       const properties = items.map((item) => definition.properties(item, results));
       await checkValues(
         path,

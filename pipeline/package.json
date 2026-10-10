@@ -8,7 +8,9 @@
   "scripts": {
     "pipeline": "node src/main.ts",
     "typecheck": "tsc",
-    "test": "node --test 'src/**/*.test.ts'"
+    "test": "node --test 'src/**/*.test.ts' 'lint/**/*.test.ts'",
+    "lint": "oxlint",
+    "mutate": "stryker run"
   },
   "dependencies": {
     "fflate": "^0.8.3",
@@ -16,7 +18,12 @@
     "sharp": "^0.35.5"
   },
   "devDependencies": {
+    "@oxlint/plugins": "1.87.0",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/tap-runner": "10.0.0",
     "@types/node": "^26.6.4",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2004",
     "typescript": "^7.0.2"
   }
 }

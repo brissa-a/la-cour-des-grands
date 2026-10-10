@@ -2,3 +2,5 @@
 node_modules/
 cache/
 output/
+.stryker-tmp/
+reports/

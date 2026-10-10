@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "tap",
+  "plugins": [
+    "@stryker-mutator/tap-runner"
+  ],
+  "tap": {
+    "testFiles": [
+      "src/**/*.test.ts"
+    ],
+    "nodeArgs": [
+      "--test",
+      "--test-isolation=none",
+      "--test-reporter=tap",
+      "-r",
+      "{{hookFile}}",
+      "{{testFile}}"
+    ]
+  },
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/core/delimited.ts",
+    "src/core/geometry.ts",
+    "src/jobs/address/codes.ts",
+    "src/jobs/address/label.ts",
+    "src/jobs/address/streets.ts"
+  ],
+  "ignorePatterns": [
+    "tsconfig.json",
+    "cache",
+    "output",
+    "reports",
+    ".env"
+  ],
+  "tempDirName": ".stryker-tmp",
+  "reporters": [
+    "clear-text",
+    "progress",
+    "json",
+    "html"
+  ],
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  },
+  "htmlReporter": {
+    "fileName": "reports/mutation/mutation.html"
+  },
+  "concurrency": 4
+}

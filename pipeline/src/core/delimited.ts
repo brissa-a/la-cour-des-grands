@@ -5,7 +5,7 @@ export function parseDelimited(text: string, separator: string): string[][] {
   let quoted = false;
   let rowStarted = false;
   for (let i = 0; i < text.length; i++) {
-    const c = text[i]!;
+    const c = text.charAt(i);
     if (quoted) {
       if (c !== '"') field += c;
       else if (text[i + 1] === '"') {
@@ -43,18 +43,34 @@ export function parseDelimited(text: string, separator: string): string[][] {
 
 export function parseDelimitedLine(line: string, separator: string): string[] {
   const rows = parseDelimited(line, separator);
-  if (rows.length !== 1) throw new Error(`Expected one record, got ${rows.length}: ${line.slice(0, 120)}`);
-  return rows[0]!;
+  const [row] = rows;
+  if (rows.length !== 1 || row === undefined) throw new Error(`Expected one record, got ${rows.length}: ${line.slice(0, 120)}`);
+  return row;
 }
 
+const hasEvery = <K extends string, V>(partial: Partial<Record<K, V>>, keys: readonly K[]): partial is Record<K, V> =>
+  keys.every((key) => partial[key] !== undefined);
+
 export function columnIndexes<const C extends string>(header: readonly string[], columns: readonly C[]): Record<C, number> {
-  const indexes = {} as Record<C, number>;
+  const indexes: Partial<Record<C, number>> = {};
   for (const column of columns) {
     const index = header.indexOf(column);
-    if (index === -1) throw new Error(`Missing column ${column} in header: ${header.join(", ")}`);
-    indexes[column] = index;
+    if (index !== -1) indexes[column] = index;
   }
-  return indexes;
+  if (hasEvery(indexes, columns)) return indexes;
+  const missing = columns.filter((column) => indexes[column] === undefined);
+  throw new Error(`Missing column ${missing.join(", ")} in header: ${header.join(", ")}`);
+}
+
+export function recordOf<C extends string>(row: readonly string[], indexes: Record<C, number>, columns: readonly C[]): Record<C, string> {
+  const record: Partial<Record<C, string>> = {};
+  for (const column of columns) {
+    const index: number = indexes[column];
+    const field = row[index];
+    if (field !== undefined) record[column] = field;
+  }
+  if (!hasEvery(record, columns)) throw new Error(`Row with ${row.length} fields lacks a column: ${row.join(",").slice(0, 120)}`);
+  return record;
 }
 
 export function readTable<const C extends string>(text: string, separator: string, columns: readonly C[]): Record<C, string>[] {
@@ -65,8 +81,6 @@ export function readTable<const C extends string>(text: string, separator: strin
     if (row.length !== header.length) {
       throw new Error(`Row ${i + 2} has ${row.length} fields, expected ${header.length}: ${row.join(separator).slice(0, 120)}`);
     }
-    const record = {} as Record<C, string>;
-    for (const column of columns) record[column] = row[indexes[column]]!;
-    return record;
+    return recordOf(row, indexes, columns);
   });
 }

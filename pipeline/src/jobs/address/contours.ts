@@ -14,8 +14,7 @@ import {
 } from "../../core/geometry.ts";
 import { job } from "../../core/job.ts";
 import { readPolygonShapes } from "../../core/shapefile.ts";
-import type { ConstituencyCode } from "../deputies.ts";
-import { type CommuneCode, fromContourId } from "./codes.ts";
+import { type CommuneCode, type ConstituencyCode, fromContourId } from "./codes.ts";
 import { type RollUnit, electoralRoll } from "./roll.ts";
 import { inseeContours } from "./sources.ts";
 
@@ -73,8 +72,12 @@ function clipPolygons(polygons: readonly Polygon[], box: BBox): Polygon[] {
   });
 }
 
-function nearest(shapes: readonly (readonly [ConstituencyCode, readonly Polygon[]])[], lon: number, lat: number): ConstituencyCode {
-  let best = shapes[0]![0];
+type Shape = readonly [ConstituencyCode, readonly Polygon[]];
+
+function nearest(shapes: readonly Shape[], lon: number, lat: number): ConstituencyCode {
+  const [first] = shapes;
+  if (first === undefined) throw new Error("No candidate constituency");
+  let best = first[0];
   let bestMeters = Infinity;
   for (const [constituency, polygons] of shapes) {
     const meters = distanceMeters(polygons, [lon, lat]);
@@ -87,10 +90,13 @@ function nearest(shapes: readonly (readonly [ConstituencyCode, readonly Polygon[
   return best;
 }
 
-function agreement({ points }: RollUnit, shapes: readonly (readonly [ConstituencyCode, readonly Polygon[]])[]): number {
+function agreement({ points }: RollUnit, shapes: readonly Shape[]): number {
   let agreeing = 0;
-  for (let i = 0; i < points.lon.length; i++) {
-    if (nearest(shapes, points.lon[i]!, points.lat[i]!) === points.constituency[i]) agreeing++;
+  for (const [i, constituency] of points.constituency.entries()) {
+    const lon = points.lon[i];
+    const lat = points.lat[i];
+    if (lon === undefined || lat === undefined) throw new Error(`Roll point ${i} has no coordinates`);
+    if (nearest(shapes, lon, lat) === constituency) agreeing++;
   }
   return agreeing / points.lon.length;
 }

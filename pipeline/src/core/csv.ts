@@ -59,7 +59,7 @@ type ColumnsOf = {
 export const describe = (feature: Feature): DescribedFeature =>
   feature.type === "category" ? { ...feature, values: feature.values.path } : feature;
 
-export async function checkValues(path: string, features: readonly (Feature & { column: string })[], rows: readonly Cell[][]) {
+export async function checkValues(path: string, features: readonly (Feature & { column: string })[], rows: readonly (readonly Cell[])[]) {
   await Promise.all(
     features.map(async (feature, i) => {
       if (feature.type !== "category") return;
@@ -104,18 +104,30 @@ export async function writeOutput(path: string, content: Uint8Array | string): P
   await writeFile(`${OUTPUT_DIR}/${path}`, content);
 }
 
+export type FeatureColumn<F extends Features> = Feature & { column: Extract<keyof F, string> };
+
+export function featureColumns<F extends Features>(features: F): FeatureColumn<F>[] {
+  const columns: FeatureColumn<F>[] = [];
+  for (const column in features) {
+    const feature: Feature | undefined = features[column];
+    if (feature !== undefined) columns.push({ ...feature, column });
+  }
+  return columns;
+}
+
+type TableRow = { readonly id: string; readonly cells: readonly Cell[] };
+
 async function writeTable<R>(table: {
   path: string;
   entity: Entity<R>;
-  items: R[];
+  rows: readonly TableRow[];
   columns: string[];
   description: { features: PublishedFeature[] } | { columnsOf: ColumnsOf };
-  cells: (item: R) => Cell[];
   gzipBudget: number | undefined;
   layout: Layout | undefined;
 }): Promise<PublishedFile> {
   const { entity } = table;
-  const lines = table.items.map((item) => [entity.id(item), ...table.cells(item)].map(cell).join(","));
+  const lines = table.rows.map(({ id, cells }) => [id, ...cells].map(cell).join(","));
   const header = [entity.key, ...table.columns].map(cell).join(",");
   const content = new TextEncoder().encode([header, ...lines].join("\n") + "\n");
   const gzipSize = gzipSync(content).length;
@@ -144,21 +156,19 @@ async function featureTable<R, const F extends Features>(table: {
   gzipBudget: number | undefined;
   layout: Layout | undefined;
 }): Promise<PublishedFile> {
-  const columns = Object.keys(table.features) as (keyof F & string)[];
-  const features = columns.map((column) => ({ ...(table.features[column] as Feature), column }));
-  const rows = table.items.map((item) => {
+  const features = featureColumns(table.features);
+  const columns = features.map((f) => f.column);
+  const rows = table.items.map((item): TableRow => {
     const row = table.row(item);
-    return columns.map((c): Cell => row[c]);
+    return { id: table.entity.id(item), cells: columns.map((c): Cell => row[c]) };
   });
-  await checkValues(table.path, features, rows);
-  const rowByItem = new Map(table.items.map((item, i) => [item, rows[i]!]));
+  await checkValues(table.path, features, rows.map((r) => r.cells));
   return writeTable({
     path: table.path,
     entity: table.entity,
-    items: table.items,
+    rows,
     columns,
     description: { features: features.map((f) => ({ ...describe(f), column: f.column })) },
-    cells: (item) => rowByItem.get(item)!,
     gzipBudget: table.gzipBudget,
     layout: table.layout,
   });
@@ -186,7 +196,7 @@ export function csv<R, const D extends Dependencies, const F extends Features>(d
         features: definition.features,
         row: (item) => definition.row(item, results),
         gzipBudget: definition.gzipBudget,
-        layout: definition.layout as Layout | undefined,
+        layout: definition.layout,
       });
     },
   });
@@ -244,14 +254,18 @@ export function generatedCsvs<R, C, const D extends Dependencies, const V extend
       return Promise.all(
         definition.files(columnItems, results).map(async ({ file, columns }) => {
           const path = `${definition.entity.folder}/${file}`;
-          const rows = items.map((item) => columns.map((column): Cell => definition.value(item, column, results)));
+          const rows = items.map(
+            (item): TableRow => ({
+              id: definition.entity.id(item),
+              cells: columns.map((column): Cell => definition.value(item, column, results)),
+            }),
+          );
           const sameFeature = columns.map((column) => ({ ...definition.feature, column: definition.columnEntity.id(column) }));
-          await checkValues(path, sameFeature, rows);
-          const rowByItem = new Map(items.map((item, i) => [item, rows[i]!]));
+          await checkValues(path, sameFeature, rows.map((r) => r.cells));
           return writeTable({
             path,
             entity: definition.entity,
-            items,
+            rows,
             columns: columns.map((c) => definition.columnEntity.id(c)),
             description: {
               columnsOf: {
@@ -260,7 +274,6 @@ export function generatedCsvs<R, C, const D extends Dependencies, const V extend
                 feature: describe(definition.feature),
               },
             },
-            cells: (item) => rowByItem.get(item)!,
             gzipBudget: definition.gzipBudget,
             layout: undefined,
           });

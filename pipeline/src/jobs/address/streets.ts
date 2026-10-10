@@ -1,5 +1,4 @@
-import type { ConstituencyCode } from "../deputies.ts";
-import { sortedConstituencies } from "./codes.ts";
+import { type ConstituencyCode, sortedConstituencies } from "./codes.ts";
 
 export type Street = {
   all: Set<ConstituencyCode>;

@@ -1,9 +1,18 @@
-import { type ConstituencyCode, constituencyCode } from "../deputies.ts";
+export type ConstituencyCode = string & { readonly __brand: "ConstituencyCode" };
+
+export function constituencyCode(value: string): ConstituencyCode {
+  if (!/^(0[1-9]|1\d|2[1-9AB]|[3-8]\d|9[0-5]|97[1-7]|98[678]|099)-[1-9]\d?$/.test(value)) {
+    throw new Error(`Invalid constituency code: ${value}`);
+  }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the format test above proves a constituency code
+  return value as ConstituencyCode;
+}
 
 export type CommuneCode = string & { readonly __brand: "CommuneCode" };
 
 export function communeCode(value: string): CommuneCode {
   if (!/^(\d{5}|2[AB]\d{3})$/.test(value)) throw new Error(`Invalid commune code: ${value}`);
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the format test above proves a commune code
   return value as CommuneCode;
 }
 
@@ -12,9 +21,9 @@ export const paddedCommuneCode = (value: string): CommuneCode => communeCode(/^\
 const constituency = (department: string, number: string) => constituencyCode(`${department}-${Number(number)}`);
 
 function departmentAndNumber(pattern: RegExp, value: string, what: string): [department: string, number: string] {
-  const match = pattern.exec(value);
-  if (match === null) throw new Error(`Invalid ${what}: ${value}`);
-  return [match[1]!, match[2]!];
+  const [, department, number] = pattern.exec(value) ?? [];
+  if (department === undefined || number === undefined) throw new Error(`Invalid ${what}: ${value}`);
+  return [department, number];
 }
 
 export function fromInseeCode(value: string): ConstituencyCode {
@@ -49,8 +58,8 @@ export function fromContourId(value: string): ConstituencyCode {
 }
 
 export function ministryStationKey(value: string): string {
-  const match = /^(.+)_(\d{1,4})$/.exec(value);
-  return match === null ? value : `${match[1]}_${match[2]!.padStart(4, "0")}`;
+  const [, commune, number] = /^(.+)_(\d{1,4})$/.exec(value) ?? [];
+  return commune === undefined || number === undefined ? value : `${commune}_${number.padStart(4, "0")}`;
 }
 
 const departmentOrder = (code: ConstituencyCode) => code.slice(0, code.lastIndexOf("-"));

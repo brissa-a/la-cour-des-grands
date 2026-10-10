@@ -1,9 +1,8 @@
-import { columnIndexes, parseDelimitedLine } from "../../core/delimited.ts";
+import { columnIndexes, parseDelimitedLine, recordOf } from "../../core/delimited.ts";
 import type { BBox } from "../../core/geometry.ts";
 import { job } from "../../core/job.ts";
 import { lines } from "../../core/lines.ts";
-import type { ConstituencyCode } from "../deputies.ts";
-import { type CommuneCode, communeCode } from "./codes.ts";
+import { type CommuneCode, type ConstituencyCode, communeCode } from "./codes.ts";
 import { type SplitUnit, communeCodes, splitCommunes } from "./communes.ts";
 import { isReuGeoType, parseReuLabel } from "./label.ts";
 import { pollingStations } from "./stations.ts";
@@ -59,16 +58,17 @@ export const electoralRoll = job({
       kept++;
       const fields = parseDelimitedLine(line, ",");
       if (fields.length !== width) throw new Error(`REU row with ${fields.length} fields: ${line}`);
-      const constituency = pollingStations.byReuStation.get(fields[indexes.id_brut_bv_reu]!);
+      const row = recordOf(fields, indexes, COLUMNS);
+      const constituency = pollingStations.byReuStation.get(row.id_brut_bv_reu);
       if (constituency === undefined) {
         unmapped++;
         continue;
       }
       if (!unit.candidates.includes(constituency)) outsideCandidates.push(`${unit.code}: ${constituency}`);
-      const type = fields[indexes.geo_type]!;
+      const type = row.geo_type;
       if (!isReuGeoType(type)) throw new Error(`Unknown REU geo_type ${type}: ${line}`);
-      const lon = Number(fields[indexes.longitude]);
-      const lat = Number(fields[indexes.latitude]);
+      const lon = Number(row.longitude);
+      const lat = Number(row.latitude);
       if (!Number.isFinite(lon) || !Number.isFinite(lat)) throw new Error(`REU row without coordinates: ${line}`);
 
       let entry = roll.get(unit.code);
@@ -83,8 +83,8 @@ export const electoralRoll = job({
       entry.points.constituency.push(constituency);
 
       if (type === "municipality") continue;
-      const label = parseReuLabel(fields[indexes.geo_adresse]!, type);
-      if (label === null) unparsed.push(fields[indexes.geo_adresse]!);
+      const label = parseReuLabel(row.geo_adresse, type);
+      if (label === null) unparsed.push(row.geo_adresse);
       else addToStreet(entry.streets, label.street, label.number, constituency);
     }
 
@@ -107,8 +107,11 @@ export const electoralRollRows = job({
     const rows: RollRow[] = [];
     for (const [commune, { streets }] of electoralRoll) {
       const entries = compressStreets(streets).sort((a, b) => (a.address < b.address ? -1 : a.address > b.address ? 1 : 0));
-      const duplicate = entries.find((e, i) => i > 0 && entries[i - 1]!.address === e.address);
-      if (duplicate !== undefined) throw new Error(`${commune}: duplicate roll address "${duplicate.address}"`);
+      let previous: string | undefined;
+      for (const { address } of entries) {
+        if (address === previous) throw new Error(`${commune}: duplicate roll address "${address}"`);
+        previous = address;
+      }
       rows.push(...entries.map((e) => ({ ...e, commune })));
     }
     const ambiguous = rows.filter((r) => r.number !== null && r.constituencies.length > 1).length;

@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { readTable } from "../../core/delimited.ts";
 import { job } from "../../core/job.ts";
-import { type ConstituencyCode, deputies, lastMandate } from "../deputies.ts";
-import { type CommuneCode, communeCode, sortedConstituencies } from "./codes.ts";
+import { deputies, lastMandate } from "../deputies.ts";
+import { type CommuneCode, type ConstituencyCode, communeCode, sortedConstituencies } from "./codes.ts";
 import { WHOLE_CITY_CODES, pollingStations } from "./stations.ts";
 import { cogCommunes, cogEvents } from "./sources.ts";
 

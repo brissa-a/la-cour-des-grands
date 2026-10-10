@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { constituencyCode } from "../deputies.ts";
-import { communeCode, fromContourId, fromInseeCode, fromMinistryCode, ministryStationKey, paddedCommuneCode, sortedConstituencies } from "./codes.ts";
+import { communeCode, constituencyCode, fromContourId, fromInseeCode, fromMinistryCode, ministryStationKey, paddedCommuneCode, sortedConstituencies } from "./codes.ts";
 
 test("INSEE polling-station constituency codes", () => {
   assert.equal(fromInseeCode("01-04"), "01-4");

@@ -29,5 +29,5 @@ test("a streamed line must hold exactly one record", () => {
 test("readTable picks columns by name and rejects ragged rows", () => {
   assert.deepEqual(readTable("﻿id\tname\tcode\r\n1\tA\tx\r\n", "\t", ["code", "id"]), [{ code: "x", id: "1" }]);
   assert.throws(() => readTable("id,name\n1\n", ",", ["id"]), /1 fields, expected 2/);
-  assert.throws(() => readTable("id,name\n", ",", ["code"]), /Missing column code/);
+  assert.throws(() => readTable("id,name\n", ",", ["id", "code"]), /Missing column code in header/);
 });

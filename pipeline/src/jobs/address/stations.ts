@@ -2,8 +2,7 @@ import { readFile } from "node:fs/promises";
 import { strFromU8, unzipSync } from "fflate";
 import { readTable } from "../../core/delimited.ts";
 import { job } from "../../core/job.ts";
-import type { ConstituencyCode } from "../deputies.ts";
-import { type CommuneCode, communeCode, fromInseeCode, fromMinistryCode, ministryStationKey, paddedCommuneCode } from "./codes.ts";
+import { type CommuneCode, type ConstituencyCode, communeCode, fromInseeCode, fromMinistryCode, ministryStationKey, paddedCommuneCode } from "./codes.ts";
 import { inseeStations, ministryStations, reuStations } from "./sources.ts";
 
 export const WHOLE_CITY_CODES: ReadonlySet<string> = new Set(["75056", "69123", "13055"]);

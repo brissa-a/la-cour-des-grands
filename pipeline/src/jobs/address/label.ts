@@ -11,9 +11,9 @@ const UNNUMBERED_LABEL = /^(.+?)\s+\d{5}\s+\S.*$/;
 
 export function parseReuLabel(label: string, type: Exclude<ReuGeoType, "municipality">): ReuLabel | null {
   if (type === "street" || type === "locality") {
-    const match = UNNUMBERED_LABEL.exec(label);
-    return match === null ? null : { number: null, street: match[1]! };
+    const [, street] = UNNUMBERED_LABEL.exec(label) ?? [];
+    return street === undefined ? null : { number: null, street };
   }
-  const match = NUMBERED_LABEL.exec(label);
-  return match === null ? null : { number: match[1] ?? null, street: match[2]! };
+  const [, number, street] = NUMBERED_LABEL.exec(label) ?? [];
+  return street === undefined ? null : { number: number ?? null, street };
 }

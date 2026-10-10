@@ -3,7 +3,6 @@ import sharp from "sharp";
 import { download } from "../core/download.ts";
 
 export const MODEL = "bria-rmbg";
-export type Model = typeof MODEL;
 
 export const briaModel = download({
   name: "bria-rmbg-2.0.onnx",
@@ -12,8 +11,11 @@ export const briaModel = download({
 });
 
 const INPUT_SIZE = 1024;
-const MEAN = [0.485, 0.456, 0.406] as const;
-const STD = [0.229, 0.224, 0.225] as const;
+const CHANNELS = [
+  { mean: 0.485, std: 0.229 },
+  { mean: 0.456, std: 0.224 },
+  { mean: 0.406, std: 0.225 },
+] as const;
 const QUIET = 3;
 
 export type BackgroundRemover = (jpeg: string) => Promise<Buffer>;
@@ -30,13 +32,14 @@ export async function backgroundRemover(modelPath: string): Promise<BackgroundRe
     const brightest = Math.max(pixels.reduce((max, v) => Math.max(max, v), 0), 1e-6);
     const area = INPUT_SIZE * INPUT_SIZE;
     const input = new Float32Array(3 * area);
-    for (let i = 0; i < area; i++) {
-      for (let c = 0; c < 3; c++) {
-        input[c * area + i] = (pixels[i * 3 + c]! / brightest - MEAN[c]!) / STD[c]!;
-      }
+    for (const [c, { mean, std }] of CHANNELS.entries()) {
+      for (let i = 0; i < area; i++) input[c * area + i] = (pixels.readUInt8(i * 3 + c) / brightest - mean) / std;
     }
     const outputs = await session.run({ pixel_values: new ort.Tensor("float32", input, [1, 3, INPUT_SIZE, INPUT_SIZE]) });
-    const prediction = outputs["alphas"]!.data as Float32Array;
+    const alphas = outputs["alphas"];
+    if (alphas === undefined) throw new Error(`${modelPath} returned no alphas`);
+    const prediction = alphas.data;
+    if (!(prediction instanceof Float32Array)) throw new Error(`${modelPath} returned ${alphas.type} alphas, expected float32`);
 
     let min = Infinity;
     let max = -Infinity;
