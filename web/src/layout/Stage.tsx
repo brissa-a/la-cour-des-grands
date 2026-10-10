@@ -4,6 +4,7 @@ import type { Scene } from "../forms/form.ts"
 import type { Point } from "../preview/placement.ts"
 import { usePreview, type Hit, type PreviewStore } from "../preview/previewStore.ts"
 import { Marks } from "./Marks.tsx"
+import { staggerDelay } from "./staging.ts"
 import { PanZoomSvg } from "./PanZoomSvg.tsx"
 
 // Chrome skips repainting SVG elements whose CSS transform transitions use coordinates around ±1.
@@ -24,6 +25,7 @@ type Props = {
   viewBox: string
   deputies: readonly Deputy[]
   scene: Scene
+  arrangement: object
   highlighted: ReadonlySet<DeputyId>
   showPhotos: boolean
   colorOf: (id: DeputyId) => string
@@ -32,20 +34,21 @@ type Props = {
   onTap: (hit: Hit | null, pointerType: string) => void
 }
 
-export function Stage({ svgRef, viewBox, deputies, scene, highlighted, showPhotos, colorOf, store, selected, onTap }: Props) {
+export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlighted, showPhotos, colorOf, store, selected, onTap }: Props) {
   const { radius, snap } = scene
   const dotsRef = useRef<SVGGElement>(null)
   const hovered = useRef<DeputyId | null>(null)
   const pointerType = useRef("mouse")
+  const arranged = useRef({ arrangement, at: -Infinity })
+  if (arranged.current.arrangement !== arrangement) arranged.current = { arrangement, at: performance.now() }
 
-  const placed = useMemo(
-    () =>
-      deputies.flatMap((deputy, index): Placed[] => {
-        const point = scene.dots.get(deputy.id)
-        return point ? [{ id: deputy.id, point, delay: (index % 40) * 0.012 }] : []
-      }),
-    [deputies, scene],
-  )
+  const placed = useMemo(() => {
+    const since = performance.now() - arranged.current.at
+    return deputies.flatMap((deputy, index): Placed[] => {
+      const point = scene.dots.get(deputy.id)
+      return point ? [{ id: deputy.id, point, delay: staggerDelay(index, since) }] : []
+    })
+  }, [deputies, scene])
   const placedById = useMemo(() => new Map(placed.map(p => [p.id, p])), [placed])
 
   const shown = useRef(placedById)

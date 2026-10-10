@@ -1,27 +1,36 @@
-import { useLayoutEffect, useState, type RefObject } from "react"
+import { useCallback, useLayoutEffect, useState, type RefObject } from "react"
 import type { Frame } from "../forms/form.ts"
 import { freeArea } from "./freeArea.ts"
 
 const CLEARANCE_PX = 12
 
+// Measured after every render too, before paint, so an overlay that changes with the data (the vote header) refits the
+// scene in the same frame as the data, instead of a frame later when the resize observer reports it.
 export function useStageFrame(svgRef: RefObject<SVGSVGElement | null>): Frame | null {
   const [frame, setFrame] = useState<Frame | null>(null)
+
+  const measure = useCallback(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const next = measureFrame(svg, overlays())
+    setFrame(previous => (sameFrame(previous, next) ? previous : next))
+  }, [svgRef])
+
+  useLayoutEffect(measure)
 
   useLayoutEffect(() => {
     const svg = svgRef.current
     if (!svg) return
-    const overlays = [...document.querySelectorAll("[data-overlay]")]
-    const measure = () => {
-      const next = measureFrame(svg, overlays)
-      setFrame(previous => (sameFrame(previous, next) ? previous : next))
-    }
     const observer = new ResizeObserver(measure)
-    for (const element of [svg, ...overlays]) observer.observe(element)
-    measure()
+    for (const element of [svg, ...overlays()]) observer.observe(element)
     return () => observer.disconnect()
-  }, [svgRef])
+  }, [svgRef, measure])
 
   return frame
+}
+
+function overlays(): Element[] {
+  return [...document.querySelectorAll("[data-overlay]")]
 }
 
 function measureFrame(svg: SVGSVGElement, overlays: readonly Element[]): Frame | null {

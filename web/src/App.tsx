@@ -4,16 +4,15 @@ import type { Located } from "./address/lookup.ts"
 import { createLookupSources } from "./address/sources.ts"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId, type Person, type Sitting } from "./data/assembly.ts"
 import type { ColorableFeature } from "./data/features.ts"
-import type { Order, Scene } from "./forms/form.ts"
-import { placeHemicycle } from "./forms/hemicycle.ts"
-import { layOut } from "./forms/registry.ts"
+import type { Order } from "./forms/form.ts"
 import { Stage } from "./layout/Stage.tsx"
 import { Legend } from "./layout/Legend.tsx"
 import { VoteHeader } from "./layout/VoteHeader.tsx"
 import { useStageFrame } from "./layout/useStageFrame.ts"
+import { useStaging } from "./layout/useStaging.ts"
 import { useMediaQuery } from "./layout/useMediaQuery.ts"
 import type { Paint } from "./paint/paint.ts"
-import { paintWith } from "./paint/registry.ts"
+import { paintWith, type PaintName } from "./paint/registry.ts"
 import { ConfigButton, ConfigPanel } from "./config/ConfigPanel.tsx"
 import { useConfig } from "./config/useConfig.ts"
 import { hasOpenedPanel, rememberPanelOpened } from "./preview/firstUse.ts"
@@ -27,7 +26,7 @@ import { longDate } from "./profile/format.ts"
 import { Search } from "./search/Search.tsx"
 import { Footer } from "./Footer.tsx"
 import { voteParts } from "./sources/parts.ts"
-import { readingOf, readSeats } from "./sources/read.ts"
+import { readingOf } from "./sources/read.ts"
 import { seatsOf } from "./sources/seats.ts"
 import type { Data, Reading } from "./sources/shapes.ts"
 import { featureOf, useFeatureValues } from "./sources/useFeatureValues.ts"
@@ -49,8 +48,6 @@ const PHONE = "(max-width: 759px)"
 const TOUCH_ONLY = "(hover: none)"
 
 type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache: FeatureCache; initial: ParsedView }
-
-type Staged = { scene: Scene; reading: Reading }
 
 export function App({ assembly, features, cache, initial }: Props) {
   const votes = useMemo(() => createVoteSource(assembly.catalog, assembly.people), [assembly])
@@ -82,14 +79,11 @@ export function App({ assembly, features, cache, initial }: Props) {
     [view.layout.of, drawn, layoutValues, vote, seats],
   )
 
+  const chosenColored = useMemo(() => colorWith(view.color.paint, colorReading), [view.color.paint, colorReading])
+  const fallbackColored = useMemo(() => colorWith(fallbackColor.paint, fallbackReading), [fallbackColor.paint, fallbackReading])
   const lastColored = useRef<Colored | null>(null)
-  const colored = useMemo(() => {
-    const ready = colorReading ?? fallbackReading
-    const painter = colorReading ? view.color : fallbackColor
-    const paint = ready && paintWith(painter.paint, dataOf(ready))
-    return ready && paint ? { reading: ready, paint } : lastColored.current
-  }, [colorReading, fallbackReading, view.color, fallbackColor])
-  if (colored) lastColored.current = colored
+  const colored = chosenColored ?? fallbackColored ?? lastColored.current
+  lastColored.current = colored
 
   const previewOptions = useConfig(config => config.preview)
   const [preview] = useState(() => createPreviewStore(previewOptions))
@@ -109,12 +103,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const frame = useStageFrame(svgRef)
 
   const order = useMemo(() => colored && rankThenName(colored.paint, sitting), [colored, sitting])
-  const room = useMemo(() => ({ scene: placeHemicycle(seats), reading: readSeats(seats) }), [seats])
-  const staged: Staged = useMemo(() => {
-    if (!layoutReading || !frame || !order) return room
-    const scene = layOut(view.layout.form, dataOf(layoutReading), { frame, order })
-    return scene ? { scene, reading: layoutReading } : room
-  }, [layoutReading, frame, order, view.layout.form, room])
+  const staged = useStaging(view.layout.form, layoutReading, order, frame, seats, drawn)
 
   useEffect(() => {
     loadOfficialPages().then(setOfficialPages, (error: unknown) => console.error(error))
@@ -279,6 +268,7 @@ export function App({ assembly, features, cache, initial }: Props) {
           viewBox={assembly.background.viewBox}
           deputies={sitting.deputies}
           scene={staged.scene}
+          arrangement={staged.arrangement}
           highlighted={highlighted}
           showPhotos={showPhotos}
           colorOf={colored.paint.colorOf}
@@ -369,8 +359,11 @@ function RestHint({ store, touch }: { store: PreviewStore; touch: boolean }) {
   )
 }
 
-function dataOf(reading: Reading): Partial<Data> {
-  return reading.data
+function colorWith(paint: PaintName, reading: Reading | null): Colored | null {
+  if (reading === null) return null
+  const data: Partial<Data> = reading.data
+  const painted = paintWith(paint, data)
+  return painted && { reading, paint: painted }
 }
 
 function rankThenName({ rank }: Paint, sitting: Sitting): Order {
