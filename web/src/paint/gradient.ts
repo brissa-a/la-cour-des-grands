@@ -37,4 +37,4 @@ export function paintNumbers({ feature, unit, drawn, valueOf }: Numbers): Paint 
   }
 }
 
-export const gradient = definePaint({ shapes: ["numbers"], paint: paintNumbers })
+export const gradient = definePaint({ label: "Dégradé", shapes: ["numbers"], paint: paintNumbers })

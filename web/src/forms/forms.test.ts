@@ -122,3 +122,7 @@ test("the reading lines of a registered form cover each of its deputies once", (
     assert.deepEqual(scene.lines.flat().sort(), [...deputies].sort(), label)
   }
 })
+
+test("a form given none of the shapes it reads places nothing", () => {
+  for (const name of NAMES) assert.equal(layOut(name, {}, { frame: FRAMES.narrow ?? assert.fail(), order: () => 0 }), null, name)
+})

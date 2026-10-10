@@ -10,4 +10,4 @@ export function paintParts(parts: Parts): Paint {
   }
 }
 
-export const palette = definePaint({ shapes: ["nominal"], paint: paintParts })
+export const palette = definePaint({ label: "Couleurs", shapes: ["nominal"], paint: paintParts })

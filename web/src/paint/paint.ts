@@ -27,6 +27,7 @@ export type Paint = {
 }
 
 export type PaintSpec<S extends Shape> = {
+  readonly label: string
   readonly shapes: readonly [S, ...S[]]
   readonly paint: (input: Data[S]) => Paint
 }

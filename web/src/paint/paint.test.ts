@@ -7,6 +7,7 @@ import { NEUTRAL } from "../sources/views.ts"
 import { paintNumbers } from "./gradient.ts"
 import { LAST } from "./paint.ts"
 import { paintParts } from "./palette.ts"
+import { paintWith } from "./registry.ts"
 
 const A = deputyId("PA0")
 const B = deputyId("PA1")
@@ -36,4 +37,10 @@ test("a gradient spreads the drawn deputies' range over its two colours, with ev
   assert.deepEqual({ min, max, mean, missing }, { min: 20, max: 61, mean: 37, missing: 1 })
   assert.deepEqual(ticks.map(t => t.value), [20, 30, 41, 51, 61])
   assert.equal(ticks[1]?.ratio, 10 / 41)
+})
+
+test("a paint reads the shape it paints and nothing else", () => {
+  const parts = { title: "t", parts: [], keyOf: () => MISSING, colorOf: () => "" }
+  assert.equal(paintWith("palette", { nominal: parts })?.legend.kind, "swatches")
+  assert.equal(paintWith("gradient", {}), null)
 })
