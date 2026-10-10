@@ -23,6 +23,14 @@ export function deputyId(value: string): DeputyId {
   return value as DeputyId;
 }
 
+export type SeatNumber = number & { readonly __brand: "SeatNumber" };
+
+export function seatNumber(value: string): SeatNumber {
+  if (!/^\d{1,4}$/.test(value)) throw new Error(`Invalid seat number: ${value}`);
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the format test above proves a seat number, read without its zero padding
+  return Number(value) as SeatNumber;
+}
+
 export const REGIONS = [
   "Auvergne-Rhône-Alpes",
   "Bourgogne-Franche-Comté",
@@ -66,7 +74,7 @@ export type Mandate = {
   department: string;
   departmentNumber: string;
   constituencyNumber: string;
-  seat: string | null;
+  seat: SeatNumber | null;
 };
 
 export type Group = {
@@ -100,6 +108,11 @@ const optionalDate = (x: unknown): IsoDate | null => {
   return value === null ? null : isoDate(value);
 };
 
+const optionalSeat = (x: unknown): SeatNumber | null => {
+  const value = nonEmpty(x);
+  return value === null ? null : seatNumber(value);
+};
+
 function hexColor(raw: unknown): HexColor | null {
   const value = nonEmpty(raw);
   if (value === null) return null;
@@ -125,7 +138,7 @@ export function mandate(raw: JsonRecord): Mandate {
     department: optionalText(place.departement, "mandate departement") ?? "",
     departmentNumber,
     constituencyNumber,
-    seat: nonEmpty(fieldOf(raw.mandature, "placeHemicycle")),
+    seat: optionalSeat(fieldOf(raw.mandature, "placeHemicycle")),
   };
 }
 

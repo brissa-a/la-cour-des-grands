@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import { csv, writeOutput } from "../core/csv.ts";
 import { job } from "../core/job.ts";
 import { entity } from "../core/entity.ts";
-import { type DeputyId, deputies, inOffice, lastMandate } from "./deputies.ts";
+import type { ConstituencyCode } from "./address/codes.ts";
+import { type Deputy, type DeputyId, type SeatNumber, deputies, inOffice, lastMandate, seatNumber } from "./deputies.ts";
+import { type Ballot, ballots } from "./votes.ts";
 
 type SeatBlock = readonly [first: number, last: number];
 
@@ -26,15 +28,15 @@ const ROWS: readonly (readonly SeatBlock[])[] = [
 
 const FIRST_ROW_RADIUS = 5;
 
-function unpack(blocks: readonly SeatBlock[]): number[] {
-  return blocks.flatMap(([start, end]) => Array.from({ length: end - start + 1 }, (_, i) => start + i));
+function unpack(blocks: readonly SeatBlock[]): SeatNumber[] {
+  return blocks.flatMap(([start, end]) => Array.from({ length: end - start + 1 }, (_, i) => seatNumber(String(start + i))));
 }
 
 const round = (n: number) => Math.round(n * 10_000) / 10_000;
 
-function seatPositions(): Map<number, { x: number; y: number }> {
+function seatPositions(): Map<SeatNumber, { x: number; y: number }> {
   const maxRadius = FIRST_ROW_RADIUS + ROWS.length - 1;
-  const positions = new Map<number, { x: number; y: number }>();
+  const positions = new Map<SeatNumber, { x: number; y: number }>();
   ROWS.map(unpack).forEach((seats, rowIndex) => {
     const radius = (FIRST_ROW_RADIUS + rowIndex) / maxRadius;
     seats.forEach((seat, i) => {
@@ -45,27 +47,71 @@ function seatPositions(): Map<number, { x: number; y: number }> {
   return positions;
 }
 
-type Seat = { number: number; x: number; y: number; deputy: DeputyId | null };
+type Seat = { number: SeatNumber; x: number; y: number; deputy: DeputyId | null; constituency: ConstituencyCode | null };
+
+export type Sitting = { seat: SeatNumber; constituency: ConstituencyCode };
+
+export function vacantConstituencySeats(
+  emptySeats: ReadonlySet<SeatNumber>,
+  heldConstituencies: ReadonlySet<ConstituencyCode>,
+  chronologicalSittings: readonly Sitting[],
+): Map<SeatNumber, ConstituencyCode> {
+  const constituencyBySeat = new Map<SeatNumber, ConstituencyCode>();
+  const placed = new Set<ConstituencyCode>();
+  for (const { seat, constituency } of chronologicalSittings.toReversed()) {
+    if (!emptySeats.has(seat) || heldConstituencies.has(constituency)) continue;
+    if (placed.has(constituency) || constituencyBySeat.has(seat)) continue;
+    constituencyBySeat.set(seat, constituency);
+    placed.add(constituency);
+  }
+  return constituencyBySeat;
+}
+
+export function roomSeats(deputies: readonly Deputy[], chronologicalBallots: readonly Pick<Ballot, "id" | "seats">[]): Seat[] {
+  const holderBySeat = new Map<SeatNumber, Deputy>();
+  const holderByConstituency = new Map<ConstituencyCode, DeputyId>();
+  for (const d of deputies.filter(inOffice)) {
+    const { seat, constituency } = lastMandate(d);
+    if (seat === null) throw new Error(`No seat for ${d.id}`);
+    const other = holderBySeat.get(seat);
+    if (other !== undefined) throw new Error(`Seat ${seat} held by both ${other.id} and ${d.id}`);
+    const sameConstituency = holderByConstituency.get(constituency);
+    if (sameConstituency !== undefined) throw new Error(`Constituency ${constituency} held by both ${sameConstituency} and ${d.id}`);
+    holderBySeat.set(seat, d);
+    holderByConstituency.set(constituency, d.id);
+  }
+  const plan = [...seatPositions()].filter(([number]) => number < FIRST_NON_SEAT);
+  const unknown = [...holderBySeat.keys()].filter((n) => !plan.some(([number]) => number === n));
+  if (unknown.length > 0) throw new Error(`Seats not in the room plan: ${unknown.join(", ")}`);
+
+  const constituencyOf = new Map(deputies.map((d) => [d.id, lastMandate(d).constituency]));
+  const sittings = chronologicalBallots.flatMap((ballot) =>
+    [...ballot.seats].map(([id, seat]): Sitting => {
+      const constituency = constituencyOf.get(id);
+      if (constituency === undefined) throw new Error(`${ballot.id}: ${id} is not a deputy of the legislature`);
+      return { seat, constituency };
+    }),
+  );
+  const emptySeats = new Set(plan.map(([number]) => number).filter((number) => !holderBySeat.has(number)));
+  const vacant = vacantConstituencySeats(emptySeats, new Set(holderByConstituency.keys()), sittings);
+
+  return plan
+    .map(([number, position]) => {
+      const holder = holderBySeat.get(number);
+      return {
+        number,
+        ...position,
+        deputy: holder?.id ?? null,
+        constituency: holder === undefined ? (vacant.get(number) ?? null) : lastMandate(holder).constituency,
+      };
+    })
+    .sort((a, b) => a.number - b.number);
+}
 
 export const seats = job({
   name: "seats",
-  dependencies: { deputies },
-  run({ deputies }): Seat[] {
-    const deputyBySeat = new Map<number, DeputyId>();
-    for (const d of deputies.filter(inOffice)) {
-      const seat = Number(lastMandate(d).seat);
-      if (!Number.isInteger(seat)) throw new Error(`No seat for ${d.id}`);
-      const other = deputyBySeat.get(seat);
-      if (other !== undefined) throw new Error(`Seat ${seat} held by both ${other} and ${d.id}`);
-      deputyBySeat.set(seat, d.id);
-    }
-    const plan = [...seatPositions()].filter(([number]) => number < FIRST_NON_SEAT);
-    const unknown = [...deputyBySeat.keys()].filter((n) => !plan.some(([number]) => number === n));
-    if (unknown.length > 0) throw new Error(`Seats not in the room plan: ${unknown.join(", ")}`);
-    return plan
-      .map(([number, position]) => ({ number, ...position, deputy: deputyBySeat.get(number) ?? null }))
-      .sort((a, b) => a.number - b.number);
-  },
+  dependencies: { deputies, ballots },
+  run: ({ deputies, ballots }) => roomSeats(deputies, ballots),
 });
 
 export const seat = entity({
@@ -92,7 +138,8 @@ export const hemicycle = csv({
     x: { title: "x", type: "number" },
     y: { title: "y", type: "number" },
     deputy: { title: "Député", type: "reference", entity: "deputy" },
+    constituency: { title: "Circonscription", type: "code" },
   },
   layout: { background: BACKGROUND },
-  row: (s) => ({ x: s.x, y: s.y, deputy: s.deputy }),
+  row: (s) => ({ x: s.x, y: s.y, deputy: s.deputy, constituency: s.constituency }),
 });

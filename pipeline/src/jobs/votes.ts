@@ -4,10 +4,10 @@ import { category, csv, generatedCsvs, type GeneratedFile } from "../core/csv.ts
 import { labelledValues } from "../core/values.ts";
 import { entity } from "../core/entity.ts";
 import { job } from "../core/job.ts";
-import { type JsonRecord, fieldOf, oneOrMany, parseJson, record, text } from "../core/json.ts";
+import { type JsonRecord, fieldOf, oneOrMany, optionalText, parseJson, record, text } from "../core/json.ts";
 import { source } from "../core/source.ts";
 import { type IsoDate, isoDate } from "../core/types.ts";
-import { type DeputyId, deputy, deputyId, inOfficeOn } from "./deputies.ts";
+import { type DeputyId, type SeatNumber, deputy, deputyId, inOfficeOn, seatNumber } from "./deputies.ts";
 
 const scrutins = source({
   name: "scrutins.zip",
@@ -53,6 +53,7 @@ export type Ballot = {
   bill: string | null;
   file: string;
   positions: Map<DeputyId, CastPosition>;
+  seats: Map<DeputyId, SeatNumber>;
 };
 
 const RAW_POSITIONS = { pours: "for", contres: "against", abstentions: "abstain", nonVotants: "not_voting" } as const;
@@ -88,15 +89,20 @@ function slug(text: string): string {
 
 const child = (parent: JsonRecord, key: string, what: string): JsonRecord => record(parent[key], `${what} ${key}`);
 
-function parse(raw: JsonRecord): Omit<Ballot, "file"> {
+export function parseBallot(raw: JsonRecord): Omit<Ballot, "file"> {
   const id = voteId(text(raw.uid, "vote uid"));
   const positions = new Map<DeputyId, CastPosition>();
+  const seats = new Map<DeputyId, SeatNumber>();
   const groups = child(child(child(raw, "ventilationVotes", id), "organe", id), "groupes", id).groupe;
   for (const group of oneOrMany(groups)) {
     const nominal = child(child(record(group, `${id} groupe`), "vote", id), "decompteNominatif", id);
     for (const [rawPosition, position] of Object.entries(RAW_POSITIONS)) {
-      for (const voter of oneOrMany(fieldOf(nominal[rawPosition], "votant"))) {
-        positions.set(deputyId(text(record(voter, `${id} votant`).acteurRef, `${id} acteurRef`)), position);
+      for (const rawVoter of oneOrMany(fieldOf(nominal[rawPosition], "votant"))) {
+        const voter = record(rawVoter, `${id} votant`);
+        const voterId = deputyId(text(voter.acteurRef, `${id} acteurRef`));
+        positions.set(voterId, position);
+        const seat = optionalText(voter.numPlace, `${id} numPlace`);
+        if (seat !== null) seats.set(voterId, seatNumber(seat));
       }
     }
   }
@@ -112,6 +118,7 @@ function parse(raw: JsonRecord): Omit<Ballot, "file"> {
     major: isMajor(title, kind),
     bill: billOf(title),
     positions,
+    seats,
   };
 }
 
@@ -121,7 +128,7 @@ export const ballots = job({
   run({ scrutins }): Ballot[] {
     const files = unzipSync(scrutins, { filter: (f) => f.name.endsWith(".json") });
     const parsed = Object.entries(files)
-      .map(([name, content]) => parse(record(record(parseJson(strFromU8(content)), name).scrutin, `${name}: scrutin`)))
+      .map(([name, content]) => parseBallot(record(record(parseJson(strFromU8(content)), name).scrutin, `${name}: scrutin`)))
       .sort((a, b) => a.number - b.number);
 
     const votesByBill = Map.groupBy(parsed, (b) => b.bill?.toLowerCase() ?? null);
