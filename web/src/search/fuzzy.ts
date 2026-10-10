@@ -23,10 +23,16 @@ export class FuzzyIndex<Ref, Field> {
   private readonly tokensByWord = new Map<string, Token<Ref, Field>[]>()
   private readonly codes = new Set<string>()
 
+  private readonly ignored: ReadonlySet<string>
+
+  constructor(ignored: ReadonlySet<string> = new Set()) {
+    this.ignored = ignored
+  }
+
   add(ref: Ref, field: Field, value: string, weight = 1): void {
     let start = 0
     for (const word of normalize(value).split(DELIMITER)) {
-      if (word) {
+      if (word && !this.ignored.has(word)) {
         const token: Token<Ref, Field> = { ref, field, value, slice: [start, start + word.length], weight }
         const tokens = this.tokensByWord.get(word)
         if (tokens) tokens.push(token)
@@ -40,9 +46,13 @@ export class FuzzyIndex<Ref, Field> {
     }
   }
 
+  terms(query: string): string[] {
+    return normalize(query).split(DELIMITER).filter(word => word && !this.ignored.has(word))
+  }
+
   search(query: string): SearchResult<Ref, Field>[] {
     const results = new Map<Ref, SearchResult<Ref, Field>>()
-    for (const term of normalize(query).split(DELIMITER).filter(Boolean)) {
+    for (const term of this.terms(query)) {
       const termScores = new Map<SearchResult<Ref, Field>, number>()
       for (const [word, hit] of this.lookup(term)) {
         for (const token of this.tokensByWord.get(word) ?? []) {

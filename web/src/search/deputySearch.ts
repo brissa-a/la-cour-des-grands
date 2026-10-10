@@ -18,7 +18,11 @@ export type SearchColumn = keyof typeof WEIGHTS
 export type DeputyMatch = Match<DeputyId, SearchColumn>
 export type DeputyResult = SearchResult<DeputyId, SearchColumn>
 
-export function createDeputySearch(deputies: Deputy[]): FuzzyIndex<DeputyId, SearchColumn> {
+type Searched = Pick<Deputy, "id" | "last_name" | "first_name" | "department" | "department_number" | "constituency_number" | "group"> & {
+  politicalGroup: Pick<Deputy["politicalGroup"], "short">
+}
+
+export function createDeputySearch(deputies: readonly Searched[]): FuzzyIndex<DeputyId, SearchColumn> {
   const index = new FuzzyIndex<DeputyId, SearchColumn>()
   for (const deputy of deputies) {
     for (const column of ["last_name", "first_name", "department", "department_number", "constituency_number", "group"] as const) {
@@ -29,7 +33,7 @@ export function createDeputySearch(deputies: Deputy[]): FuzzyIndex<DeputyId, Sea
   return index
 }
 
-export function addCommunes(index: FuzzyIndex<DeputyId, SearchColumn>, communes: ReadonlyMap<DeputyId, string>, deputies: Deputy[]): void {
+export function addCommunes(index: FuzzyIndex<DeputyId, SearchColumn>, communes: ReadonlyMap<DeputyId, string>, deputies: readonly Pick<Deputy, "id">[]): void {
   for (const deputy of deputies) {
     for (const commune of communes.get(deputy.id)?.split(LIST_SEPARATOR) ?? []) {
       index.add(deputy.id, "communes", commune, WEIGHTS.communes)

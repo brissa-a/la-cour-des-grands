@@ -1,0 +1,52 @@
+import assert from "node:assert/strict"
+import { test } from "node:test"
+import { createVoteSearch, searchVotes } from "./voteSearch.ts"
+import { parseVotes } from "./votes.ts"
+
+function votes(...rows: { number: number; date: string; title: string; major: boolean }[]) {
+  return parseVotes(
+    rows.map(({ number, date, title, major }) => ({
+      vote_id: `VTANR5L17V${number}`,
+      number: String(number),
+      date,
+      title,
+      kind: "ordinary",
+      result: "adopted",
+      major: major ? "yes" : "no",
+      bill: "",
+      file: "deputies/votes/other.csv",
+      url: `https://www.assemblee-nationale.fr/dyn/17/scrutins/${number}`,
+    })),
+  )
+}
+
+const numbers = (results: { ref: { number: number } }[]) => results.map(r => r.ref.number)
+
+test("among titles matching a query equally, major votes come first, then the newest", async () => {
+  const search = await createVoteSearch(
+    votes(
+      { number: 400, date: "2024-11-10", title: "l'amendement n° 12 de M. Coquerel à l'article 3 du projet de loi de finances pour 2025 (première lecture).", major: false },
+      { number: 438, date: "2024-11-12", title: "la première partie du projet de loi de finances pour 2025 (première lecture).", major: true },
+      { number: 3935, date: "2025-11-18", title: "l'amendement n° 1 du Gouvernement à l'article 4 du projet de loi de finances de fin de gestion pour 2025 (première lecture).", major: false },
+    ),
+  )
+  assert.deepEqual(numbers(searchVotes(search, "loi de finances 2025")), [438, 3935, 400])
+})
+
+test("a vote matching every word of the query outranks a major vote matching fewer", async () => {
+  const search = await createVoteSearch(
+    votes(
+      { number: 8430, date: "2026-07-21", title: "l'ensemble du projet de loi relatif à la protection des enfants (première lecture).", major: true },
+      { number: 8100, date: "2026-07-01", title: "l'amendement n° 5 à l'article 2 du projet de loi relatif à la protection des enfants face aux écrans.", major: false },
+    ),
+  )
+  assert.deepEqual(numbers(searchVotes(search, "protection enfants écrans")), [8100, 8430])
+})
+
+test("function words neither match a title nor weigh in the ranking", async () => {
+  const search = await createVoteSearch(
+    votes({ number: 438, date: "2024-11-12", title: "la première partie du projet de loi de finances pour 2025 (première lecture).", major: true }),
+  )
+  assert.deepEqual(searchVotes(search, "le de la du"), [])
+  assert.equal(searchVotes(search, "loi le finances")[0]?.score, searchVotes(search, "loi finances")[0]?.score)
+})
