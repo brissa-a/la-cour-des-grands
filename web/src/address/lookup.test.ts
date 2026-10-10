@@ -22,8 +22,17 @@ const box = (west: number, east: number): Shape => [
   { outer: [[west, 45], [east, 45], [east, 46], [west, 46], [west, 45]], holes: [] },
 ]
 
-const code = (value: string): ConstituencyCode => constituencyCode(value)!
-const commune = (value: string): CommuneCode => communeCode(value)!
+function code(value: string): ConstituencyCode {
+  const parsed = constituencyCode(value)
+  if (parsed === null) throw new Error(`invalid constituency fixture "${value}"`)
+  return parsed
+}
+
+function commune(value: string): CommuneCode {
+  const parsed = communeCode(value)
+  if (parsed === null) throw new Error(`invalid commune fixture "${value}"`)
+  return parsed
+}
 
 const CONTOURS: Contours = new Map([
   [commune("75115"), new Map([[code("75-12"), box(0, 1)], [code("75-13"), box(1, 2)]])],

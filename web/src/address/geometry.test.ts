@@ -11,7 +11,11 @@ const square = (west: number, south: number, east: number, north: number): Ring 
   [west, south],
 ]
 
-const code = (value: string): ConstituencyCode => constituencyCode(value)!
+function code(value: string): ConstituencyCode {
+  const parsed = constituencyCode(value)
+  if (parsed === null) throw new Error(`invalid constituency fixture "${value}"`)
+  return parsed
+}
 
 test("a point is inside an outer ring unless it is in one of its holes", () => {
   const withHole: Shape = [{ outer: square(0, 0, 4, 4), holes: [square(1, 1, 2, 2)] }]

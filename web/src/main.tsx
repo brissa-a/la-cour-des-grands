@@ -15,7 +15,7 @@ function Loaded({ app }: { app: typeof loaded }) {
 }
 
 class LoadError extends Component<{ children: ReactNode }, { error: Error | null }> {
-  override state = { error: null as Error | null }
+  override state: { error: Error | null } = { error: null }
 
   static getDerivedStateFromError(error: Error) {
     return { error }
@@ -32,7 +32,10 @@ class LoadError extends Component<{ children: ReactNode }, { error: Error | null
   }
 }
 
-createRoot(document.getElementById("root")!).render(
+const root = document.getElementById("root")
+if (root === null) throw new Error("index.html has no #root element")
+
+createRoot(root).render(
   <StrictMode>
     <LoadError>
       <Suspense fallback={<div className="screen">Chargement de l'hémicycle…</div>}>

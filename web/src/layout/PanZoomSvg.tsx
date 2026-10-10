@@ -27,7 +27,7 @@ export function PanZoomSvg({ viewBox, children, onHover, onLeave, onDown, onTap,
   const glide = useRef<Glide | null>(null)
   const pointers = useRef(new Map<number, { client: Point; start: Point }>())
   const dragged = useRef(false)
-  const zoom = useConfig("zoom")
+  const zoom = useConfig(config => config.zoom)
   const latest = useRef({ onGesture, zoom })
   latest.current = { onGesture, zoom }
 

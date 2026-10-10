@@ -1,12 +1,12 @@
 import assert from "node:assert/strict"
 import { afterEach, beforeEach, mock, test } from "node:test"
-import type { DeputyId } from "../data/assembly.ts"
+import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import { createPreviewStore, type Geometry, type Hit, type PreviewStore } from "./previewStore.ts"
 
 const OPTIONS = { openSpeedPxPerS: 100, speedWindowMs: 100, holdMs: 200 }
 
-const A = "PA1" as DeputyId
-const B = "PA2" as DeputyId
+const A = deputyId("PA1")
+const B = deputyId("PA2")
 const geometry: Geometry = { anchor: { x: 0, y: 0, radius: 1 }, dots: () => [], dotRadius: 1, layout: "hemicycle" }
 const seat = (id: DeputyId): Hit => ({ id, geometry })
 const at = (x: number) => ({ x, y: 0 })

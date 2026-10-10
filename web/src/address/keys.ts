@@ -13,16 +13,20 @@ export function streetKeys(street: string): StreetKeys {
 }
 
 function normalise(text: string): StreetKey {
-  return text
+  const key = text
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
-    .trim() as StreetKey
+    .trim()
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the normalisation above is what makes a street key
+  return key as StreetKey
 }
 
 export function numberKey(number: string): NumberKey {
-  return number.toLowerCase().replace(/\s+/g, "") as NumberKey
+  const key = number.toLowerCase().replace(/\s+/g, "")
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the normalisation above is what makes a number key
+  return key as NumberKey
 }
 
 export function keysOf(address: PreciseAddress): RollKeys {

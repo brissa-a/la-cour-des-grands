@@ -1,12 +1,12 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import type { Coloring } from "../coloring/coloring.ts"
-import type { Deputy, DeputyId } from "../data/assembly.ts"
+import { deputyId } from "../data/deputyId.ts"
 import type { FeatureKey } from "../data/features.ts"
 import { buildChart } from "./chart.ts"
 
-function deputies(count: number): Deputy[] {
-  return Array.from({ length: count }, (_, i) => ({ id: `PA${i}` as DeputyId, last_name: `N${i}` }) as Deputy)
+function deputies(count: number) {
+  return Array.from({ length: count }, (_, i) => ({ id: deputyId(`PA${i}`), last_name: `N${i}` }))
 }
 
 function numberColoring(key: FeatureKey, values: Record<string, string>): Coloring {

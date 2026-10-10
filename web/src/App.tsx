@@ -33,7 +33,7 @@ type Props = { assembly: Assembly; store: FeatureStore; initialColoring: Colorin
 
 export function App({ assembly, store, initialColoring }: Props) {
   const features = useMemo(() => colorableFeatures(assembly, HIDDEN_FEATURES), [assembly])
-  const previewOptions = useConfig("preview")
+  const previewOptions = useConfig(config => config.preview)
   const [preview] = useState(() => createPreviewStore(previewOptions))
   const [selected, setSelected] = useState<DeputyId | null>(() => deputyInUrl(assembly))
   const [panelId, setPanelId] = useState<DeputyId | null>(selected)
@@ -107,8 +107,9 @@ export function App({ assembly, store, initialColoring }: Props) {
   }
 
   useEffect(() => {
-    const requested = readParam("chart") as FeatureKey | null
-    if (requested && features.some(f => f.key === requested)) selectChart(requested)
+    const requested = readParam("chart")
+    const feature = features.find(f => f.key === requested)
+    if (feature) selectChart(feature.key)
   }, [])
 
   useEffect(() => {
@@ -274,8 +275,8 @@ function RestHint({ store, touch }: { store: PreviewStore; touch: boolean }) {
 }
 
 function deputyInUrl(assembly: Assembly): DeputyId | null {
-  const id = readParam("deputy") as DeputyId | null
-  return id !== null && assembly.byId.has(id) ? id : null
+  const requested = readParam("deputy")
+  return assembly.deputies.find(d => d.id === requested)?.id ?? null
 }
 
 function isPanelHistoryEntry(state: unknown): boolean {

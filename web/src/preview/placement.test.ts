@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { ARROW_INSET, GAP, placeAbove, placeBeside, type PlacementInput, type Point } from "./placement.ts"
+import { GAP, placeAbove, placeBeside, type PlacementInput, type Point } from "./placement.ts"
 
 const bounds = { left: 0, top: 0, right: 1000, bottom: 800 }
 
@@ -51,7 +51,6 @@ test("slides along the free axis and keeps the arrow facing the anchor", () => {
   assert.equal(placement.side, "below")
   assert.equal(placement.left, 0)
   assert.equal(placement.arrow, 40)
-  assert.ok(placement.arrow >= ARROW_INSET)
 })
 
 test("above the columns, the card clears the highest dot it overhangs", () => {

@@ -31,7 +31,7 @@ export function Search({ assembly, loadCommunes, lookupSources, onHalo, onSelect
   const [communesState, setCommunesState] = useState<"idle" | "loading" | "ready" | "failed">("idle")
   const [open, setOpen] = useState(false)
   const wrapper = useRef<HTMLDivElement>(null)
-  const boundaryMeters = useConfig("address.boundaryMeters")
+  const boundaryMeters = useConfig(config => config.address.boundaryMeters)
   const addressText = lookupSources && addressQuery(query)
   const suggestions = useAddressSuggestions(addressText, lookupSources)
   const [pick, setPick] = useState<AddressPick | null>(null)
@@ -59,7 +59,7 @@ export function Search({ assembly, loadCommunes, lookupSources, onHalo, onSelect
 
   useEffect(() => {
     const close = (e: PointerEvent) => {
-      if (wrapper.current?.contains(e.target as Node)) return
+      if (e.target instanceof Node && wrapper.current?.contains(e.target)) return
       setOpen(false)
       cancelPick()
     }

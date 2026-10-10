@@ -76,9 +76,10 @@ export async function lookup(address: GeocodedAddress, sources: LookupSources, b
   const match: RollMatch = roll === null || roll === "failed" ? { kind: "none" } : findInRoll(roll, keysOf(address))
   const inCommune = match.kind === "none" ? [] : candidates.filter(c => match.constituencies.includes(c))
   const several = atLeastTwo(inCommune)
+  const onlyInCommune = inCommune.length === 1 ? inCommune[0] : undefined
 
-  if ((match.kind === "address" || match.kind === "street") && inCommune.length === 1) {
-    return located(inCommune[0]!, { kind: "roll", match: match.kind })
+  if ((match.kind === "address" || match.kind === "street") && onlyInCommune !== undefined) {
+    return located(onlyInCommune, { kind: "roll", match: match.kind })
   }
   if (match.kind === "mixed-street") return imprecise(several ?? candidates, "mixed-street")
   if (ranking === null) return imprecise(several ?? candidates, "no-data")

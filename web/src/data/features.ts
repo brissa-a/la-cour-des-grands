@@ -1,6 +1,7 @@
-import type { Assembly, DeputyId } from "./assembly.ts"
+import type { Assembly } from "./assembly.ts"
 import type { Feature } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
+import { deputyId, type DeputyId } from "./deputyId.ts"
 
 export type FeatureKey = `${string}:${string}`
 
@@ -21,7 +22,7 @@ export function featureKey(file: string, column: string): FeatureKey {
 
 export function colorableFeatures(assembly: Assembly, hidden: ReadonlySet<FeatureKey>): ColorableFeature[] {
   return assembly.catalog.files.flatMap(file =>
-    file.entity === "deputy" && "features" in file
+    file.entity === "deputy"
       ? file.features.flatMap((feature): ColorableFeature[] => {
           const key = featureKey(file.file, feature.column)
           if (hidden.has(key) || (feature.type !== "category" && feature.type !== "number")) return []
@@ -40,7 +41,7 @@ export function createFeatureStore(assembly: Assembly) {
   const fileRows = (file: string) => {
     let rows = files.get(file)
     if (!rows) {
-      rows = loadCsv(file, ["deputy_id"]).then(r => new Map(r.map(row => [row.deputy_id as DeputyId, row])))
+      rows = loadCsv(file, ["deputy_id"]).then(r => new Map(r.map(row => [deputyId(row.deputy_id), row])))
       files.set(file, rows)
     }
     return rows

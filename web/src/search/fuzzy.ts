@@ -64,7 +64,7 @@ export class FuzzyIndex<Ref, Field> {
   private lookup(term: string): Map<string, WordHit> {
     if (DIGITS.test(term)) return this.prefixCodes(term)
     const hits = new Map<string, WordHit>()
-    searchNode(this.trie, [...term], 0, Math.min(3, Math.round(term.length / 2)), [], hits)
+    searchNode(this.trie, Array.from(term), 0, Math.min(3, Math.round(term.length / 2)), [], hits)
     return hits
   }
 

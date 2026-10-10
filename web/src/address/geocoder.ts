@@ -1,3 +1,4 @@
+import { isList, isRecord } from "../data/json.ts"
 import { communeCode, type CommuneCode } from "./codes.ts"
 import type { LonLat } from "./geometry.ts"
 
@@ -25,11 +26,14 @@ export type GeocodedAddress =
 
 export type PreciseAddress = Exclude<GeocodedAddress, { type: "municipality" }>
 
+const ADDRESS_TYPES = ["housenumber", "street", "locality", "municipality"] as const satisfies readonly GeocodedAddress["type"][]
+
 export type AddressQuery = string & { readonly __brand: "AddressQuery" }
 
 export function addressQuery(text: string): AddressQuery | null {
   const query = text.replace(/\s+/g, " ").trim().replace(/^[^\p{L}\p{N}]+/u, "").slice(0, MAX_LENGTH)
   if (query.length < MIN_LENGTH || !/\d/.test(query) || !/\p{L}{3,}/u.test(query)) return null
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the length, digit and letter tests above prove a usable query
   return query as AddressQuery
 }
 
@@ -46,7 +50,7 @@ export async function searchAddresses(query: AddressQuery, signal: AbortSignal):
 
 export function parseGeocoderResponse(json: unknown): GeocodedAddress[] {
   const features = field(json, "features")
-  return Array.isArray(features) ? features.flatMap(feature => parseFeature(feature) ?? []) : []
+  return isList(features) ? features.flatMap(feature => parseFeature(feature) ?? []) : []
 }
 
 function parseFeature(feature: unknown): GeocodedAddress | null {
@@ -62,8 +66,8 @@ function parseFeature(feature: unknown): GeocodedAddress | null {
   const city = text("city")
   const score = field(properties, "score")
   if (citycode === null || label === null || name === null || city === null || typeof score !== "number") return null
-  if (!Array.isArray(coordinates) || coordinates.length < 2) return null
-  const [lon, lat] = coordinates as unknown[]
+  if (!isList(coordinates) || coordinates.length < 2) return null
+  const [lon, lat] = coordinates
   if (typeof lon !== "number" || typeof lat !== "number" || !Number.isFinite(lon) || !Number.isFinite(lat)) return null
   const base: AddressBase = {
     label,
@@ -76,7 +80,10 @@ function parseFeature(feature: unknown): GeocodedAddress | null {
     score,
   }
   const street = text("street")
-  switch (text("type")) {
+  const typeText = text("type")
+  const type = ADDRESS_TYPES.find(known => known === typeText)
+  if (type === undefined) return null
+  switch (type) {
     case "housenumber": {
       const housenumber = text("housenumber")
       return housenumber && street ? { ...base, type: "housenumber", housenumber, street } : null
@@ -89,11 +96,9 @@ function parseFeature(feature: unknown): GeocodedAddress | null {
     }
     case "municipality":
       return { ...base, type: "municipality" }
-    default:
-      return null
   }
 }
 
 function field(value: unknown, key: string): unknown {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>)[key] : undefined
+  return isRecord(value) ? value[key] : undefined
 }

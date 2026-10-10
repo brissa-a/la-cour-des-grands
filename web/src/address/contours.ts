@@ -1,3 +1,4 @@
+import { isList, isRecord } from "../data/json.ts"
 import { communeCode, constituencyCode, type CommuneCode, type ConstituencyCode } from "./codes.ts"
 import type { LonLat, Polygon, Ring, Shape } from "./geometry.ts"
 
@@ -6,11 +7,11 @@ export const CONTOURS_FILE = "communes/constituency-contours.geojson"
 export type Contours = ReadonlyMap<CommuneCode, ReadonlyMap<ConstituencyCode, Shape>>
 
 export function parseContours(json: unknown): Contours {
-  if (!isObject(json) || json.type !== "FeatureCollection" || !Array.isArray(json.features)) throw invalid("not a FeatureCollection")
+  if (!isRecord(json) || json.type !== "FeatureCollection" || !isList(json.features)) throw invalid("not a FeatureCollection")
   const contours = new Map<CommuneCode, Map<ConstituencyCode, Polygon[]>>()
-  for (const [index, feature] of (json.features as unknown[]).entries()) {
+  for (const [index, feature] of json.features.entries()) {
     const where = `feature ${index}`
-    if (!isObject(feature) || !isObject(feature.properties) || !isObject(feature.geometry)) throw invalid(`${where} is not a Feature`)
+    if (!isRecord(feature) || !isRecord(feature.properties) || !isRecord(feature.geometry)) throw invalid(`${where} is not a Feature`)
     const { commune_code, constituency } = feature.properties
     const commune = typeof commune_code === "string" ? communeCode(commune_code) : null
     const code = typeof constituency === "string" ? constituencyCode(constituency) : null
@@ -42,13 +43,13 @@ function ring(value: unknown): Ring | null {
 }
 
 function position(value: unknown): LonLat | null {
-  if (!Array.isArray(value) || value.length < 2) return null
-  const [lon, lat] = value as unknown[]
+  if (!isList(value) || value.length < 2) return null
+  const [lon, lat] = value
   return typeof lon === "number" && typeof lat === "number" && Number.isFinite(lon) && Number.isFinite(lat) ? [lon, lat] : null
 }
 
 function arrayOf<T>(value: unknown, item: (value: unknown) => T | null): T[] | null {
-  if (!Array.isArray(value)) return null
+  if (!isList(value)) return null
   const items: T[] = []
   for (const element of value) {
     const parsed = item(element)
@@ -56,8 +57,4 @@ function arrayOf<T>(value: unknown, item: (value: unknown) => T | null): T[] | n
     items.push(parsed)
   }
   return items
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
 }

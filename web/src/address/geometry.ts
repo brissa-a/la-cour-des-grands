@@ -17,11 +17,14 @@ export function contains(shape: Shape, point: LonLat): boolean {
 }
 
 function inRing(ring: Ring, [x, y]: LonLat): boolean {
+  const last = ring.at(-1)
+  if (last === undefined) return false
+  let [xj, yj] = last
   let inside = false
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i]!
-    const [xj, yj] = ring[j]!
+  for (const [xi, yi] of ring) {
     if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside
+    xj = xi
+    yj = yi
   }
   return inside
 }
@@ -33,16 +36,20 @@ export function distanceMeters(shape: Shape, point: LonLat): number {
   let best = Infinity
   for (const { outer, holes } of shape) {
     for (const ring of [outer, ...holes]) {
-      for (let i = 1; i < ring.length; i++) {
-        const [lonA, latA] = ring[i - 1]!
-        const [lonB, latB] = ring[i]!
-        const ax = (lonA - lon) * xScale
-        const ay = (latA - lat) * METERS_PER_DEGREE
-        const dx = (lonB - lon) * xScale - ax
-        const dy = (latB - lat) * METERS_PER_DEGREE - ay
-        const squared = dx * dx + dy * dy
-        const t = squared === 0 ? 0 : Math.min(1, Math.max(0, -(ax * dx + ay * dy) / squared))
-        best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy))
+      let previous: LonLat | undefined
+      for (const current of ring) {
+        if (previous !== undefined) {
+          const [lonA, latA] = previous
+          const [lonB, latB] = current
+          const ax = (lonA - lon) * xScale
+          const ay = (latA - lat) * METERS_PER_DEGREE
+          const dx = (lonB - lon) * xScale - ax
+          const dy = (latB - lat) * METERS_PER_DEGREE - ay
+          const squared = dx * dx + dy * dy
+          const t = squared === 0 ? 0 : Math.min(1, Math.max(0, -(ax * dx + ay * dy) / squared))
+          best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy))
+        }
+        previous = current
       }
     }
   }

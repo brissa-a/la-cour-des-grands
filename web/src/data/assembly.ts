@@ -1,7 +1,10 @@
 import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
 import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
+import { deputyId, type DeputyId } from "./deputyId.ts"
 import { fetchText } from "./source.ts"
+
+export type { DeputyId }
 
 const INIT_COLUMNS = [
   "deputy_id", "photo", "last_name", "first_name", "civility", "birth_date", "age", "in_office",
@@ -9,8 +12,6 @@ const INIT_COLUMNS = [
 ] as const
 
 const SEAT_COLUMNS = ["seat", "x", "y", "deputy"] as const
-
-export type DeputyId = string & { readonly __brand: "DeputyId" }
 
 export type Seat = { number: string; x: number; y: number }
 
@@ -75,12 +76,12 @@ export async function loadAssembly(): Promise<Assembly> {
     const civility = CIVILITIES.find(c => c === row.civility)
     if (!civility) throw new Error(`deputies/init.csv: ${row.deputy_id} has civility ${row.civility}`)
     group.seatCount++
-    return { ...row, civility, id: row.deputy_id as DeputyId, seat, politicalGroup: group }
+    return { ...row, civility, id: deputyId(row.deputy_id), seat, politicalGroup: group }
   })
 
   return {
     catalog,
-    initRows: new Map(rows.map(r => [r.deputy_id as DeputyId, r])),
+    initRows: new Map(rows.map(r => [deputyId(r.deputy_id), r])),
     deputies,
     byId: new Map(deputies.map(d => [d.id, d])),
     byConstituency: byConstituency(deputies),
@@ -124,10 +125,10 @@ function parseBackground(svg: string): Background {
 
 export async function loadOfficialPages(): Promise<ReadonlyMap<DeputyId, string>> {
   const rows = await loadCsv("deputies/links.csv", ["deputy_id", "official_page"])
-  return new Map(rows.map(r => [r.deputy_id as DeputyId, r.official_page]))
+  return new Map(rows.map(r => [deputyId(r.deputy_id), r.official_page]))
 }
 
 export async function loadCommunes(): Promise<ReadonlyMap<DeputyId, string>> {
   const rows = await loadCsv("deputies/communes.csv", ["deputy_id", "communes"])
-  return new Map(rows.map(r => [r.deputy_id as DeputyId, r.communes]))
+  return new Map(rows.map(r => [deputyId(r.deputy_id), r.communes]))
 }

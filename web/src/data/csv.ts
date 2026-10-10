@@ -8,9 +8,11 @@ export async function loadCsv<const C extends string>(path: string, columns: rea
     header: true,
     skipEmptyLines: true,
   })
-  if (errors.length) throw new Error(`${path}: ${errors[0]?.message}`)
+  const [error] = errors
+  if (error) throw new Error(`${path}: ${error.message}`)
   const missing = columns.filter(c => !meta.fields?.includes(c))
   if (missing.length) throw new Error(`${path}: missing columns ${missing.join(", ")}`)
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- Papa reports any row with too few fields as an error, so with no error and every column in the header each row has them all
   return data as Row<C>[]
 }
 

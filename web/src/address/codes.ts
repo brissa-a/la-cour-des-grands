@@ -6,20 +6,27 @@ export type AtLeastOne<T> = readonly [T, ...T[]]
 
 export type AtLeastTwo<T> = readonly [T, T, ...T[]]
 
+type Defined = object | string | number | bigint | boolean | symbol | null
+
 const CONSTITUENCY = /^(0[1-9]|1\d|2[1-9AB]|[3-8]\d|9[0-5]|97[1-7]|98[678]|099)-[1-9]\d?$/
 
 const COMMUNE = /^(\d{5}|2[AB]\d{3})$/
 
 export function constituencyCode(value: string): ConstituencyCode | null {
-  return CONSTITUENCY.test(value) ? (value as ConstituencyCode) : null
+  if (!CONSTITUENCY.test(value)) return null
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the CONSTITUENCY test above proves the format
+  return value as ConstituencyCode
 }
 
 export function communeCode(value: string): CommuneCode | null {
-  return COMMUNE.test(value) ? (value as CommuneCode) : null
+  if (!COMMUNE.test(value)) return null
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the COMMUNE test above proves the format
+  return value as CommuneCode
 }
 
-export function atLeastTwo<T>(values: readonly T[]): AtLeastTwo<T> | null {
-  return values.length >= 2 ? (values as AtLeastTwo<T>) : null
+export function atLeastTwo<T extends Defined>(values: readonly T[]): AtLeastTwo<T> | null {
+  const [first, second, ...rest] = values
+  return first === undefined || second === undefined ? null : [first, second, ...rest]
 }
 
 export function constituencyList(cell: string, where: string): AtLeastOne<ConstituencyCode> {

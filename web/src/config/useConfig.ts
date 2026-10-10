@@ -1,11 +1,10 @@
 import { useSyncExternalStore } from "react"
 import { createConfigStore, type Config } from "./config.ts"
-import { valueAt, type Path, type ValueAt } from "./schema.ts"
 
 export const configStore = createConfigStore(browserStorage())
 
-export function useConfig<P extends Path<Config>>(path: P): ValueAt<Config, P> {
-  return useSyncExternalStore(configStore.subscribe, () => valueAt(configStore.get(), path))
+export function useConfig<T>(select: (config: Config) => T): T {
+  return useSyncExternalStore(configStore.subscribe, () => select(configStore.get()))
 }
 
 function browserStorage(): Storage | null {

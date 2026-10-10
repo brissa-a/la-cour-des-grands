@@ -15,7 +15,7 @@ export function FeaturePicker({ label, features, selected, onSelect, noneLabel }
   return (
     <label className="control">
       {label}
-      <select value={selected ?? NONE} onChange={e => onSelect(e.target.value === NONE ? null : (e.target.value as FeatureKey))}>
+      <select value={selected ?? NONE} onChange={e => onSelect(features.find(f => f.key === e.target.value)?.key ?? null)}>
         {noneLabel !== undefined && <option value={NONE}>{noneLabel}</option>}
         {byFile.size === 1
           ? features.map(Option)

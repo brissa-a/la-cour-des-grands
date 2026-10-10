@@ -25,9 +25,11 @@ const AREA_HEIGHT = 1.05
 const BASELINE = 0.1
 const LAST = Number.MAX_SAFE_INTEGER
 
-type Bucket = { key: string; label: string; title: string; members: Deputy[] }
+type ChartedDeputy = Pick<Deputy, "id" | "last_name">
 
-export function buildChart(by: Coloring, order: Coloring, deputies: Deputy[], maxRadius: number): Chart {
+type Bucket = { key: string; label: string; title: string; members: ChartedDeputy[] }
+
+export function buildChart(by: Coloring, order: Coloring, deputies: readonly ChartedDeputy[], maxRadius: number): Chart {
   const buckets = by.kind === "category" ? categoryBuckets(by, deputies) : numberBuckets(by, deputies)
   const rank = sortRank(order)
   for (const bucket of buckets) bucket.members.sort((a, b) => rank(a.id) - rank(b.id) || a.last_name.localeCompare(b.last_name))
@@ -79,14 +81,14 @@ function gridStep(rows: number, columnWidth: number): number {
   return deputies ? deputies / columnWidth : Math.max(1, Math.round(rows / 4))
 }
 
-function categoryBuckets(by: Extract<Coloring, { kind: "category" }>, deputies: Deputy[]): Bucket[] {
+function categoryBuckets(by: Extract<Coloring, { kind: "category" }>, deputies: readonly ChartedDeputy[]): Bucket[] {
   const buckets = by.items.map((item): Bucket => ({ key: item.value, label: item.label, title: item.title, members: [] }))
   const byValue = new Map(buckets.map(b => [b.key, b]))
   for (const deputy of deputies) byValue.get(by.valueOf(deputy.id))?.members.push(deputy)
   return buckets
 }
 
-function numberBuckets(by: Extract<Coloring, { kind: "number" }>, deputies: Deputy[]): Bucket[] {
+function numberBuckets(by: Extract<Coloring, { kind: "number" }>, deputies: readonly ChartedDeputy[]): Bucket[] {
   const numbers = new Map<DeputyId, number>()
   for (const deputy of deputies) {
     const value = by.valueOf(deputy.id)

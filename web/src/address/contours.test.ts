@@ -1,7 +1,19 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { communeCode, constituencyCode } from "./codes.ts"
+import { communeCode, constituencyCode, type CommuneCode, type ConstituencyCode } from "./codes.ts"
 import { parseContours } from "./contours.ts"
+
+function code(value: string): ConstituencyCode {
+  const parsed = constituencyCode(value)
+  if (parsed === null) throw new Error(`invalid constituency fixture "${value}"`)
+  return parsed
+}
+
+function commune(value: string): CommuneCode {
+  const parsed = communeCode(value)
+  if (parsed === null) throw new Error(`invalid commune fixture "${value}"`)
+  return parsed
+}
 
 const ring = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]
 const hole = [[0.2, 0.2], [0.2, 0.4], [0.4, 0.4], [0.4, 0.2], [0.2, 0.2]]
@@ -22,10 +34,10 @@ test("features are grouped by commune, then by constituency, holes kept apart", 
       feature({ commune_code: "31555", constituency: "31-1" }),
     ),
   )
-  const paris = contours.get(communeCode("75115")!)
+  const paris = contours.get(commune("75115"))
   assert.deepEqual([...contours.keys()], ["75115", "31555"])
-  assert.deepEqual(paris?.get(constituencyCode("75-12")!), [{ outer: ring, holes: [hole] }])
-  assert.equal(paris?.get(constituencyCode("75-13")!)?.length, 2)
+  assert.deepEqual(paris?.get(code("75-12")), [{ outer: ring, holes: [hole] }])
+  assert.equal(paris.get(code("75-13"))?.length, 2)
 })
 
 test("a feature that does not follow the published format rejects the file", () => {
