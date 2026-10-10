@@ -1,5 +1,5 @@
 import type { Deputy, DeputyId } from "../data/assembly.ts"
-import { LIST_SEPARATOR } from "../data/csv.ts"
+import { LIST_SEPARATOR } from "../data/list.ts"
 import { FuzzyIndex, type Match, type SearchResult } from "./fuzzy.ts"
 
 const WEIGHTS = {

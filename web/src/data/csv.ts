@@ -15,5 +15,3 @@ export async function loadCsv<const C extends string>(path: string, columns: rea
   // oxlint-disable-next-line typescript/consistent-type-assertions -- Papa reports any row with too few fields as an error, so with no error and every column in the header each row has them all
   return data as Row<C>[]
 }
-
-export const LIST_SEPARATOR = "|"
