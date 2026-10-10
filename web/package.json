@@ -1,0 +1,32 @@
+{
+  "name": "lcdg-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "check": "tsc -b",
+    "preview": "vite preview",
+    "test": "node --test 'src/**/*.test.ts'",
+    "lint": "oxlint --disable-nested-config --ignore-path=.gitignore && node lint/checkDirectives.ts",
+    "mutate": "stryker run"
+  },
+  "dependencies": {
+    "papaparse": "^5.7.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.87.0",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/tap-runner": "10.0.0",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  }
+}
