@@ -8,7 +8,8 @@
     "check": "tsc -b",
     "preview": "vite preview",
     "test": "node --test 'src/**/*.test.ts'",
-    "lint": "oxlint --disable-nested-config --ignore-path=.gitignore && node lint/checkDirectives.ts"
+    "lint": "oxlint --disable-nested-config --ignore-path=.gitignore && node lint/checkDirectives.ts",
+    "mutate": "stryker run"
   },
   "dependencies": {
     "papaparse": "^5.7.0",
@@ -17,6 +18,8 @@
   },
   "devDependencies": {
     "@oxlint/plugins": "1.87.0",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/tap-runner": "10.0.0",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
