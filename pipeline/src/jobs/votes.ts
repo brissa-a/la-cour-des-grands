@@ -7,7 +7,7 @@ import { job } from "../core/job.ts";
 import { type JsonRecord, fieldOf, oneOrMany, parseJson, record, text } from "../core/json.ts";
 import { source } from "../core/source.ts";
 import { type IsoDate, isoDate } from "../core/types.ts";
-import { type Deputy, type DeputyId, deputy, deputyId } from "./deputies.ts";
+import { type DeputyId, deputy, deputyId, inOfficeOn } from "./deputies.ts";
 
 const scrutins = source({
   name: "scrutins.zip",
@@ -195,11 +195,6 @@ export const votesCatalog = csv({
   }),
 });
 
-function inOfficeOn(d: Deputy, date: IsoDate): boolean {
-  return d.mandates.some((m) => m.start <= date && (m.end === null || m.end >= date));
-}
-
-
 function positionFiles(name: string, files: (ballots: Ballot[]) => GeneratedFile<Ballot>[]) {
   return generatedCsvs({
     name,
@@ -208,7 +203,7 @@ function positionFiles(name: string, files: (ballots: Ballot[]) => GeneratedFile
     dependencies: {},
     feature: category("Position de vote", votePositions),
     files,
-    value: (d, ballot) => ballot.positions.get(d.id) ?? (inOfficeOn(d, ballot.date) ? "absent" : null),
+    value: (d, ballot) => ballot.positions.get(d.id) ?? (inOfficeOn(d.mandates, ballot.date) ? "absent" : null),
     gzipBudget: 150_000,
   });
 }

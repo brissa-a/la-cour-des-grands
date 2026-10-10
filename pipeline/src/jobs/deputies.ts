@@ -86,6 +86,8 @@ export type Deputy = {
 };
 
 export const inOffice = (d: Deputy) => d.mandates.some((m) => m.end === null);
+export const inOfficeOn = (mandates: readonly Mandate[], date: IsoDate) =>
+  mandates.some((m) => m.start <= date && (m.end === null || m.end >= date));
 
 export function lastMandate(d: Deputy): Mandate {
   const [first, ...others] = d.mandates;
@@ -106,13 +108,16 @@ function hexColor(raw: unknown): HexColor | null {
   return value as HexColor;
 }
 
-function mandate(raw: JsonRecord): Mandate {
+export function mandate(raw: JsonRecord): Mandate {
   const lieu = fieldOf(raw.election, "lieu");
   const place = isRecord(lieu) ? lieu : {};
   const departmentNumber = optionalText(place.numDepartement, "mandate numDepartement") ?? "";
   const constituencyNumber = optionalText(place.numCirco, "mandate numCirco") ?? "";
+  // dateDebut is the election date, shared by the substitutes and by a mandate resumed after government.
+  const tookOffice = nonEmpty(fieldOf(raw.mandature, "datePriseFonction"));
+  if (tookOffice === null) throw new Error(`Mandate ${text(raw.uid, "mandate uid")} has no datePriseFonction`);
   return {
-    start: isoDate(text(raw.dateDebut, "mandate dateDebut")),
+    start: isoDate(tookOffice),
     end: optionalDate(raw.dateFin),
     endReason: nonEmpty(fieldOf(raw.mandature, "causeFin")),
     constituency: constituencyCode(`${departmentNumber}-${constituencyNumber}`),
