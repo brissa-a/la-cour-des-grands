@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AddressBlock } from "./address/AddressBlock.tsx"
 import type { Located } from "./address/lookup.ts"
 import { createLookupSources } from "./address/sources.ts"
@@ -13,6 +13,7 @@ import { DEFAULT_COLORING, HIDDEN_FEATURES } from "./coloring/views.ts"
 import { SEAT_RADIUS, Stage } from "./layout/Stage.tsx"
 import { Legend } from "./layout/Legend.tsx"
 import { VoteHeader } from "./layout/VoteHeader.tsx"
+import { useChartFrame } from "./layout/useChartFrame.ts"
 import { useMediaQuery } from "./layout/useMediaQuery.ts"
 import { ConfigButton, ConfigPanel } from "./config/ConfigPanel.tsx"
 import { useConfig } from "./config/useConfig.ts"
@@ -75,6 +76,8 @@ export function App({ assembly, store, initialColoring }: Props) {
   const [addressContext, setAddressContext] = useState<Located | null>(null)
   const phone = useMediaQuery(PHONE)
   const touchOnly = useMediaQuery(TOUCH_ONLY)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const chartFrame = useChartFrame(svgRef)
 
   useEffect(() => {
     loadOfficialPages().then(setOfficialPages, (error: unknown) => console.error(error))
@@ -174,8 +177,11 @@ export function App({ assembly, store, initialColoring }: Props) {
   })
 
   const chart = useMemo(
-    () => (chartKey !== null && chartBy?.key === chartKey ? buildChart(chartBy, coloring, sitting.deputies, SEAT_RADIUS) : null),
-    [chartKey, chartBy, coloring, sitting],
+    () =>
+      chartKey !== null && chartBy?.key === chartKey && chartFrame
+        ? buildChart(chartBy, coloring, sitting.deputies, SEAT_RADIUS, chartFrame)
+        : null,
+    [chartKey, chartBy, coloring, sitting, chartFrame],
   )
   const layoutBy = chart ? chartBy : null
 
@@ -237,6 +243,7 @@ export function App({ assembly, store, initialColoring }: Props) {
     <div className={selected ? "app panel-open" : "app"}>
       <main className="stage">
         <Stage
+          svgRef={svgRef}
           sitting={sitting}
           background={assembly.background}
           chart={chart}
@@ -247,7 +254,7 @@ export function App({ assembly, store, initialColoring }: Props) {
           selected={selected}
           onTap={onTap}
         />
-        <div className="stage-bottom">
+        <div className="stage-bottom" data-overlay="">
           {hint && selected === null && !phone && <RestHint store={preview} touch={touchOnly} />}
           {voteInView && voteView.status !== "none" && (
             <VoteHeader
@@ -261,7 +268,7 @@ export function App({ assembly, store, initialColoring }: Props) {
           )}
           {coloring.key !== VOTE && <Legend coloring={coloring} store={preview} selected={selected} onHover={hoverValue} />}
         </div>
-        <div className="controls panel" data-obstacle="">
+        <div className="controls panel" data-obstacle="" data-overlay="">
           <FeaturePicker
             label="Disposition"
             features={features}
@@ -329,9 +336,9 @@ export function App({ assembly, store, initialColoring }: Props) {
 
 function RestHint({ store, touch }: { store: PreviewStore; touch: boolean }) {
   const { target, card } = usePreview(store)
-  if (target !== null || card?.visible) return null
+  const resting = target === null && !card?.visible
   return (
-    <p className="stage-hint" data-obstacle="">
+    <p className={resting ? "stage-hint" : "stage-hint masked"} data-obstacle={resting ? "" : undefined}>
       {touch
         ? "Touchez un point pour voir qui siège là · touchez à nouveau pour ouvrir sa fiche"
         : "Survolez un point pour voir qui siège là · cliquez pour ouvrir sa fiche"}

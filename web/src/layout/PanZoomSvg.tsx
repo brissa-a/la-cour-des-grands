@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode } from "react"
+import { useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode, type RefObject } from "react"
 import { useConfig } from "../config/useConfig.ts"
 import { glideAt, glideEnds, readWheel, retarget, type Glide, type WheelKind } from "./wheelZoom.ts"
 
@@ -18,10 +18,9 @@ export type PointerHandlers = {
   onGesture: (active: boolean) => void
 }
 
-type Props = PointerHandlers & { viewBox: string; children: ReactNode }
+type Props = PointerHandlers & { viewBox: string; svgRef: RefObject<SVGSVGElement | null>; children: ReactNode }
 
-export function PanZoomSvg({ viewBox, children, onHover, onLeave, onDown, onTap, onGesture }: Props) {
-  const svgRef = useRef<SVGSVGElement>(null)
+export function PanZoomSvg({ viewBox, svgRef, children, onHover, onLeave, onDown, onTap, onGesture }: Props) {
   const groupRef = useRef<SVGGElement>(null)
   const view = useRef<View>({ x: 0, y: 0, scale: 1 })
   const glide = useRef<Glide | null>(null)

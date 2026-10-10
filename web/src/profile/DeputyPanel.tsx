@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { MISSING, type Coloring } from "../coloring/coloring.ts"
+import type { Coloring } from "../coloring/coloring.ts"
 import type { Person, Seat } from "../data/assembly.ts"
 import type { Chart } from "../layout/chart.ts"
 import { birth, captionFor, constituencyLong, numberFormat, viewValue } from "./format.ts"
@@ -160,15 +160,11 @@ function LayoutValue({ chart, layoutBy, deputy }: { chart: Chart; layoutBy: Colo
   const position = chart.positions.get(deputy.id)
   const column = position && chart.columns.find(c => position.x >= c.x && position.x <= c.x + c.width)
   if (!column) return null
-  const unit = layoutBy.kind === "number" && layoutBy.unit && column.key !== MISSING ? ` ${layoutBy.unit}` : ""
   const caption = captionFor(layoutBy, column.key)
   return (
     <p className="panel-value">
       <span className="column-glyph" />
-      <span className="panel-value-label">
-        {column.label}
-        {unit}
-      </span>
+      <span className="panel-value-label">{column.label}</span>
       <span className="muted">
         {caption && `· ${caption} `}· {column.count} député{column.count > 1 ? "s" : ""} dans la colonne
       </span>

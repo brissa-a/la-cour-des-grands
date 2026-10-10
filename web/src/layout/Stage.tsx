@@ -1,8 +1,8 @@
-import { memo, useEffect, useMemo, useRef } from "react"
+import { memo, useEffect, useMemo, useRef, type RefObject } from "react"
 import type { Background, Deputy, DeputyId, Sitting } from "../data/assembly.ts"
 import type { Point } from "../preview/placement.ts"
 import { usePreview, type Hit, type PreviewStore } from "../preview/previewStore.ts"
-import type { Chart } from "./chart.ts"
+import { TICK_GAP_EM, type Chart, type ChartColumn, type ColumnLabels } from "./chart.ts"
 import { PanZoomSvg } from "./PanZoomSvg.tsx"
 
 export const SEAT_RADIUS = 0.019
@@ -20,10 +20,10 @@ const FOCUS_SCALE = 1.35
 const LAYOUT_PAUSE_MS = 1400
 const RESIZE_PAUSE_MS = 250
 
-
 type Placed = { id: DeputyId; point: Point; delay: number }
 
 type Props = {
+  svgRef: RefObject<SVGSVGElement | null>
   sitting: Sitting
   background: Background
   chart: Chart | null
@@ -35,7 +35,7 @@ type Props = {
   onTap: (hit: Hit | null, pointerType: string) => void
 }
 
-export function Stage({ sitting, background, chart, highlighted, showPhotos, colorOf, store, selected, onTap }: Props) {
+export function Stage({ svgRef, sitting, background, chart, highlighted, showPhotos, colorOf, store, selected, onTap }: Props) {
   const radius = chart?.radius ?? SEAT_RADIUS
   const pitch = chart?.pitch ?? HEMICYCLE_PITCH
   const dotsRef = useRef<SVGGElement>(null)
@@ -125,6 +125,7 @@ export function Stage({ sitting, background, chart, highlighted, showPhotos, col
 
   return (
     <PanZoomSvg
+      svgRef={svgRef}
       viewBox={background.viewBox}
       onDown={e => {
         pointerType.current = e.pointerType
@@ -236,14 +237,12 @@ function Rings({
 }
 
 function ChartAxes({ chart }: { chart: Chart }) {
-  const { pitch, baseline, columns } = chart
+  const { pitch, baseline, columns, fontSize } = chart
   const first = columns[0]
-  const last = columns[columns.length - 1]
+  const last = columns.at(-1)
   if (!first || !last) return null
   const left = first.x - pitch
   const right = last.x + last.width + pitch
-  const fontSize = Math.min(0.045, pitch * 2.4)
-  const rotate = columns.length > 8
   return (
     <g className="chart-axes" style={{ fontSize }}>
       {chart.gridRows.map(row => {
@@ -251,31 +250,40 @@ function ChartAxes({ chart }: { chart: Chart }) {
         return (
           <g key={row}>
             <line x1={left} x2={right} y1={y} y2={y} />
-            <text x={left - fontSize * 0.4} y={y} textAnchor="end" dominantBaseline="middle">
+            <text x={left - fontSize * TICK_GAP_EM} y={y} textAnchor="end" dominantBaseline="middle">
               {row * chart.columnWidth}
             </text>
           </g>
         )
       })}
       <line className="chart-baseline" x1={left} x2={right} y1={baseline} y2={baseline} />
-      {columns.map(column => {
-        const x = column.x + column.width / 2
-        const y = baseline + fontSize * 1.2
-        return (
-          <text
-            key={column.key}
-            x={x}
-            y={y}
-            textAnchor={rotate ? "end" : "middle"}
-            dominantBaseline="hanging"
-            transform={rotate ? `rotate(-40 ${x} ${y})` : undefined}
-          >
-            <title>{`${column.title} : ${column.count}`}</title>
-            {column.label} ({column.count})
-          </text>
-        )
-      })}
+      {columns.map(column => (
+        <ColumnLabel key={column.key} column={column} labels={chart.labels} />
+      ))}
     </g>
+  )
+}
+
+function ColumnLabel({ column, labels }: { column: ChartColumn; labels: ColumnLabels }) {
+  const x = column.x + column.width / 2
+  const title = <title>{`${column.count} · ${column.title}`}</title>
+  if (labels.kind === "flat") {
+    return (
+      <text x={x} y={labels.y} textAnchor="middle">
+        {title}
+        <tspan className="chart-count">{column.count}</tspan>
+        <tspan x={x} dy={labels.lineHeight}>
+          {column.label}
+        </tspan>
+      </text>
+    )
+  }
+  return (
+    <text x={x} y={labels.y} textAnchor="end" transform={`rotate(${-labels.degrees} ${x} ${labels.y})`}>
+      {title}
+      <tspan className="chart-count">{column.count}</tspan>
+      {` ${column.label}`}
+    </text>
   )
 }
 

@@ -76,6 +76,8 @@ a { color: var(--accent); }
 
 .chart-axes .chart-baseline { stroke: var(--muted); }
 
+.chart-axes .chart-count { fill: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+
 .empty-seat { fill: none; stroke: var(--muted); stroke-width: 0.3; }
 
 .seat-dot {
@@ -122,6 +124,8 @@ a { color: var(--accent); }
   font-size: 12px;
   color: var(--muted);
 }
+
+.stage-hint.masked { visibility: hidden; }
 
 .legend {
   display: flex;

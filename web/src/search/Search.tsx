@@ -188,6 +188,7 @@ export function Search({ assembly, loadCommunes, loadVotes, lookupSources, onHal
   return (
     <div className="search panel" ref={wrapper} data-obstacle="">
       <input
+        data-overlay=""
         type="search"
         autoComplete="off"
         placeholder={lookupSources ? "Rechercher un député, une adresse, un scrutin…" : "Rechercher un député, une commune, un scrutin…"}
