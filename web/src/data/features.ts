@@ -1,16 +1,16 @@
 import type { Assembly } from "./assembly.ts"
-import type { Feature } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
 
 export type FeatureKey = `${string}:${string}`
 
-export type ColorableFeature = {
-  key: FeatureKey
-  file: string
-  column: string
-  feature: Extract<Feature, { type: "category" | "number" }>
-}
+type FeatureBase = { readonly key: FeatureKey; readonly file: string; readonly column: string; readonly title: string }
+
+export type CategoryFeature = FeatureBase & { readonly kind: "category"; readonly values: string }
+
+export type NumberFeature = FeatureBase & { readonly kind: "number" }
+
+export type ColorableFeature = CategoryFeature | NumberFeature
 
 export type ValueRow = { value: string; label: string; short: string | undefined; color: string | undefined }
 
@@ -25,8 +25,11 @@ export function colorableFeatures(assembly: Assembly, hidden: ReadonlySet<Featur
     file.entity === "deputy"
       ? file.features.flatMap((feature): ColorableFeature[] => {
           const key = featureKey(file.file, feature.column)
-          if (hidden.has(key) || (feature.type !== "category" && feature.type !== "number")) return []
-          return [{ key, file: file.file, column: feature.column, feature }]
+          if (hidden.has(key)) return []
+          const base = { key, file: file.file, column: feature.column, title: feature.title }
+          if (feature.type === "category") return [{ ...base, kind: "category", values: feature.values }]
+          if (feature.type === "number") return [{ ...base, kind: "number" }]
+          return []
         })
       : [],
   )

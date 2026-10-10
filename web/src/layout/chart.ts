@@ -1,6 +1,6 @@
 import type { Coloring } from "../coloring/coloring.ts"
 import { MISSING } from "../coloring/coloring.ts"
-import { numberView } from "../coloring/views.ts"
+import { numberView } from "../sources/views.ts"
 import type { Deputy, DeputyId } from "../data/assembly.ts"
 import type { Rect } from "../preview/placement.ts"
 

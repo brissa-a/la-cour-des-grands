@@ -1,6 +1,6 @@
 import type { Deputy, DeputyId } from "../data/assembly.ts"
 import type { ColorableFeature, FeatureKey, FeatureStore } from "../data/features.ts"
-import { NEUTRAL, PALETTE, numberView } from "./views.ts"
+import { NEUTRAL, PALETTE, numberView } from "../sources/views.ts"
 
 export const MISSING = ""
 
@@ -41,10 +41,9 @@ export async function buildColoring(
 ): Promise<FeatureColoring> {
   const values = await store.values(source)
   const valueOf = (id: DeputyId) => values.get(id) ?? MISSING
-  const base = { key: source.key, title: source.feature.title, valueOf }
-  const { feature } = source
-  if (feature.type === "category") {
-    const table = await store.valuesTable(feature.values)
+  const base = { key: source.key, title: source.title, valueOf }
+  if (source.kind === "category") {
+    const table = await store.valuesTable(source.values)
     const colors = new Map(table.map((row, i) => [row.value, row.color ?? PALETTE[i % PALETTE.length] ?? NEUTRAL]))
     const counts = new Map<string, number>()
     for (const d of deputies) counts.set(valueOf(d.id), (counts.get(valueOf(d.id)) ?? 0) + 1)

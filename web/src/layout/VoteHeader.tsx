@@ -1,4 +1,4 @@
-import { POSITION_COLORS } from "../coloring/views.ts"
+import { POSITION_COLORS } from "../sources/views.ts"
 import type { DeputyId } from "../data/assembly.ts"
 import { cardShown, usePreview, type PreviewStore } from "../preview/previewStore.ts"
 import { longDate } from "../profile/format.ts"

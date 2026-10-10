@@ -1,5 +1,5 @@
 import type { Coloring } from "../coloring/coloring.ts"
-import { PREVIEW_HEADER_FEATURES } from "../coloring/views.ts"
+import { PREVIEW_HEADER_FEATURES } from "../sources/views.ts"
 import type { DeputyId, Person } from "../data/assembly.ts"
 import { constituencyShort, viewValue } from "../profile/format.ts"
 import { Portrait } from "../profile/Portrait.tsx"

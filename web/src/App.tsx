@@ -9,7 +9,7 @@ import { buildColoring, VOTE, type Coloring, type ColoringKey, type FeatureColor
 import { FeaturePicker } from "./coloring/FeaturePicker.tsx"
 import { useColoring } from "./coloring/useColoring.ts"
 import { voteColoring } from "./coloring/voteColoring.ts"
-import { DEFAULT_COLORING, HIDDEN_FEATURES } from "./coloring/views.ts"
+import { DEFAULT_COLOR_FEATURE as DEFAULT_COLORING, HIDDEN_FEATURES } from "./sources/views.ts"
 import { SEAT_RADIUS, Stage } from "./layout/Stage.tsx"
 import { Legend } from "./layout/Legend.tsx"
 import { VoteHeader } from "./layout/VoteHeader.tsx"

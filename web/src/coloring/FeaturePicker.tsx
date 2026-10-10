@@ -43,7 +43,7 @@ export function FeaturePicker({ label, features, vote, selected, onSelect, noneL
 function Option(f: ColorableFeature) {
   return (
     <option key={f.key} value={f.key}>
-      {f.feature.title}
+      {f.title}
     </option>
   )
 }

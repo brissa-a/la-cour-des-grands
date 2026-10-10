@@ -1,7 +1,7 @@
 import type { DeputyId } from "../data/assembly.ts"
 import type { ReadVote } from "../votes/sources.ts"
 import { MISSING, VOTE, type CategoryColoring } from "./coloring.ts"
-import { NEUTRAL, POSITION_COLORS } from "./views.ts"
+import { NEUTRAL, POSITION_COLORS } from "../sources/views.ts"
 
 export function voteColoring({ vote, table, reading }: ReadVote, drawn: readonly { id: DeputyId }[]): CategoryColoring<typeof VOTE> {
   const counts = new Map<string, number>()

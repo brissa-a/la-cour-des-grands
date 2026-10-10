@@ -1,14 +1,13 @@
 import type { FeatureKey } from "../data/features.ts"
 import type { VotePosition } from "../votes/positions.ts"
-import type { ColoringKey } from "./coloring.ts"
 
-export const DEFAULT_COLORING: FeatureKey = "deputies/init.csv:group"
+export const DEFAULT_COLOR_FEATURE: FeatureKey = "deputies/init.csv:group"
 
 export const HIDDEN_FEATURES: ReadonlySet<FeatureKey> = new Set<FeatureKey>([
   "deputies/init.csv:in_office",
 ])
 
-export const PREVIEW_HEADER_FEATURES: ReadonlySet<ColoringKey> = new Set<ColoringKey>([
+export const PREVIEW_HEADER_FEATURES: ReadonlySet<string> = new Set<string>([
   "deputies/init.csv:group",
   "deputies/init.csv:department",
   "deputies/init.csv:department_number",
