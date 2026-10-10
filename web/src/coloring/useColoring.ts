@@ -1,26 +1,35 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { Deputy } from "../data/assembly.ts"
 import type { ColorableFeature, FeatureKey, FeatureStore } from "../data/features.ts"
-import { buildColoring, type Coloring } from "./coloring.ts"
+import { buildColoring, type FeatureColoring } from "./coloring.ts"
 
-export function useColoring<C extends Coloring | null>(
+export function useColoring<C extends FeatureColoring | null>(
   store: FeatureStore,
   features: ColorableFeature[],
-  deputies: Deputy[],
+  deputies: readonly Deputy[],
   initial: C,
-): [C | Coloring, (key: FeatureKey) => void] {
-  const [coloring, setColoring] = useState<C | Coloring>(initial)
-  const requested = useRef(initial?.key)
+): [C | FeatureColoring, (key: FeatureKey) => void] {
+  const [coloring, setColoring] = useState<C | FeatureColoring>(initial)
+  const wanted = useRef<FeatureKey | null>(initial?.key ?? null)
+  const latest = useRef(0)
+  const counted = useRef(deputies)
 
-  const request = (key: FeatureKey) => {
+  const build = (key: FeatureKey, over: readonly Deputy[]) => {
     const source = features.find(f => f.key === key)
     if (!source) return
-    requested.current = key
-    buildColoring(store, source, deputies).then(
-      built => requested.current === built.key && setColoring(built),
+    wanted.current = key
+    const request = ++latest.current
+    buildColoring(store, source, over).then(
+      built => request === latest.current && setColoring(built),
       (error: unknown) => console.error(error),
     )
   }
 
-  return [coloring, request]
+  useEffect(() => {
+    if (counted.current === deputies) return
+    counted.current = deputies
+    if (wanted.current !== null) build(wanted.current, deputies)
+  }, [deputies])
+
+  return [coloring, key => build(key, deputies)]
 }

@@ -4,29 +4,41 @@ import { NEUTRAL, PALETTE, numberView } from "./views.ts"
 
 export const MISSING = ""
 
+export const VOTE = "vote"
+
+export type ColoringKey = FeatureKey | typeof VOTE
+
 export type LegendItem = { value: string; label: string; title: string; color: string; count: number }
 
-type ColoringBase = {
-  key: FeatureKey
+type ColoringBase<K extends ColoringKey> = {
+  key: K
   title: string
   colorOf: (id: DeputyId) => string
   valueOf: (id: DeputyId) => string
 }
 
-export type Coloring =
-  | (ColoringBase & { kind: "category"; items: LegendItem[] })
-  | (ColoringBase & {
-      kind: "number"
-      gradient: readonly [string, string]
-      min: number
-      max: number
-      ticks: { value: number; ratio: number }[]
-      mean: number
-      unit: string
-      missing: number
-    })
+export type CategoryColoring<K extends ColoringKey = ColoringKey> = ColoringBase<K> & { kind: "category"; items: LegendItem[] }
 
-export async function buildColoring(store: FeatureStore, source: ColorableFeature, deputies: Deputy[]): Promise<Coloring> {
+export type NumberColoring = ColoringBase<FeatureKey> & {
+  kind: "number"
+  gradient: readonly [string, string]
+  min: number
+  max: number
+  ticks: { value: number; ratio: number }[]
+  mean: number
+  unit: string
+  missing: number
+}
+
+export type FeatureColoring = CategoryColoring<FeatureKey> | NumberColoring
+
+export type Coloring = CategoryColoring | NumberColoring
+
+export async function buildColoring(
+  store: FeatureStore,
+  source: ColorableFeature,
+  deputies: readonly Pick<Deputy, "id">[],
+): Promise<FeatureColoring> {
   const values = await store.values(source)
   const valueOf = (id: DeputyId) => values.get(id) ?? MISSING
   const base = { key: source.key, title: source.feature.title, valueOf }

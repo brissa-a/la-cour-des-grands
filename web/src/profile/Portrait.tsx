@@ -1,10 +1,10 @@
 import { useState } from "react"
-import type { Deputy } from "../data/assembly.ts"
+import type { Person } from "../data/assembly.ts"
 import { initials } from "./format.ts"
 
 const decoded = new Set<string>()
 
-export function Portrait({ deputy, className }: { deputy: Deputy; className: string }) {
+export function Portrait({ deputy, className }: { deputy: Person; className: string }) {
   const [loaded, setLoaded] = useState<string | null>(null)
   const ready = loaded === deputy.photo || decoded.has(deputy.photo)
   return (

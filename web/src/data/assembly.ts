@@ -8,7 +8,7 @@ export type { DeputyId }
 
 const INIT_COLUMNS = [
   "deputy_id", "photo", "last_name", "first_name", "civility", "birth_date", "age", "in_office",
-  "constituency", "department", "department_number", "constituency_number", "group",
+  "constituency", "department", "department_number", "constituency_number", "mandate_periods", "group",
 ] as const
 
 const SEAT_COLUMNS = ["seat", "x", "y", "deputy"] as const
@@ -21,7 +21,9 @@ const CIVILITIES = ["M.", "Mme"] as const
 
 export type Civility = (typeof CIVILITIES)[number]
 
-export type Deputy = Omit<InitRow, "civility"> & { civility: Civility; id: DeputyId; seat: Seat; politicalGroup: Group }
+export type Person = Omit<InitRow, "civility"> & { civility: Civility; id: DeputyId; politicalGroup: Group }
+
+export type Deputy = Person & { seat: Seat }
 
 export type ConstituencyLabel = Pick<InitRow, "department" | "department_number" | "constituency_number">
 
@@ -29,15 +31,19 @@ export type Group = { name: string; short: string; color: string; seatCount: num
 
 export type Background = { viewBox: string; markup: string }
 
-export type Assembly = {
+export type Sitting = {
+  deputies: readonly Deputy[]
+  byId: ReadonlyMap<DeputyId, Deputy>
+  emptySeats: readonly Seat[]
+}
+
+export type Assembly = Sitting & {
   catalog: Catalog
   initRows: ReadonlyMap<DeputyId, Readonly<Record<string, string>>>
-  deputies: Deputy[]
-  byId: ReadonlyMap<DeputyId, Deputy>
+  people: ReadonlyMap<DeputyId, Person>
   byConstituency: ReadonlyMap<ConstituencyCode, Deputy>
   constituencyLabels: ReadonlyMap<ConstituencyCode, ConstituencyLabel>
   groups: Group[]
-  emptySeats: Seat[]
   background: Background
 }
 
@@ -60,28 +66,32 @@ export async function loadAssembly(): Promise<Assembly> {
     if (r.deputy) seatOf.set(r.deputy, seat)
     else emptySeats.push(seat)
   }
-  const seated: { row: InitRow; seat: Seat }[] = []
-  for (const row of rows) {
-    if (row.in_office !== "yes") continue
-    const seat = seatOf.get(row.deputy_id)
-    if (seat) seated.push({ row, seat })
-    else console.warn(`${row.deputy_id} is in office but has no seat in seats/hemicycle.csv`)
-  }
-
   const groups = groupRows.map((r): Group => ({ name: r.value, short: r.short_fr, color: r.color, seatCount: 0 }))
   const groupByName = new Map(groups.map(g => [g.name, g]))
-  const deputies = seated.map(({ row, seat }): Deputy => {
+  const people = rows.map((row): Person => {
     const group = groupByName.get(row.group)
     if (!group) throw new Error(`deputies/values/group.csv: no group ${row.group}`)
     const civility = CIVILITIES.find(c => c === row.civility)
     if (!civility) throw new Error(`deputies/init.csv: ${row.deputy_id} has civility ${row.civility}`)
-    group.seatCount++
-    return { ...row, civility, id: deputyId(row.deputy_id), seat, politicalGroup: group }
+    return { ...row, civility, id: deputyId(row.deputy_id), politicalGroup: group }
   })
+
+  const deputies: Deputy[] = []
+  for (const person of people) {
+    if (person.in_office !== "yes") continue
+    const seat = seatOf.get(person.id)
+    if (!seat) {
+      console.warn(`${person.id} is in office but has no seat in seats/hemicycle.csv`)
+      continue
+    }
+    person.politicalGroup.seatCount++
+    deputies.push({ ...person, seat })
+  }
 
   return {
     catalog,
     initRows: new Map(rows.map(r => [deputyId(r.deputy_id), r])),
+    people: new Map(people.map(p => [p.id, p])),
     deputies,
     byId: new Map(deputies.map(d => [d.id, d])),
     byConstituency: byConstituency(deputies),

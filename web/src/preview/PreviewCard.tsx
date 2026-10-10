@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from "react"
 import type { Coloring } from "../coloring/coloring.ts"
 import { PREVIEW_HEADER_FEATURES } from "../coloring/views.ts"
-import type { Assembly, DeputyId } from "../data/assembly.ts"
+import type { DeputyId, Person } from "../data/assembly.ts"
 import { constituencyShort, viewValue } from "../profile/format.ts"
 import { Portrait } from "../profile/Portrait.tsx"
 import { placeAbove, placeBeside, type Rect, type Side } from "./placement.ts"
@@ -11,7 +11,7 @@ const MARGIN = 8
 
 type Props = {
   store: PreviewStore
-  assembly: Assembly
+  people: ReadonlyMap<DeputyId, Person>
   coloring: Coloring
   layoutBy: Coloring | null
   selected: DeputyId | null
@@ -20,11 +20,11 @@ type Props = {
   onOpen: (id: DeputyId) => void
 }
 
-export function PreviewCard({ store, assembly, coloring, layoutBy, selected, hint, touch, onOpen }: Props) {
+export function PreviewCard({ store, people, coloring, layoutBy, selected, hint, touch, onOpen }: Props) {
   const { card } = usePreview(store)
   const ref = useRef<HTMLDivElement>(null)
   const side = useRef<Side | null>(null)
-  const deputy = card ? assembly.byId.get(card.id) : undefined
+  const deputy = card ? people.get(card.id) : undefined
   const visible = cardShown(card, selected)
   const geometry = card?.geometry ?? null
 

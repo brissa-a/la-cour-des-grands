@@ -1,5 +1,5 @@
 import { MISSING, type Coloring } from "../coloring/coloring.ts"
-import type { Civility, ConstituencyLabel, Deputy, DeputyId } from "../data/assembly.ts"
+import type { Civility, ConstituencyLabel, DeputyId, Person } from "../data/assembly.ts"
 
 export const numberFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 })
 
@@ -39,17 +39,23 @@ const BORN: Record<Civility, string> = { "M.": "Né", Mme: "Née" }
 
 const longDateFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
 
-export function birth(deputy: Pick<Deputy, "civility" | "birth_date">): string {
+export function birth(deputy: Pick<Person, "civility" | "birth_date">): string {
   return `${BORN[deputy.civility]} le ${longDate(deputy.birth_date)}`
 }
 
-function longDate(isoDate: string): string {
+const shortDateFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
+
+export function shortDate(isoDate: string): string {
+  return shortDateFormat.format(new Date(isoDate))
+}
+
+export function longDate(isoDate: string): string {
   return longDateFormat
     .formatToParts(new Date(isoDate))
     .map(part => (part.type === "day" && part.value === "1" ? "1ᵉʳ" : part.value))
     .join("")
 }
 
-export function initials(deputy: Deputy): string {
+export function initials(deputy: Person): string {
   return `${deputy.first_name.charAt(0)}${deputy.last_name.charAt(0)}`
 }

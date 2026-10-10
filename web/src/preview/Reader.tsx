@@ -1,6 +1,6 @@
 import type { Coloring } from "../coloring/coloring.ts"
 import { PREVIEW_HEADER_FEATURES } from "../coloring/views.ts"
-import type { Assembly, DeputyId } from "../data/assembly.ts"
+import type { DeputyId, Person } from "../data/assembly.ts"
 import { constituencyShort, viewValue } from "../profile/format.ts"
 import { Portrait } from "../profile/Portrait.tsx"
 import type { Direction } from "./neighbours.ts"
@@ -8,15 +8,15 @@ import { usePreview, type PreviewStore } from "./previewStore.ts"
 
 type Props = {
   store: PreviewStore
-  assembly: Assembly
+  people: ReadonlyMap<DeputyId, Person>
   coloring: Coloring
   onOpen: (id: DeputyId) => void
   onStep: (from: DeputyId, direction: Direction) => void
 }
 
-export function Reader({ store, assembly, coloring, onOpen, onStep }: Props) {
+export function Reader({ store, people, coloring, onOpen, onStep }: Props) {
   const { card } = usePreview(store)
-  const deputy = card ? assembly.byId.get(card.id) : undefined
+  const deputy = card ? people.get(card.id) : undefined
   if (!deputy) {
     return (
       <div className="reader" data-obstacle="">

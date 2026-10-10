@@ -1,11 +1,11 @@
-import type { Assembly, Deputy, DeputyId } from "../data/assembly.ts"
+import type { Assembly, DeputyId, Person } from "../data/assembly.ts"
 import type { ConstituencyCode } from "./codes.ts"
 import { addressText, constituencyOrdinal, distanceText, ELECTORAL_SITUATION_URL, SOURCES, UNCONFIRMED_REASONS } from "./format.ts"
 import type { Located } from "./lookup.ts"
 
 type Props = {
   located: Located
-  deputy: Deputy
+  deputy: Person
   assembly: Assembly
   onOpen: (id: DeputyId) => void
 }

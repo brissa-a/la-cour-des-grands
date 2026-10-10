@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef } from "react"
-import type { Assembly, Deputy, DeputyId } from "../data/assembly.ts"
+import type { Background, Deputy, DeputyId, Sitting } from "../data/assembly.ts"
 import type { Point } from "../preview/placement.ts"
 import { usePreview, type Hit, type PreviewStore } from "../preview/previewStore.ts"
 import type { Chart } from "./chart.ts"
@@ -24,7 +24,8 @@ const RESIZE_PAUSE_MS = 250
 type Placed = { id: DeputyId; point: Point; delay: number }
 
 type Props = {
-  assembly: Assembly
+  sitting: Sitting
+  background: Background
   chart: Chart | null
   highlighted: ReadonlySet<DeputyId>
   showPhotos: boolean
@@ -34,7 +35,7 @@ type Props = {
   onTap: (hit: Hit | null, pointerType: string) => void
 }
 
-export function Stage({ assembly, chart, highlighted, showPhotos, colorOf, store, selected, onTap }: Props) {
+export function Stage({ sitting, background, chart, highlighted, showPhotos, colorOf, store, selected, onTap }: Props) {
   const radius = chart?.radius ?? SEAT_RADIUS
   const pitch = chart?.pitch ?? HEMICYCLE_PITCH
   const dotsRef = useRef<SVGGElement>(null)
@@ -43,14 +44,14 @@ export function Stage({ assembly, chart, highlighted, showPhotos, colorOf, store
 
   const placed = useMemo(
     () =>
-      assembly.deputies.map(
+      sitting.deputies.map(
         (deputy, index): Placed => ({
           id: deputy.id,
           point: chart?.positions.get(deputy.id) ?? deputy.seat,
           delay: (index % 40) * 0.012,
         }),
       ),
-    [assembly, chart],
+    [sitting, chart],
   )
   const placedById = useMemo(() => new Map(placed.map(p => [p.id, p])), [placed])
 
@@ -124,7 +125,7 @@ export function Stage({ assembly, chart, highlighted, showPhotos, colorOf, store
 
   return (
     <PanZoomSvg
-      viewBox={assembly.background.viewBox}
+      viewBox={background.viewBox}
       onDown={e => {
         pointerType.current = e.pointerType
       }}
@@ -150,9 +151,9 @@ export function Stage({ assembly, chart, highlighted, showPhotos, colorOf, store
         </clipPath>
       </defs>
       <g className={chart ? "room hidden" : "room"}>
-        <g className="hemicycle-background" dangerouslySetInnerHTML={{ __html: assembly.background.markup }} />
+        <g className="hemicycle-background" dangerouslySetInnerHTML={{ __html: background.markup }} />
         <g transform={`scale(${1 / DOT_SCALE})`}>
-          {assembly.emptySeats.map(seat => (
+          {sitting.emptySeats.map(seat => (
             <circle
               key={seat.number}
               className="empty-seat"
@@ -165,7 +166,7 @@ export function Stage({ assembly, chart, highlighted, showPhotos, colorOf, store
       </g>
       {chart && <ChartAxes chart={chart} />}
       <g ref={dotsRef} transform={`scale(${1 / DOT_SCALE})`}>
-        {assembly.deputies.map((deputy, index) => {
+        {sitting.deputies.map((deputy, index) => {
           const p = placed[index]
           if (!p) return null
           return (

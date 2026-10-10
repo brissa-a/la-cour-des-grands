@@ -1,24 +1,26 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { MISSING, type Coloring } from "../coloring/coloring.ts"
-import type { Deputy } from "../data/assembly.ts"
+import type { Person, Seat } from "../data/assembly.ts"
 import type { Chart } from "../layout/chart.ts"
 import { birth, captionFor, constituencyLong, numberFormat, viewValue } from "./format.ts"
 
 const COPIED_MS = 1500
 
 type Props = {
-  deputy: Deputy
+  deputy: Person
+  seat: Seat | undefined
   open: boolean
   coloring: Coloring
   chart: Chart | null
   layoutBy: Coloring | null
   total: number
+  outOfView: string | null
   officialPage: string | undefined
   address: ReactNode
   onClose: () => void
 }
 
-export function DeputyPanel({ deputy, open, coloring, chart, layoutBy, total, officialPage, address, onClose }: Props) {
+export function DeputyPanel({ deputy, seat, open, coloring, chart, layoutBy, total, outOfView, officialPage, address, onClose }: Props) {
   const scroller = useRef<HTMLElement>(null)
   const color = deputy.politicalGroup.color
 
@@ -61,14 +63,22 @@ export function DeputyPanel({ deputy, open, coloring, chart, layoutBy, total, of
         <li>
           {birth(deputy)} · {deputy.age} ans
         </li>
-        <li>
-          n° {deputy.seat.number} <span className="fact-label">siège</span>
-        </li>
+        {seat && (
+          <li>
+            n° {seat.number} <span className="fact-label">siège</span>
+          </li>
+        )}
       </ul>
       <section className="panel-section">
         <h3>Dans la vue actuelle</h3>
-        <CurrentValue coloring={coloring} deputy={deputy} total={total} />
-        {chart && layoutBy && layoutBy.key !== coloring.key && <LayoutValue chart={chart} layoutBy={layoutBy} deputy={deputy} />}
+        {outOfView === null ? (
+          <>
+            <CurrentValue coloring={coloring} deputy={deputy} total={total} />
+            {chart && layoutBy && layoutBy.key !== coloring.key && <LayoutValue chart={chart} layoutBy={layoutBy} deputy={deputy} />}
+          </>
+        ) : (
+          <p className="panel-value muted">{outOfView}</p>
+        )}
       </section>
       {officialPage && (
         <a className="official-link" href={officialPage} target="_blank" rel="noreferrer">
@@ -106,7 +116,7 @@ function CopyLink() {
   )
 }
 
-function CurrentValue({ coloring, deputy, total }: { coloring: Coloring; deputy: Deputy; total: number }) {
+function CurrentValue({ coloring, deputy, total }: { coloring: Coloring; deputy: Person; total: number }) {
   const value = viewValue(coloring, deputy.id)
   if (coloring.kind === "category") {
     const count = coloring.items.find(i => i.value === coloring.valueOf(deputy.id))?.count ?? 0
@@ -146,7 +156,7 @@ function CurrentValue({ coloring, deputy, total }: { coloring: Coloring; deputy:
   )
 }
 
-function LayoutValue({ chart, layoutBy, deputy }: { chart: Chart; layoutBy: Coloring; deputy: Deputy }) {
+function LayoutValue({ chart, layoutBy, deputy }: { chart: Chart; layoutBy: Coloring; deputy: Person }) {
   const position = chart.positions.get(deputy.id)
   const column = position && chart.columns.find(c => position.x >= c.x && position.x <= c.x + c.width)
   if (!column) return null
