@@ -1,17 +1,14 @@
 import { memo, useEffect, useMemo, useRef, type RefObject } from "react"
-import type { Background, Deputy, DeputyId, Sitting } from "../data/assembly.ts"
+import type { Deputy, DeputyId } from "../data/assembly.ts"
+import type { Scene } from "../forms/form.ts"
 import type { Point } from "../preview/placement.ts"
 import { usePreview, type Hit, type PreviewStore } from "../preview/previewStore.ts"
-import { TICK_GAP_EM, type Chart, type ChartColumn, type ColumnLabels } from "./chart.ts"
+import { Marks } from "./Marks.tsx"
 import { PanZoomSvg } from "./PanZoomSvg.tsx"
-
-export const SEAT_RADIUS = 0.019
 
 // Chrome skips repainting SVG elements whose CSS transform transitions use coordinates around ±1.
 const DOT_SCALE = 100
 
-const HEMICYCLE_PITCH = SEAT_RADIUS * 2.75
-const SNAP_PITCHES = 0.6
 const SNAP_MIN_PX = 10
 const HYSTERESIS_PX = 3
 const RING_PX = 2
@@ -24,9 +21,9 @@ type Placed = { id: DeputyId; point: Point; delay: number }
 
 type Props = {
   svgRef: RefObject<SVGSVGElement | null>
-  sitting: Sitting
-  background: Background
-  chart: Chart | null
+  viewBox: string
+  deputies: readonly Deputy[]
+  scene: Scene
   highlighted: ReadonlySet<DeputyId>
   showPhotos: boolean
   colorOf: (id: DeputyId) => string
@@ -35,31 +32,35 @@ type Props = {
   onTap: (hit: Hit | null, pointerType: string) => void
 }
 
-export function Stage({ svgRef, sitting, background, chart, highlighted, showPhotos, colorOf, store, selected, onTap }: Props) {
-  const radius = chart?.radius ?? SEAT_RADIUS
-  const pitch = chart?.pitch ?? HEMICYCLE_PITCH
+export function Stage({ svgRef, viewBox, deputies, scene, highlighted, showPhotos, colorOf, store, selected, onTap }: Props) {
+  const { radius, snap } = scene
   const dotsRef = useRef<SVGGElement>(null)
   const hovered = useRef<DeputyId | null>(null)
   const pointerType = useRef("mouse")
 
   const placed = useMemo(
     () =>
-      sitting.deputies.map(
-        (deputy, index): Placed => ({
-          id: deputy.id,
-          point: chart?.positions.get(deputy.id) ?? deputy.seat,
-          delay: (index % 40) * 0.012,
-        }),
-      ),
-    [sitting, chart],
+      deputies.flatMap((deputy, index): Placed[] => {
+        const point = scene.dots.get(deputy.id)
+        return point ? [{ id: deputy.id, point, delay: (index % 40) * 0.012 }] : []
+      }),
+    [deputies, scene],
   )
   const placedById = useMemo(() => new Map(placed.map(p => [p.id, p])), [placed])
 
-  const firstLayout = useRef(true)
+  const shown = useRef(placedById)
   useEffect(() => {
-    if (firstLayout.current) firstLayout.current = false
-    else store.pause(LAYOUT_PAUSE_MS)
-  }, [chart, store])
+    const before = shown.current
+    shown.current = placedById
+    if (before === placedById) return
+    for (const [id, { point }] of placedById) {
+      const was = before.get(id)?.point
+      if (was && (was.x !== point.x || was.y !== point.y)) {
+        store.pause(LAYOUT_PAUSE_MS)
+        return
+      }
+    }
+  }, [placedById, store])
 
   useEffect(() => {
     const svg = dotsRef.current?.ownerSVGElement
@@ -91,12 +92,12 @@ export function Stage({ svgRef, sitting, background, chart, highlighted, showPho
     }
     const pointer = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse())
     const distance = (p: Placed) => Math.hypot(p.point.x * DOT_SCALE - pointer.x, p.point.y * DOT_SCALE - pointer.y)
-    const snap = Math.max(SNAP_PITCHES * pitch * DOT_SCALE, SNAP_MIN_PX / scale)
+    const reach = Math.max(snap * DOT_SCALE, SNAP_MIN_PX / scale)
     let best: Placed | null = null
     let bestDistance = Infinity
     for (const p of placed) {
       const d = distance(p)
-      if (d < bestDistance && d <= snap && visible(p)) {
+      if (d < bestDistance && d <= reach && visible(p)) {
         best = p
         bestDistance = d
       }
@@ -105,7 +106,7 @@ export function Stage({ svgRef, sitting, background, chart, highlighted, showPho
     const current = hovered.current === null ? undefined : placedById.get(hovered.current)
     if (current && current !== best) {
       const currentDistance = distance(current)
-      if (currentDistance <= snap && currentDistance - bestDistance < HYSTERESIS_PX / scale && visible(current)) best = current
+      if (currentDistance <= reach && currentDistance - bestDistance < HYSTERESIS_PX / scale && visible(current)) best = current
     }
     return {
       id: best.id,
@@ -113,7 +114,7 @@ export function Stage({ svgRef, sitting, background, chart, highlighted, showPho
         anchor: { ...toScreen(best.point), radius: (radius * DOT_SCALE * FOCUS_SCALE + RING_STROKE / 2) * scale + RING_PX },
         dots: () => placed.map(p => toScreen(p.point)),
         dotRadius,
-        layout: chart ? "chart" : "hemicycle",
+        card: scene.card,
       },
     }
   }
@@ -126,7 +127,7 @@ export function Stage({ svgRef, sitting, background, chart, highlighted, showPho
   return (
     <PanZoomSvg
       svgRef={svgRef}
-      viewBox={background.viewBox}
+      viewBox={viewBox}
       onDown={e => {
         pointerType.current = e.pointerType
       }}
@@ -151,24 +152,10 @@ export function Stage({ svgRef, sitting, background, chart, highlighted, showPho
           <circle cx={0.5} cy={0.5} r={0.5} />
         </clipPath>
       </defs>
-      <g className={chart ? "room hidden" : "room"}>
-        <g className="hemicycle-background" dangerouslySetInnerHTML={{ __html: background.markup }} />
-        <g transform={`scale(${1 / DOT_SCALE})`}>
-          {sitting.emptySeats.map(seat => (
-            <circle
-              key={seat.number}
-              className="empty-seat"
-              cx={seat.x * DOT_SCALE}
-              cy={seat.y * DOT_SCALE}
-              r={SEAT_RADIUS * DOT_SCALE}
-            />
-          ))}
-        </g>
-      </g>
-      {chart && <ChartAxes chart={chart} />}
+      <Marks marks={scene.marks} scale={DOT_SCALE} />
       <g ref={dotsRef} transform={`scale(${1 / DOT_SCALE})`}>
-        {sitting.deputies.map((deputy, index) => {
-          const p = placed[index]
+        {deputies.map(deputy => {
+          const p = placedById.get(deputy.id)
           if (!p) return null
           return (
             <DeputyDot
@@ -183,14 +170,7 @@ export function Stage({ svgRef, sitting, background, chart, highlighted, showPho
             />
           )
         })}
-        <Rings
-          store={store}
-          selected={selected}
-          placedById={placedById}
-          colorOf={colorOf}
-          radius={radius}
-          showPhotos={showPhotos}
-        />
+        <Rings store={store} selected={selected} placedById={placedById} colorOf={colorOf} radius={radius} showPhotos={showPhotos} />
       </g>
     </PanZoomSvg>
   )
@@ -233,57 +213,6 @@ function Rings({
       {selected && ring(selected, "selected")}
       {target && target !== selected && ring(target, "hovered")}
     </g>
-  )
-}
-
-function ChartAxes({ chart }: { chart: Chart }) {
-  const { pitch, baseline, columns, fontSize } = chart
-  const first = columns[0]
-  const last = columns.at(-1)
-  if (!first || !last) return null
-  const left = first.x - pitch
-  const right = last.x + last.width + pitch
-  return (
-    <g className="chart-axes" style={{ fontSize }}>
-      {chart.gridRows.map(row => {
-        const y = baseline - row * pitch
-        return (
-          <g key={row}>
-            <line x1={left} x2={right} y1={y} y2={y} />
-            <text x={left - fontSize * TICK_GAP_EM} y={y} textAnchor="end" dominantBaseline="middle">
-              {row * chart.columnWidth}
-            </text>
-          </g>
-        )
-      })}
-      <line className="chart-baseline" x1={left} x2={right} y1={baseline} y2={baseline} />
-      {columns.map(column => (
-        <ColumnLabel key={column.key} column={column} labels={chart.labels} />
-      ))}
-    </g>
-  )
-}
-
-function ColumnLabel({ column, labels }: { column: ChartColumn; labels: ColumnLabels }) {
-  const x = column.x + column.width / 2
-  const title = <title>{`${column.count} · ${column.title}`}</title>
-  if (labels.kind === "flat") {
-    return (
-      <text x={x} y={labels.y} textAnchor="middle">
-        {title}
-        <tspan className="chart-count">{column.count}</tspan>
-        <tspan x={x} dy={labels.lineHeight}>
-          {column.label}
-        </tspan>
-      </text>
-    )
-  }
-  return (
-    <text x={x} y={labels.y} textAnchor="end" transform={`rotate(${-labels.degrees} ${x} ${labels.y})`}>
-      {title}
-      <tspan className="chart-count">{column.count}</tspan>
-      {` ${column.label}`}
-    </text>
   )
 }
 

@@ -7,7 +7,7 @@ const OPTIONS = { openSpeedPxPerS: 100, speedWindowMs: 100, holdMs: 200 }
 
 const A = deputyId("PA1")
 const B = deputyId("PA2")
-const geometry: Geometry = { anchor: { x: 0, y: 0, radius: 1 }, dots: () => [], dotRadius: 1, layout: "hemicycle" }
+const geometry: Geometry = { anchor: { x: 0, y: 0, radius: 1 }, dots: () => [], dotRadius: 1, card: "beside" }
 const seat = (id: DeputyId): Hit => ({ id, geometry })
 const at = (x: number) => ({ x, y: 0 })
 

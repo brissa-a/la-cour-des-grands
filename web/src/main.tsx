@@ -1,13 +1,21 @@
 import { StrictMode, use, Suspense, Component, type ReactNode } from "react"
 import { createRoot } from "react-dom/client"
-import { App, loadInitialColoring } from "./App.tsx"
+import { App } from "./App.tsx"
 import { loadAssembly } from "./data/assembly.ts"
-import { createFeatureStore } from "./data/features.ts"
+import { colorableFeatures, createFeatureStore } from "./data/features.ts"
+import { createFeatureCache } from "./sources/values.ts"
+import { DEFAULT_COLOR_FEATURE, HIDDEN_FEATURES } from "./sources/views.ts"
+import { readParam } from "./url.ts"
+import { parseView } from "./view/view.ts"
 import "./styles.css"
 
 const loaded = loadAssembly().then(async assembly => {
-  const store = createFeatureStore(assembly)
-  return { assembly, store, initialColoring: await loadInitialColoring(assembly, store) }
+  const features = colorableFeatures(assembly, HIDDEN_FEATURES)
+  const cache = createFeatureCache(createFeatureStore(assembly))
+  const initial = parseView(readParam, features, DEFAULT_COLOR_FEATURE)
+  if (!initial) throw new Error(`catalog.json: no feature ${DEFAULT_COLOR_FEATURE}`)
+  await cache.load(initial.fallback.of)
+  return { assembly, features, cache, initial }
 })
 
 function Loaded({ app }: { app: typeof loaded }) {

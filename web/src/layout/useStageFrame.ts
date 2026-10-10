@@ -1,11 +1,11 @@
 import { useLayoutEffect, useState, type RefObject } from "react"
-import type { ChartFrame } from "./chart.ts"
+import type { Frame } from "../forms/form.ts"
 import { freeArea } from "./freeArea.ts"
 
 const CLEARANCE_PX = 12
 
-export function useChartFrame(svgRef: RefObject<SVGSVGElement | null>): ChartFrame | null {
-  const [frame, setFrame] = useState<ChartFrame | null>(null)
+export function useStageFrame(svgRef: RefObject<SVGSVGElement | null>): Frame | null {
+  const [frame, setFrame] = useState<Frame | null>(null)
 
   useLayoutEffect(() => {
     const svg = svgRef.current
@@ -24,7 +24,7 @@ export function useChartFrame(svgRef: RefObject<SVGSVGElement | null>): ChartFra
   return frame
 }
 
-function measureFrame(svg: SVGSVGElement, overlays: readonly Element[]): ChartFrame | null {
+function measureFrame(svg: SVGSVGElement, overlays: readonly Element[]): Frame | null {
   const area = freeArea(svg.getBoundingClientRect(), overlays.map(o => o.getBoundingClientRect()), CLEARANCE_PX)
   const toScreen = svg.getScreenCTM()
   if (!area || !toScreen || toScreen.a <= 0) return null
@@ -34,7 +34,7 @@ function measureFrame(svg: SVGSVGElement, overlays: readonly Element[]): ChartFr
   return { area: { left: topLeft.x, top: topLeft.y, right: bottomRight.x, bottom: bottomRight.y }, px: 1 / toScreen.a }
 }
 
-function sameFrame(a: ChartFrame | null, b: ChartFrame | null): boolean {
+function sameFrame(a: Frame | null, b: Frame | null): boolean {
   if (!a || !b) return a === b
   return a.px === b.px && a.area.left === b.area.left && a.area.top === b.area.top && a.area.right === b.area.right && a.area.bottom === b.area.bottom
 }

@@ -1,27 +1,6 @@
-import { MISSING, type Coloring } from "../coloring/coloring.ts"
-import type { Civility, ConstituencyLabel, DeputyId, Person } from "../data/assembly.ts"
+import type { Civility, ConstituencyLabel, Person } from "../data/assembly.ts"
 
 export const numberFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 })
-
-export type ViewValue = { label: string; caption: string | null; color: string; missing: boolean }
-
-export function viewValue(coloring: Coloring, id: DeputyId): ViewValue {
-  const value = coloring.valueOf(id)
-  const color = coloring.colorOf(id)
-  const caption = captionFor(coloring, value)
-  if (value === MISSING) return { label: "Non renseigné", caption, color, missing: true }
-  if (coloring.kind === "category") {
-    const item = coloring.items.find(i => i.value === value)
-    return { label: item?.label ?? value, caption, color, missing: false }
-  }
-  const unit = coloring.unit ? ` ${coloring.unit}` : ""
-  return { label: `${numberFormat.format(Number(value))}${unit}`, caption, color, missing: false }
-}
-
-export function captionFor(coloring: Coloring, value: string): string | null {
-  const selfEvident = value !== MISSING && (coloring.kind === "category" || coloring.unit !== "")
-  return selfEvident ? null : coloring.title
-}
 
 export function constituencyShort(label: ConstituencyLabel): string {
   return `${label.department} (${label.department_number}) · ${ordinal(label.constituency_number)} circ.`

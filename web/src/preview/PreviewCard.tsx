@@ -1,26 +1,30 @@
 import { useLayoutEffect, useRef } from "react"
-import type { Coloring } from "../coloring/coloring.ts"
-import { PREVIEW_HEADER_FEATURES } from "../sources/views.ts"
 import type { DeputyId, Person } from "../data/assembly.ts"
-import { constituencyShort, viewValue } from "../profile/format.ts"
+import type { CardPolicy } from "../forms/form.ts"
+import { constituencyShort } from "../profile/format.ts"
 import { Portrait } from "../profile/Portrait.tsx"
-import { placeAbove, placeBeside, type Rect, type Side } from "./placement.ts"
+import type { Line } from "../sources/shapes.ts"
+import type { ColorLine } from "./lines.ts"
+import { placeAbove, placeBeside, type Placement, type PlacementInput, type Rect, type Side } from "./placement.ts"
 import { cardShown, usePreview, type PreviewStore } from "./previewStore.ts"
 
 const MARGIN = 8
 
+const PLACERS: Readonly<Record<CardPolicy, (input: PlacementInput) => Placement>> = { beside: placeBeside, above: placeAbove }
+
+export type CardLines = { readonly color: ColorLine | null; readonly layout: Line | null }
+
 type Props = {
   store: PreviewStore
   people: ReadonlyMap<DeputyId, Person>
-  coloring: Coloring
-  layoutBy: Coloring | null
+  lines: (id: DeputyId) => CardLines
   selected: DeputyId | null
   hint: boolean
   touch: boolean
   onOpen: (id: DeputyId) => void
 }
 
-export function PreviewCard({ store, people, coloring, layoutBy, selected, hint, touch, onOpen }: Props) {
+export function PreviewCard({ store, people, lines, selected, hint, touch, onOpen }: Props) {
   const { card } = usePreview(store)
   const ref = useRef<HTMLDivElement>(null)
   const side = useRef<Side | null>(null)
@@ -44,18 +48,16 @@ export function PreviewCard({ store, people, coloring, layoutBy, selected, hint,
       dotRadius: geometry.dotRadius,
       keep: side.current,
     }
-    const placement = geometry.layout === "chart" ? placeAbove(input) : placeBeside(input)
+    const placement = PLACERS[geometry.card](input)
     side.current = placement.side
     element.dataset.side = placement.side
     element.style.transform = `translate3d(${placement.left}px, ${placement.top}px, 0)`
     element.style.setProperty("--arrow", `${placement.arrow}px`)
     element.style.setProperty("--leader", `${placement.leader}px`)
-  }, [card, visible, geometry, coloring, layoutBy, hint])
+  }, [card, visible, geometry, lines, hint])
 
   if (!deputy) return null
-  const colorLine = PREVIEW_HEADER_FEATURES.has(coloring.key) ? null : viewValue(coloring, deputy.id)
-  const layoutLine =
-    layoutBy && layoutBy.key !== coloring.key && !PREVIEW_HEADER_FEATURES.has(layoutBy.key) ? viewValue(layoutBy, deputy.id) : null
+  const { color: colorLine, layout: layoutLine } = lines(deputy.id)
 
   return (
     <div

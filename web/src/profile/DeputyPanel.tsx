@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import type { Coloring } from "../coloring/coloring.ts"
 import type { Person, Seat } from "../data/assembly.ts"
-import type { Chart } from "../layout/chart.ts"
-import { birth, captionFor, constituencyLong, numberFormat, viewValue } from "./format.ts"
+import type { Where } from "../forms/form.ts"
+import type { Colored } from "../preview/lines.ts"
+import { birth, constituencyLong, numberFormat } from "./format.ts"
 
 const COPIED_MS = 1500
 
@@ -10,9 +10,8 @@ type Props = {
   deputy: Person
   seat: Seat | undefined
   open: boolean
-  coloring: Coloring
-  chart: Chart | null
-  layoutBy: Coloring | null
+  colored: Colored
+  place: Extract<Where, { kind: "part" }> | null
   total: number
   outOfView: string | null
   officialPage: string | undefined
@@ -20,7 +19,7 @@ type Props = {
   onClose: () => void
 }
 
-export function DeputyPanel({ deputy, seat, open, coloring, chart, layoutBy, total, outOfView, officialPage, address, onClose }: Props) {
+export function DeputyPanel({ deputy, seat, open, colored, place, total, outOfView, officialPage, address, onClose }: Props) {
   const scroller = useRef<HTMLElement>(null)
   const color = deputy.politicalGroup.color
 
@@ -73,8 +72,8 @@ export function DeputyPanel({ deputy, seat, open, coloring, chart, layoutBy, tot
         <h3>Dans la vue actuelle</h3>
         {outOfView === null ? (
           <>
-            <CurrentValue coloring={coloring} deputy={deputy} total={total} />
-            {chart && layoutBy && layoutBy.key !== coloring.key && <LayoutValue chart={chart} layoutBy={layoutBy} deputy={deputy} />}
+            <CurrentValue colored={colored} deputy={deputy} total={total} />
+            {place && <LayoutValue place={place} />}
           </>
         ) : (
           <p className="panel-value muted">{outOfView}</p>
@@ -116,57 +115,62 @@ function CopyLink() {
   )
 }
 
-function CurrentValue({ coloring, deputy, total }: { coloring: Coloring; deputy: Person; total: number }) {
-  const value = viewValue(coloring, deputy.id)
-  if (coloring.kind === "category") {
-    const count = coloring.items.find(i => i.value === coloring.valueOf(deputy.id))?.count ?? 0
-    return (
-      <p className="panel-value">
-        <span className="dot" style={{ background: value.color }} />
-        <span className="panel-value-label">{value.label}</span>
-        <span className="muted">
-          {value.caption && `· ${value.caption} `}· {count} député{count > 1 ? "s" : ""} sur {total}
-        </span>
-      </p>
-    )
+function CurrentValue({ colored: { reading, paint }, deputy, total }: { colored: Colored; deputy: Person; total: number }) {
+  const value = reading.lineOf(deputy.id)
+  if (!value) return null
+  const color = paint.colorOf(deputy.id)
+  const { legend } = paint
+  switch (legend.kind) {
+    case "swatches": {
+      const key = legend.keyOf(deputy.id)
+      const count = legend.swatches.find(swatch => swatch.key === key)?.members.length ?? 0
+      return (
+        <p className="panel-value">
+          <span className="dot" style={{ background: color }} />
+          <span className="panel-value-label">{value.label}</span>
+          <span className="muted">
+            {value.caption && `· ${value.caption} `}· {count} député{count > 1 ? "s" : ""} sur {total}
+          </span>
+        </p>
+      )
+    }
+    case "ramp": {
+      const [from, to] = legend.gradient
+      const span = legend.max - legend.min || 1
+      const percent = (n: number) => `${((n - legend.min) / span) * 100}%`
+      const at = legend.valueOf(deputy.id)
+      return (
+        <div className="panel-scale">
+          <p className="panel-value">
+            <span className="panel-value-label">{value.label}</span>
+            {value.caption && <span className="muted">· {value.caption}</span>}
+          </p>
+          <div className="mini-scale" style={{ background: `linear-gradient(to right in oklab, ${from}, ${to})` }}>
+            <span className="mini-mean" style={{ left: percent(legend.mean) }} />
+            {at !== null && <span className="mini-marker" style={{ left: percent(at), background: color }} />}
+          </div>
+          <div className="mini-labels">
+            <span>{numberFormat.format(legend.min)}</span>
+            <span className="mini-mean-label" style={{ left: percent(legend.mean) }}>
+              {numberFormat.format(legend.mean)}
+              {legend.unit && ` ${legend.unit}`} en moyenne
+            </span>
+            <span>{numberFormat.format(legend.max)}</span>
+          </div>
+        </div>
+      )
+    }
   }
-  const [from, to] = coloring.gradient
-  const span = coloring.max - coloring.min || 1
-  const percent = (n: number) => `${((n - coloring.min) / span) * 100}%`
-  const raw = coloring.valueOf(deputy.id)
-  return (
-    <div className="panel-scale">
-      <p className="panel-value">
-        <span className="panel-value-label">{value.label}</span>
-        {value.caption && <span className="muted">· {value.caption}</span>}
-      </p>
-      <div className="mini-scale" style={{ background: `linear-gradient(to right in oklab, ${from}, ${to})` }}>
-        <span className="mini-mean" style={{ left: percent(coloring.mean) }} />
-        {!value.missing && <span className="mini-marker" style={{ left: percent(Number(raw)), background: value.color }} />}
-      </div>
-      <div className="mini-labels">
-        <span>{numberFormat.format(coloring.min)}</span>
-        <span className="mini-mean-label" style={{ left: percent(coloring.mean) }}>
-          {numberFormat.format(coloring.mean)}
-          {coloring.unit && ` ${coloring.unit}`} en moyenne
-        </span>
-        <span>{numberFormat.format(coloring.max)}</span>
-      </div>
-    </div>
-  )
 }
 
-function LayoutValue({ chart, layoutBy, deputy }: { chart: Chart; layoutBy: Coloring; deputy: Person }) {
-  const position = chart.positions.get(deputy.id)
-  const column = position && chart.columns.find(c => position.x >= c.x && position.x <= c.x + c.width)
-  if (!column) return null
-  const caption = captionFor(layoutBy, column.key)
+function LayoutValue({ place: { part, within } }: { place: Extract<Where, { kind: "part" }> }) {
+  const count = part.members.length
   return (
     <p className="panel-value">
       <span className="column-glyph" />
-      <span className="panel-value-label">{column.label}</span>
+      <span className="panel-value-label">{part.label}</span>
       <span className="muted">
-        {caption && `· ${caption} `}· {column.count} député{column.count > 1 ? "s" : ""} dans la colonne
+        {part.caption && `· ${part.caption} `}· {count} député{count > 1 ? "s" : ""} dans {within}
       </span>
     </p>
   )

@@ -3,22 +3,22 @@ import { AddressBlock } from "./address/AddressBlock.tsx"
 import type { Located } from "./address/lookup.ts"
 import { createLookupSources } from "./address/sources.ts"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId, type Person, type Sitting } from "./data/assembly.ts"
-import { colorableFeatures, type ColorableFeature, type FeatureStore } from "./data/features.ts"
-import { buildChart } from "./layout/chart.ts"
-import { buildColoring, VOTE, type Coloring, type ColoringKey, type FeatureColoring } from "./coloring/coloring.ts"
-import { FeaturePicker } from "./coloring/FeaturePicker.tsx"
-import { useColoring } from "./coloring/useColoring.ts"
-import { voteColoring } from "./coloring/voteColoring.ts"
-import { DEFAULT_COLOR_FEATURE as DEFAULT_COLORING, HIDDEN_FEATURES } from "./sources/views.ts"
-import { SEAT_RADIUS, Stage } from "./layout/Stage.tsx"
+import type { ColorableFeature } from "./data/features.ts"
+import type { Order, Scene } from "./forms/form.ts"
+import { placeHemicycle } from "./forms/hemicycle.ts"
+import { layOut } from "./forms/registry.ts"
+import { Stage } from "./layout/Stage.tsx"
 import { Legend } from "./layout/Legend.tsx"
 import { VoteHeader } from "./layout/VoteHeader.tsx"
-import { useChartFrame } from "./layout/useChartFrame.ts"
+import { useStageFrame } from "./layout/useStageFrame.ts"
 import { useMediaQuery } from "./layout/useMediaQuery.ts"
+import type { Paint } from "./paint/paint.ts"
+import { paintWith } from "./paint/registry.ts"
 import { ConfigButton, ConfigPanel } from "./config/ConfigPanel.tsx"
 import { useConfig } from "./config/useConfig.ts"
 import { hasOpenedPanel, rememberPanelOpened } from "./preview/firstUse.ts"
-import { neighbour, type Direction } from "./preview/neighbours.ts"
+import { colorLine, layoutLine, layoutPlace, type Colored } from "./preview/lines.ts"
+import { step, type Direction } from "./preview/neighbours.ts"
 import { PreviewCard } from "./preview/PreviewCard.tsx"
 import { cardShown, createPreviewStore, usePreview, type Hit, type PreviewStore } from "./preview/previewStore.ts"
 import { Reader } from "./preview/Reader.tsx"
@@ -26,12 +26,21 @@ import { DeputyPanel } from "./profile/DeputyPanel.tsx"
 import { longDate } from "./profile/format.ts"
 import { Search } from "./search/Search.tsx"
 import { Footer } from "./Footer.tsx"
+import { voteParts } from "./sources/parts.ts"
+import { readingOf, readSeats } from "./sources/read.ts"
+import { seatsOf } from "./sources/seats.ts"
+import type { Data, Reading } from "./sources/shapes.ts"
+import { featureOf, useFeatureValues } from "./sources/useFeatureValues.ts"
+import type { FeatureCache } from "./sources/values.ts"
+import { DEFAULT_COLOR_FEATURE } from "./sources/views.ts"
 import { pushParam, readParam, writeParam } from "./url.ts"
+import { colorId, colorOptions, layoutId, layoutOptions } from "./view/options.ts"
+import { Picker } from "./view/Picker.tsx"
+import { HEMICYCLE, readsVote, viewOf, VOTE_COLOR, writeView, type ParsedView, type View } from "./view/view.ts"
 import type { VotePosition } from "./votes/positions.ts"
 import { sittingOn } from "./votes/sitting.ts"
 import { createVoteSource, type ReadVote } from "./votes/sources.ts"
 import { useVoteView } from "./votes/useVoteView.ts"
-import { voteId, type VoteId } from "./votes/voteId.ts"
 import type { Vote } from "./votes/votes.ts"
 
 const NO_IDS: ReadonlySet<DeputyId> = new Set()
@@ -39,37 +48,57 @@ const PANEL_HISTORY_STATE = { panel: true }
 const PHONE = "(max-width: 759px)"
 const TOUCH_ONLY = "(hover: none)"
 
-type Props = { assembly: Assembly; store: FeatureStore; initialColoring: FeatureColoring }
+type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache: FeatureCache; initial: ParsedView }
 
-type View = { color: ColoringKey; chart: ColoringKey | null; vote: VoteId | null }
+type Staged = { scene: Scene; reading: Reading }
 
-type Hovered = { by: Coloring; value: string }
-
-export function App({ assembly, store, initialColoring }: Props) {
-  const features = useMemo(() => colorableFeatures(assembly, HIDDEN_FEATURES), [assembly])
+export function App({ assembly, features, cache, initial }: Props) {
   const votes = useMemo(() => createVoteSource(assembly.catalog, assembly.people), [assembly])
-  const [initialView] = useState(() => viewInUrl(features, initialColoring))
-  const [colorKey, setColorKey] = useState(initialView.color)
-  const [chartKey, setChartKey] = useState(initialView.chart)
-  const [shownVote, setShownVote] = useState(initialView.vote)
-  const voteView = useVoteView(votes, shownVote)
-  const voteInView = colorKey === VOTE || chartKey === VOTE
+  const [view, setView] = useState(initial.view)
+  const [fallbackColor, setFallbackColor] = useState(initial.fallback)
+  const [remembered, setRemembered] = useState(initial.view.scrutin)
+  const voteView = useVoteView(votes, remembered)
+  const voteInView = view.scrutin !== null
   const readVote = (voteView.status === "loading" ? voteView.previous : voteView.status === "ready" ? voteView : null)?.read ?? null
   const pastSitting = useMemo(() => readVote && sittingOn(assembly, readVote.reading.roster), [assembly, readVote])
   const sitting: Sitting = voteInView && pastSitting ? pastSitting : assembly
-  const voteColor = useMemo(() => readVote && pastSitting && voteColoring(readVote, pastSitting.deputies), [readVote, pastSitting])
+  const drawn = useMemo(() => sitting.deputies.map(deputy => deputy.id), [sitting])
+  const seats = useMemo(() => seatsOf(sitting, assembly.background), [sitting, assembly])
+  const vote = voteInView ? readVote : null
+
+  const colorValues = useFeatureValues(cache, featureOf(view.color.of))
+  const fallbackValues = useFeatureValues(cache, featureOf(fallbackColor.of))
+  const layoutValues = useFeatureValues(cache, featureOf(view.layout.of))
+  const colorReading = useMemo(
+    () => readingOf(view.color.of, { drawn, values: colorValues, vote, seats }),
+    [view.color.of, drawn, colorValues, vote, seats],
+  )
+  const fallbackReading = useMemo(
+    () => readingOf(fallbackColor.of, { drawn, values: fallbackValues, vote, seats }),
+    [fallbackColor.of, drawn, fallbackValues, vote, seats],
+  )
+  const layoutReading = useMemo(
+    () => readingOf(view.layout.of, { drawn, values: layoutValues, vote, seats }),
+    [view.layout.of, drawn, layoutValues, vote, seats],
+  )
+
+  const lastColored = useRef<Colored | null>(null)
+  const colored = useMemo(() => {
+    const ready = colorReading ?? fallbackReading
+    const painter = colorReading ? view.color : fallbackColor
+    const paint = ready && paintWith(painter.paint, dataOf(ready))
+    return ready && paint ? { reading: ready, paint } : lastColored.current
+  }, [colorReading, fallbackReading, view.color, fallbackColor])
+  if (colored) lastColored.current = colored
+
   const previewOptions = useConfig(config => config.preview)
   const [preview] = useState(() => createPreviewStore(previewOptions))
   const [selected, setSelected] = useState<DeputyId | null>(() => deputyInUrl(assembly))
   const [panelId, setPanelId] = useState<DeputyId | null>(selected)
   const [hint, setHint] = useState(() => !hasOpenedPanel())
   const [searchResults, setSearchResults] = useState(NO_IDS)
-  const [hovered, setHovered] = useState<Hovered | null>(null)
+  const [hovered, setHovered] = useState<readonly DeputyId[] | null>(null)
   const [showPhotos, setShowPhotos] = useState(() => readParam("showPic") === "true")
-  const [featureColoring, requestColoring] = useColoring(store, features, sitting.deputies, initialColoring)
-  const [chartFeature, requestChartBy] = useColoring(store, features, sitting.deputies, null)
-  const coloring: Coloring = colorKey === VOTE && voteColor ? voteColor : featureColoring
-  const chartBy: Coloring | null = chartKey === VOTE ? voteColor : chartFeature
   const [officialPages, setOfficialPages] = useState<ReadonlyMap<DeputyId, string>>(new Map())
   const [configOpen, setConfigOpen] = useState(false)
   const lookupSources = useMemo(() => createLookupSources(assembly.catalog), [assembly])
@@ -77,7 +106,15 @@ export function App({ assembly, store, initialColoring }: Props) {
   const phone = useMediaQuery(PHONE)
   const touchOnly = useMediaQuery(TOUCH_ONLY)
   const svgRef = useRef<SVGSVGElement>(null)
-  const chartFrame = useChartFrame(svgRef)
+  const frame = useStageFrame(svgRef)
+
+  const order = useMemo(() => colored && rankThenName(colored.paint, sitting), [colored, sitting])
+  const room = useMemo(() => ({ scene: placeHemicycle(seats), reading: readSeats(seats) }), [seats])
+  const staged: Staged = useMemo(() => {
+    if (!layoutReading || !frame || !order) return room
+    const scene = layOut(view.layout.form, dataOf(layoutReading), { frame, order })
+    return scene ? { scene, reading: layoutReading } : room
+  }, [layoutReading, frame, order, view.layout.form, room])
 
   useEffect(() => {
     loadOfficialPages().then(setOfficialPages, (error: unknown) => console.error(error))
@@ -88,18 +125,20 @@ export function App({ assembly, store, initialColoring }: Props) {
   useEffect(() => {
     if (isPanelHistoryEntry(history.state)) history.replaceState(null, "")
     if (readParam("deputy") !== null && selected === null) writeParam("deputy", null)
-    writeView(initialView)
-    if (initialView.chart !== null && initialView.chart !== VOTE) requestChartBy(initialView.chart)
+    writeUrl(initial.view)
   }, [])
 
   useEffect(() => {
     if (voteView.status !== "missing") return
-    const view = { color: colorKey === VOTE ? featureColoring.key : colorKey, chart: chartKey === VOTE ? null : chartKey, vote: null }
-    setColorKey(view.color)
-    setChartKey(view.chart)
-    setShownVote(null)
-    writeView(view)
+    const next = viewOf(readsVote(view.color) ? fallbackColor : view.color, readsVote(view.layout) ? HEMICYCLE : view.layout, null)
+    if (next) change(next)
+    setRemembered(null)
   }, [voteView.status])
+
+  const change = (next: View) => {
+    setView(next)
+    writeUrl(next)
+  }
 
   const open = (id: DeputyId) => {
     if (id === selected) return
@@ -133,23 +172,22 @@ export function App({ assembly, store, initialColoring }: Props) {
     setSelected(null)
   }
 
-  const selectColoring = (key: ColoringKey | null) => {
-    if (key === null) return
-    setColorKey(key)
-    if (key !== VOTE) requestColoring(key)
-    writeView({ color: key, chart: chartKey, vote: shownVote })
+  const selectColor = (choice: View["color"]) => {
+    const next = viewOf(choice, view.layout, remembered)
+    if (next === null) return
+    if (!readsVote(choice)) setFallbackColor(choice)
+    change(next)
   }
 
-  const selectChart = (key: ColoringKey | null) => {
-    setChartKey(key)
-    if (key !== null && key !== VOTE) requestChartBy(key)
-    writeView({ color: colorKey, chart: key, vote: shownVote })
+  const selectLayout = (choice: View["layout"]) => {
+    const next = viewOf(view.color, choice, remembered)
+    if (next) change(next)
   }
 
-  const pickVote = (vote: Vote) => {
-    setShownVote(vote.id)
-    setColorKey(VOTE)
-    writeView({ color: VOTE, chart: chartKey, vote: vote.id })
+  const pickVote = (picked: Vote) => {
+    setRemembered(picked.id)
+    const next = viewOf(VOTE_COLOR, view.layout, picked.id)
+    if (next) change(next)
   }
 
   useEffect(() => {
@@ -158,12 +196,12 @@ export function App({ assembly, store, initialColoring }: Props) {
       setSelected(id)
       if (id) setPanelId(id)
       else setAddressContext(null)
-      writeView({ color: colorKey, chart: chartKey, vote: shownVote })
+      writeUrl(view)
       writeParam("showPic", showPhotos ? "true" : null)
     }
     addEventListener("popstate", onPopState)
     return () => removeEventListener("popstate", onPopState)
-  }, [assembly, colorKey, chartKey, shownVote, showPhotos])
+  }, [assembly, view, showPhotos])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -175,17 +213,6 @@ export function App({ assembly, store, initialColoring }: Props) {
     addEventListener("keydown", onKeyDown)
     return () => removeEventListener("keydown", onKeyDown)
   })
-
-  const chart = useMemo(
-    () =>
-      chartKey !== null && chartBy?.key === chartKey && chartFrame
-        ? buildChart(chartBy, coloring, sitting.deputies, SEAT_RADIUS, chartFrame)
-        : null,
-    [chartKey, chartBy, coloring, sitting, chartFrame],
-  )
-  const layoutBy = chart ? chartBy : null
-
-  const seatPositions = useMemo(() => new Map(sitting.deputies.map(d => [d.id, d.seat])), [sitting])
 
   const onTap = (hit: Hit | null, pointerType: string) => {
     const shown = cardShown(preview.get().card, selected)
@@ -205,23 +232,25 @@ export function App({ assembly, store, initialColoring }: Props) {
     else close()
   }
 
-  const step = (from: DeputyId, direction: Direction) => {
-    const positions = chart?.positions ?? seatPositions
-    const next = neighbour(positions, from, direction, chart ? { kind: "chart", rowTolerance: chart.pitch / 2 } : { kind: "hemicycle" })
+  const stepFrom = (from: DeputyId, direction: Direction) => {
+    const next = step(staged.scene.lines, from, direction)
     if (next) preview.show(next, null)
   }
 
-  const highlighted = useMemo(() => {
-    if (hovered === null) return searchResults
-    const ids = new Set(searchResults)
-    for (const d of sitting.deputies) if (hovered.by.valueOf(d.id) === hovered.value) ids.add(d.id)
-    return ids
-  }, [searchResults, hovered, sitting])
+  const highlighted = useMemo(() => (hovered === null ? searchResults : new Set([...searchResults, ...hovered])), [searchResults, hovered])
 
-  const hoverValue = (value: string | null) => setHovered(value === null ? null : { by: coloring, value })
-
+  const votePartsNow = useMemo(() => vote && voteParts(vote, drawn), [vote, drawn])
   const hoverPosition = (position: VotePosition | null) =>
-    setHovered(position === null || voteColor === null ? null : { by: voteColor, value: position })
+    setHovered(position === null ? null : (votePartsNow?.parts.find(part => part.key === position)?.members ?? null))
+
+  const cardLines = useCallback(
+    (id: DeputyId) => ({
+      color: colored && colorLine(colored, id),
+      layout: colored && layoutLine(staged.reading, colored, id),
+    }),
+    [colored, staged],
+  )
+  const readerLine = useCallback((id: DeputyId) => colored && colorLine(colored, id), [colored])
 
   const toggleConfig = () => {
     if (!configOpen) preview.halo(null)
@@ -235,21 +264,24 @@ export function App({ assembly, store, initialColoring }: Props) {
     writeParam("showPic", showPhotos ? null : "true")
   }
 
+  if (colored === null) return null
+
   const panelDeputy = panelId === null ? undefined : (sitting.byId.get(panelId) ?? assembly.people.get(panelId))
-  const panelOutOfView = panelDeputy === undefined ? null : outOfView(panelDeputy, sitting, voteInView ? readVote : null)
-  const voteOption = shownVote === null ? null : readVote?.vote.id === shownVote ? `Scrutin n° ${readVote.vote.number}` : "Scrutin"
+  const panelOutOfView = panelDeputy === undefined ? null : outOfView(panelDeputy, sitting, vote)
+  const voteOption = remembered === null ? null : readVote?.vote.id === remembered ? `Scrutin n° ${readVote.vote.number}` : "Scrutin"
+  const colorsVote = colored.reading.source.kind === "vote"
 
   return (
     <div className={selected ? "app panel-open" : "app"}>
       <main className="stage">
         <Stage
           svgRef={svgRef}
-          sitting={sitting}
-          background={assembly.background}
-          chart={chart}
+          viewBox={assembly.background.viewBox}
+          deputies={sitting.deputies}
+          scene={staged.scene}
           highlighted={highlighted}
           showPhotos={showPhotos}
-          colorOf={coloring.colorOf}
+          colorOf={colored.paint.colorOf}
           store={preview}
           selected={selected}
           onTap={onTap}
@@ -260,24 +292,17 @@ export function App({ assembly, store, initialColoring }: Props) {
             <VoteHeader
               view={voteView}
               unplaced={pastSitting?.unplaced ?? 0}
-              legend={coloring.key === VOTE}
+              legend={colorsVote}
               store={preview}
               selected={selected}
               onHover={hoverPosition}
             />
           )}
-          {coloring.key !== VOTE && <Legend coloring={coloring} store={preview} selected={selected} onHover={hoverValue} />}
+          {!colorsVote && <Legend paint={colored.paint} store={preview} selected={selected} onHover={setHovered} />}
         </div>
         <div className="controls panel" data-obstacle="" data-overlay="">
-          <FeaturePicker
-            label="Disposition"
-            features={features}
-            vote={voteOption}
-            selected={chartKey}
-            onSelect={selectChart}
-            noneLabel="Hémicycle"
-          />
-          <FeaturePicker label="Colorier par" features={features} vote={voteOption} selected={colorKey} onSelect={selectColoring} />
+          <Picker label="Disposition" options={layoutOptions(features, voteOption)} selected={layoutId(view.layout)} onSelect={selectLayout} />
+          <Picker label="Colorier par" options={colorOptions(features, voteOption)} selected={colorId(view.color)} onSelect={selectColor} />
           <div className="control-row">
             <label className="control">
               <input type="checkbox" checked={showPhotos} onChange={togglePhotos} /> Afficher les photos
@@ -288,13 +313,12 @@ export function App({ assembly, store, initialColoring }: Props) {
       </main>
       {configOpen && <ConfigPanel onClose={closeConfig} />}
       {phone ? (
-        <Reader store={preview} people={sitting.byId} coloring={coloring} onOpen={open} onStep={step} />
+        <Reader store={preview} people={sitting.byId} colorLine={readerLine} onOpen={open} onStep={stepFrom} />
       ) : (
         <PreviewCard
           store={preview}
           people={sitting.byId}
-          coloring={coloring}
-          layoutBy={layoutBy}
+          lines={cardLines}
           selected={selected}
           hint={hint}
           touch={touchOnly}
@@ -306,9 +330,8 @@ export function App({ assembly, store, initialColoring }: Props) {
           deputy={panelDeputy}
           seat={assembly.byId.get(panelDeputy.id)?.seat}
           open={selected !== null}
-          coloring={coloring}
-          chart={chart}
-          layoutBy={layoutBy}
+          colored={colored}
+          place={layoutPlace(staged.reading, colored, staged.scene.where(panelDeputy.id))}
           total={sitting.deputies.length}
           outOfView={panelOutOfView}
           officialPage={officialPages.get(panelDeputy.id)}
@@ -346,6 +369,19 @@ function RestHint({ store, touch }: { store: PreviewStore; touch: boolean }) {
   )
 }
 
+function dataOf(reading: Reading): Partial<Data> {
+  return reading.data
+}
+
+function rankThenName({ rank }: Paint, sitting: Sitting): Order {
+  const name = (id: DeputyId) => sitting.byId.get(id)?.last_name ?? ""
+  return (a, b) => rank(a) - rank(b) || name(a).localeCompare(name(b))
+}
+
+function writeUrl(view: View): void {
+  writeView(view, writeParam, DEFAULT_COLOR_FEATURE)
+}
+
 function outOfView(person: Person, sitting: Sitting, vote: ReadVote | null): string | null {
   if (vote !== null) return vote.reading.positions.has(person.id) ? null : `Ne siégeait pas le ${longDate(vote.vote.date)}`
   return sitting.byId.has(person.id) || person.in_office === "yes" ? null : "Ne siège plus"
@@ -356,29 +392,6 @@ function deputyInUrl(assembly: Assembly): DeputyId | null {
   return Array.from(assembly.people.keys()).find(id => id === requested) ?? null
 }
 
-function viewInUrl(features: readonly ColorableFeature[], initialColoring: FeatureColoring): View {
-  const vote = voteId(readParam("vote") ?? "")
-  const chartFeature = features.find(f => f.key === readParam("chart"))?.key ?? null
-  if (vote === null) return { color: initialColoring.key, chart: chartFeature, vote }
-  const chart = readParam("chart") === VOTE ? VOTE : chartFeature
-  const color = readParam("color") === VOTE || chart !== VOTE ? VOTE : initialColoring.key
-  return { color, chart, vote }
-}
-
-function writeView({ color, chart, vote }: View): void {
-  writeParam("vote", color === VOTE || chart === VOTE ? vote : null)
-  writeParam("color", color === DEFAULT_COLORING ? null : color)
-  writeParam("chart", chart)
-}
-
 function isPanelHistoryEntry(state: unknown): boolean {
   return typeof state === "object" && state !== null && "panel" in state && state.panel === true
-}
-
-export async function loadInitialColoring(assembly: Assembly, store: FeatureStore): Promise<FeatureColoring> {
-  const features = colorableFeatures(assembly, HIDDEN_FEATURES)
-  const requested = readParam("color")
-  const source = features.find(f => f.key === requested) ?? features.find(f => f.key === DEFAULT_COLORING)
-  if (!source) throw new Error(`catalog.json: no feature ${DEFAULT_COLORING}`)
-  return buildColoring(store, source, assembly.deputies)
 }

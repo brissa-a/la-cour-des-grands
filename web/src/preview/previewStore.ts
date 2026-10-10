@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react"
 import type { Config } from "../config/config.ts"
 import type { DeputyId } from "../data/assembly.ts"
+import type { CardPolicy } from "../forms/form.ts"
 import type { Anchor, Point } from "./placement.ts"
 
 export type PreviewOptions = Config["preview"]
@@ -9,7 +10,7 @@ export type Geometry = {
   anchor: Anchor
   dots: () => readonly Point[]
   dotRadius: number
-  layout: "hemicycle" | "chart"
+  card: CardPolicy
 }
 
 export type Hit = { id: DeputyId; geometry: Geometry }
