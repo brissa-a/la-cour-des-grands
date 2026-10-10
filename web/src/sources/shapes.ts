@@ -69,7 +69,7 @@ export const OFFERS = {
   seat: ["seats"],
 } as const satisfies Readonly<Record<SourceKind, readonly Shape[]>>
 
-type KindsFor<S extends Shape> = { [K in SourceKind]: [(typeof OFFERS)[K][number] & S] extends [never] ? never : K }[SourceKind]
+export type KindsFor<S extends Shape> = { [K in SourceKind]: [(typeof OFFERS)[K][number] & S] extends [never] ? never : K }[SourceKind]
 
 export type SourceOf<K extends SourceKind> = Extract<Source, { readonly kind: K }>
 
