@@ -7,7 +7,7 @@ export function freeArea(stage: Rect, overlays: readonly Rect[], clearance: numb
     if (overlay.top + overlay.bottom < stage.top + stage.bottom) top = Math.max(top, overlay.bottom)
     else bottom = Math.min(bottom, overlay.top)
   }
-  return inset({ ...stage, top, bottom }, clearance) ?? inset(stage, clearance)
+  return inset({ left: stage.left, top, right: stage.right, bottom }, clearance) ?? inset(stage, clearance)
 }
 
 function inset(rect: Rect, by: number): Rect | null {
