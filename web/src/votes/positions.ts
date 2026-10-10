@@ -1,6 +1,7 @@
 import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import { labelReader, type LabelRow } from "./labels.ts"
 import type { VoteId } from "./voteId.ts"
+import type { VoteKind } from "./votes.ts"
 
 export const POSITIONS = ["for", "against", "abstain", "not_voting", "absent"] as const
 
@@ -15,8 +16,16 @@ export type PositionRow = Readonly<Record<"deputy_id", string>> & Readonly<Recor
 
 export type Cells = ReadonlyMap<DeputyId, VotePosition>
 
-export function parsePositionTable(rows: readonly LabelRow[], table: string): PositionTable {
-  const label = labelReader(rows, POSITIONS, table)
+const KIND_LABELS: Readonly<Record<VoteKind, Partial<Readonly<Record<VotePosition, string>>>>> = {
+  ordinary: {},
+  solemn: {},
+  // Only the votes for a censure motion are recorded: its opponents do not vote.
+  censure_motion: { absent: "Absent ou contre" },
+}
+
+export function parsePositionTable(rows: readonly LabelRow[], table: string, kind: VoteKind): PositionTable {
+  const dataLabel = labelReader(rows, POSITIONS, table)
+  const label = (position: VotePosition) => KIND_LABELS[kind][position] ?? dataLabel(position)
   return {
     order: rows.flatMap(row => POSITIONS.filter(position => position === row.value)),
     label: {

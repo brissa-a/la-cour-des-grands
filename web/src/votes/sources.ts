@@ -27,15 +27,20 @@ export function createVoteSource(catalog: Catalog, people: ReadonlyMap<DeputyId,
     return voteIndex(parseVotes(rows), parseVoteLabels(kinds, kindTable, results, resultTable))
   })
   const positionRows = memoize((file: string): Promise<readonly PositionRow[]> => loadCsv(file, ["deputy_id"]))
-  const positionTable = memoize(async (table: string) => parsePositionTable(await loadCsv(table, LABEL_COLUMNS), table))
+  const positionLabels = memoize((table: string) => loadCsv(table, LABEL_COLUMNS))
   let holders: readonly Holder[] | null = null
 
   return {
     index: () => index(null),
     read: async vote => {
-      const [rows, table] = await Promise.all([positionRows(vote.file), positionTable(columnsValuesTablePath(catalog, vote.file))])
+      const labelTable = columnsValuesTablePath(catalog, vote.file)
+      const [rows, labels] = await Promise.all([positionRows(vote.file), positionLabels(labelTable)])
       holders ??= parseHolders(people.values())
-      return { vote, table, reading: readVote(rosterOn(holders, vote.date), parseCells(rows, vote.id, vote.file)) }
+      return {
+        vote,
+        table: parsePositionTable(labels, labelTable, vote.kind),
+        reading: readVote(rosterOn(holders, vote.date), parseCells(rows, vote.id, vote.file)),
+      }
     },
   }
 }

@@ -40,9 +40,16 @@ test("a position outside the values table, or a vote missing from its file, is r
 })
 
 test("positions follow the values table's order and labels, which must name every position and no other", () => {
-  const table = parsePositionTable([...positionRows.slice(4), ...positionRows.slice(0, 4)], TABLE)
+  const table = parsePositionTable([...positionRows.slice(4), ...positionRows.slice(0, 4)], TABLE, "ordinary")
   assert.deepEqual(table.order, ["absent", "for", "against", "abstain", "not_voting"])
   assert.equal(table.label.not_voting, "Non-votant")
-  assert.throws(() => parsePositionTable(positionRows.slice(1), TABLE), /no row for "for"/)
-  assert.throws(() => parsePositionTable([...positionRows, { value: "present", label_fr: "Présent" }], TABLE), /unknown value "present"/)
+  assert.throws(() => parsePositionTable(positionRows.slice(1), TABLE, "ordinary"), /no row for "for"/)
+  assert.throws(() => parsePositionTable([...positionRows, { value: "present", label_fr: "Présent" }], TABLE, "ordinary"), /unknown value "present"/)
+})
+
+test("only a censure motion labels its absent deputies absent or against; every other label comes from the values table", () => {
+  const dataLabels = { for: "Pour", against: "Contre", abstain: "Abstention", not_voting: "Non-votant", absent: "Absent" }
+  assert.deepEqual(parsePositionTable(positionRows, TABLE, "censure_motion").label, { ...dataLabels, absent: "Absent ou contre" })
+  assert.deepEqual(parsePositionTable(positionRows, TABLE, "ordinary").label, dataLabels)
+  assert.deepEqual(parsePositionTable(positionRows, TABLE, "solemn").label, dataLabels)
 })
