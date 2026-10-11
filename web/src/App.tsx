@@ -32,10 +32,10 @@ import type { Data, Reading } from "./sources/shapes.ts"
 import { featureOf, useFeatureValues } from "./sources/useFeatureValues.ts"
 import type { FeatureCache } from "./sources/values.ts"
 import { DEFAULT_COLOR_FEATURE } from "./sources/views.ts"
-import { pushParam, readParam, writeParam } from "./url.ts"
+import { pushParam, readParam, writeParam, writeParams } from "./url.ts"
 import { colorId, colorOptions, layoutId, layoutOptions } from "./view/options.ts"
 import { Picker } from "./view/Picker.tsx"
-import { HEMICYCLE, readsVote, viewOf, VOTE_COLOR, writeView, type ParsedView, type View } from "./view/view.ts"
+import { HEMICYCLE, readsVote, viewOf, viewParams, VOTE_COLOR, type ParsedView, type View } from "./view/view.ts"
 import type { VotePosition } from "./votes/positions.ts"
 import { sittingOn } from "./votes/sitting.ts"
 import { createVoteSource, type ReadVote } from "./votes/sources.ts"
@@ -81,9 +81,9 @@ export function App({ assembly, features, cache, initial }: Props) {
 
   const chosenColored = useMemo(() => colorWith(view.color.paint, colorReading), [view.color.paint, colorReading])
   const fallbackColored = useMemo(() => colorWith(fallbackColor.paint, fallbackReading), [fallbackColor.paint, fallbackReading])
-  const lastColored = useRef<Colored | null>(null)
-  const colored = chosenColored ?? fallbackColored ?? lastColored.current
-  lastColored.current = colored
+  const lastPlainColored = useRef<Colored | null>(null)
+  const colored = chosenColored ?? fallbackColored ?? lastPlainColored.current
+  if (colored && colored.reading.source.kind !== "vote") lastPlainColored.current = colored
 
   const previewOptions = useConfig(config => config.preview)
   const [preview] = useState(() => createPreviewStore(previewOptions))
@@ -102,8 +102,12 @@ export function App({ assembly, features, cache, initial }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const frame = useStageFrame(svgRef)
 
-  const order = useMemo(() => colored && rankThenName(colored.paint, sitting), [colored, sitting])
-  const staged = useStaging(view.layout.form, layoutReading, order, frame, seats, drawn)
+  const order = useMemo(() => chosenColored && rankThenName(chosenColored.paint, sitting), [chosenColored, sitting])
+  const arrangement = useMemo(
+    () => layoutReading && order && { form: view.layout.form, reading: layoutReading, order },
+    [view.layout.form, layoutReading, order],
+  )
+  const staged = useStaging(arrangement, frame, seats, drawn)
 
   useEffect(() => {
     loadOfficialPages().then(setOfficialPages, (error: unknown) => console.error(error))
@@ -185,8 +189,7 @@ export function App({ assembly, features, cache, initial }: Props) {
       setSelected(id)
       if (id) setPanelId(id)
       else setAddressContext(null)
-      writeUrl(view)
-      writeParam("showPic", showPhotos ? "true" : null)
+      writeParams([...viewParams(view, DEFAULT_COLOR_FEATURE), ["showPic", showPhotos ? "true" : null]])
     }
     addEventListener("popstate", onPopState)
     return () => removeEventListener("popstate", onPopState)
@@ -268,7 +271,7 @@ export function App({ assembly, features, cache, initial }: Props) {
           viewBox={assembly.background.viewBox}
           deputies={sitting.deputies}
           scene={staged.scene}
-          arrangement={staged.arrangement}
+          arrangement={staged.arrangement ?? staged.reading}
           highlighted={highlighted}
           showPhotos={showPhotos}
           colorOf={colored.paint.colorOf}
@@ -372,7 +375,7 @@ function rankThenName({ rank }: Paint, sitting: Sitting): Order {
 }
 
 function writeUrl(view: View): void {
-  writeView(view, writeParam, DEFAULT_COLOR_FEATURE)
+  writeParams(viewParams(view, DEFAULT_COLOR_FEATURE))
 }
 
 function outOfView(person: Person, sitting: Sitting, vote: ReadVote | null): string | null {

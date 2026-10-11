@@ -64,7 +64,7 @@ a { color: var(--accent); }
 
 .hemicycle-background { color: var(--fg); }
 
-.seat, .ring { pointer-events: none; transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
+.seat, .ring { pointer-events: none; transition-property: transform; }
 
 .room { transition: opacity 0.5s; }
 

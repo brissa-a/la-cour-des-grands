@@ -8,23 +8,24 @@ const CLEARANCE_PX = 12
 // scene in the same frame as the data, instead of a frame later when the resize observer reports it.
 export function useStageFrame(svgRef: RefObject<SVGSVGElement | null>): Frame | null {
   const [frame, setFrame] = useState<Frame | null>(null)
+  const [svg, setSvg] = useState<SVGSVGElement | null>(null)
 
   const measure = useCallback(() => {
-    const svg = svgRef.current
-    if (!svg) return
-    const next = measureFrame(svg, overlays())
+    const current = svgRef.current
+    setSvg(current)
+    if (!current) return
+    const next = measureFrame(current, overlays())
     setFrame(previous => (sameFrame(previous, next) ? previous : next))
   }, [svgRef])
 
   useLayoutEffect(measure)
 
   useLayoutEffect(() => {
-    const svg = svgRef.current
     if (!svg) return
     const observer = new ResizeObserver(measure)
     for (const element of [svg, ...overlays()]) observer.observe(element)
     return () => observer.disconnect()
-  }, [svgRef, measure])
+  }, [svg, measure])
 
   return frame
 }

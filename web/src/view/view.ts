@@ -2,6 +2,7 @@ import type { ColorableFeature, FeatureKey } from "../data/features.ts"
 import { layoutsOf, type LayoutChoice } from "../forms/registry.ts"
 import { coloringsOf, type ColorChoice } from "../paint/registry.ts"
 import { SEAT, sourceKey, VOTE, type Source, type VoteSource } from "../sources/shapes.ts"
+import type { Param } from "../url.ts"
 import { voteId, type VoteId } from "../votes/voteId.ts"
 
 type Channel = { readonly of: Source }
@@ -55,11 +56,13 @@ export function parseView(read: (name: string) => string | null, features: reado
   return view && { view, fallback }
 }
 
-export function writeView(view: View, write: (name: string, value: string | null) => void, defaultColor: FeatureKey): void {
+export function viewParams(view: View, defaultColor: FeatureKey): readonly Param[] {
   const { color, layout } = view
   const defaultPaint = coloringsOf(color.of)[0]?.paint
-  write("vote", view.scrutin)
-  write("color", sourceKey(color.of) === defaultColor && color.paint === defaultPaint ? null : sourceKey(color.of))
-  write("chart", layout.of.kind === SEAT.kind ? null : sourceKey(layout.of))
-  write("layout", layoutsOf(layout.of)[0]?.form === layout.form ? null : layout.form)
+  return [
+    ["vote", view.scrutin],
+    ["color", sourceKey(color.of) === defaultColor && color.paint === defaultPaint ? null : sourceKey(color.of)],
+    ["chart", layout.of.kind === SEAT.kind ? null : sourceKey(layout.of)],
+    ["layout", layoutsOf(layout.of)[0]?.form === layout.form ? null : layout.form],
+  ]
 }

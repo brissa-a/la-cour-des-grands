@@ -4,7 +4,8 @@ import type { CategoryFeature, NumberFeature } from "../data/features.ts"
 import { SEAT, VOTE } from "../sources/shapes.ts"
 import { voteId } from "../votes/voteId.ts"
 import { colorOptions, layoutOptions } from "./options.ts"
-import { HEMICYCLE, parseView, viewOf, VOTE_COLOR, writeView, type View } from "./view.ts"
+import { withParams } from "../url.ts"
+import { HEMICYCLE, parseView, viewOf, viewParams, VOTE_COLOR, type View } from "./view.ts"
 
 const GROUP: CategoryFeature = { kind: "category", key: "deputies/init.csv:group", file: "deputies/init.csv", column: "group", title: "Groupe politique", values: "g" }
 const CIVILITY: CategoryFeature = { kind: "category", key: "deputies/init.csv:civility", file: "deputies/init.csv", column: "civility", title: "Civilité", values: "c" }
@@ -38,9 +39,7 @@ function parse(search: string) {
 }
 
 function written(view: View, search = ""): string {
-  const params = new URLSearchParams(search)
-  writeView(view, (name, value) => (value === null ? params.delete(name) : params.set(name, value)), GROUP.key)
-  return params.toString()
+  return withParams(viewParams(view, GROUP.key), search, "").replace(/^\?/, "")
 }
 
 test("a link reads its colour and layout features, falls back to the default colour and the hemicycle, and ignores unknown ones", () => {
