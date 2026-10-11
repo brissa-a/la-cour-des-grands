@@ -317,7 +317,7 @@ export function App({ assembly, features, cache, initial }: Props) {
       {panelDeputy && (
         <DeputyPanel
           deputy={panelDeputy}
-          seat={assembly.byId.get(panelDeputy.id)?.seat}
+          seat={(sitting.byId.get(panelDeputy.id) ?? assembly.byId.get(panelDeputy.id))?.seat}
           open={selected !== null}
           colored={colored}
           place={layoutPlace(staged.reading, colored, staged.scene.where(panelDeputy.id))}
