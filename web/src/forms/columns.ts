@@ -1,6 +1,6 @@
 import type { DeputyId } from "../data/deputyId.ts"
 import type { Part, Parts, Point } from "../sources/shapes.ts"
-import { defineForm, DOT_RADIUS, type Lay, type Mark, type Scene, type Target } from "./form.ts"
+import { defineForm, DOT_RADIUS, NO_HOLLOW, type Lay, type Mark, type Scene, type Target } from "./form.ts"
 import { bestGeometry, centerOffset, gridStep, MAX_COLUMN_WIDTH, type Bounds, type Geometry } from "./grid.ts"
 import { textEm } from "./text.ts"
 
@@ -114,6 +114,7 @@ export function placeColumns({ main }: { readonly main: Parts }, { frame, order 
     radius: Math.min(DOT_RADIUS, pitch * RADIUS_PITCHES),
     snap: SNAP_PITCHES * pitch,
     dots,
+    hollow: NO_HOLLOW,
     marks,
     lines: [...byRow.values()],
     where: id => {

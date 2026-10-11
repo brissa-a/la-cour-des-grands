@@ -318,6 +318,12 @@ test("inside a sector, dots follow the given order along every ring", () => {
   }
 })
 
+test("the part set apart is drawn hollow and the parts that voted filled, so even coloured by group it stands apart", () => {
+  const turnout = turnoutOf(VOTE, VOTE_ABSENT)
+  assert.deepEqual(place(turnout, DESKTOP).hollow, new Set(turnout.absent?.members))
+  assert.deepEqual(place(turnoutOf(VOTE, null), DESKTOP).hollow, new Set())
+})
+
 test("each deputy's place is their sector's part", () => {
   const turnout = turnoutOf({ Pour: 2, Contre: 1 }, 1)
   const scene = place(turnout, DESKTOP)

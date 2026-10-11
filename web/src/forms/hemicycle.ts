@@ -1,6 +1,6 @@
 import type { DeputyId } from "../data/deputyId.ts"
 import type { Point, Seats } from "../sources/shapes.ts"
-import { DOT_RADIUS, type FormSpec, type Scene } from "./form.ts"
+import { DOT_RADIUS, NO_HOLLOW, type FormSpec, type Scene } from "./form.ts"
 
 const SNAP = 0.6 * 2.75 * DOT_RADIUS
 const ROW_TOLERANCE = 0.025
@@ -11,6 +11,7 @@ export function placeHemicycle({ main: seats }: { readonly main: Seats }): Scene
     radius: DOT_RADIUS,
     snap: SNAP,
     dots: seats.seatOf,
+    hollow: NO_HOLLOW,
     marks: [{ kind: "room", room: seats.room, empty: seats.empty, radius: DOT_RADIUS }],
     lines: rows(seats.seatOf),
     where: id => {

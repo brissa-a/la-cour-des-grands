@@ -129,6 +129,7 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
     radius: radiusAt(pitch),
     snap: SNAP_PITCHES * pitch,
     dots,
+    hollow: new Set(sectors.flatMap(({ apart, members }) => (apart ? members : []))),
     marks,
     lines: rings,
     where: id => {

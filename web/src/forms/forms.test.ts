@@ -204,7 +204,7 @@ export const probes = [
   // @ts-expect-error a form computed from values that also takes the seats, to draw the room
   defineForm({ label: "x", slots: { main: ["nominal", "seats"] }, place: () => placed(null) }),
   // @ts-expect-error a scene without reading lines
-  defineForm({ label: "x", slots: { main: ["nominal"] }, place: () => ({ card: "above", radius: 1, snap: 1, dots: new Map(), marks: [], where: () => null }) }),
+  defineForm({ label: "x", slots: { main: ["nominal"] }, place: () => ({ card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], where: () => null }) }),
   // @ts-expect-error a second slot read in a shape it does not take
   defineForm({ label: "x", slots: { main: ["numbers"], y: ["numbers"] }, place: ({ main, y }: { main: Numbers; y: Parts }) => placed([main, y]) }),
   // @ts-expect-error a palette over bins, which carry no colour
@@ -220,5 +220,5 @@ export const choosers: readonly unknown[] = [
 
 function placed(input: unknown): Scene {
   void input
-  return { card: "above", radius: 1, snap: 1, dots: new Map(), marks: [], lines: [], where: () => null }
+  return { card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], lines: [], where: () => null }
 }

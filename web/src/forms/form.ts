@@ -4,6 +4,8 @@ import type { Data, Part, Point, Room, Seat, Shape } from "../sources/shapes.ts"
 
 export const DOT_RADIUS = 0.019
 
+export const NO_HOLLOW: ReadonlySet<DeputyId> = new Set()
+
 export type Frame = { readonly area: Rect; readonly px: number }
 
 export type Order = (a: DeputyId, b: DeputyId) => number
@@ -40,6 +42,7 @@ export type Scene = {
   readonly radius: number
   readonly snap: number
   readonly dots: ReadonlyMap<DeputyId, Point>
+  readonly hollow: ReadonlySet<DeputyId>
   readonly marks: readonly Mark[]
   readonly lines: readonly (readonly DeputyId[])[]
   readonly where: (id: DeputyId) => Where | null

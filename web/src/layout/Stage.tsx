@@ -15,6 +15,8 @@ const HYSTERESIS_PX = 3
 const RING_PX = 2
 const RING_STROKE = 0.4
 const FOCUS_SCALE = 1.35
+// From the mockups: a hollow dot is a ring as wide as a filled one, stroked at about a third of its radius.
+const HOLLOW_STROKE = 0.36
 const LAYOUT_PAUSE_MS = 1400
 const RESIZE_PAUSE_MS = 250
 
@@ -166,6 +168,7 @@ export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlight
               deputy={deputy}
               position={p.point}
               radius={radius}
+              hollow={scene.hollow.has(deputy.id)}
               motion={p.motion}
               color={colorOf(deputy.id)}
               highlighted={highlighted.has(deputy.id)}
@@ -223,20 +226,26 @@ type DotProps = {
   deputy: Deputy
   position: Point
   radius: number
+  hollow: boolean
   motion: Motion
   color: string
   highlighted: boolean
   showPhoto: boolean
 }
 
-const DeputyDot = memo(function DeputyDot({ deputy, position, radius: unscaledRadius, motion, color, highlighted, showPhoto }: DotProps) {
+const DeputyDot = memo(function DeputyDot({ deputy, position, radius: unscaledRadius, hollow, motion, color, highlighted, showPhoto }: DotProps) {
   const radius = unscaledRadius * DOT_SCALE
+  const stroke = HOLLOW_STROKE * radius
   return (
     <g
       className={highlighted ? "seat highlighted" : "seat"}
       style={{ transform: `translate(${position.x * DOT_SCALE}px, ${position.y * DOT_SCALE}px)`, ...transition(motion) }}
     >
-      <circle className="seat-dot" r={radius} style={{ fill: color }} />
+      <circle
+        className="seat-dot"
+        r={hollow ? radius - stroke / 2 : radius}
+        style={hollow ? { fill: "none", stroke: color, strokeWidth: stroke } : { fill: color }}
+      />
       {showPhoto && (
         <image
           href={deputy.photo}
