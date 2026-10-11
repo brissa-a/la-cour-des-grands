@@ -697,6 +697,8 @@ a { color: var(--accent); }
 
 .vote-result-meta { font-size: 12px; color: var(--muted); }
 
+.vote-result-number { font-weight: 500; color: var(--fg); font-variant-numeric: tabular-nums; }
+
 .search-tips-votes { margin: 0 0 6px; }
 
 .address-result { flex-direction: column; gap: 2px; padding: 8px 16px; }
@@ -836,7 +838,7 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 .cell-captions { display: flex; align-items: flex-end; gap: 14px; height: 16px; padding: 0 17px; font-size: 11px; color: var(--muted); }
 
-.cell-captions .cell-color { width: 68px; flex: none; }
+.cell-captions .cell-color { width: 68px; flex: none; flex-wrap: wrap; }
 
 .feature-rows { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 2px 8px 6px; list-style: none; }
 
@@ -862,7 +864,7 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 .cell { display: flex; gap: 4px; }
 
-.cell-color { width: 68px; flex: none; }
+.cell-color { width: 68px; flex: none; flex-wrap: wrap; }
 
 .cell-layout { flex: 1; min-width: 0; flex-wrap: wrap; }
 

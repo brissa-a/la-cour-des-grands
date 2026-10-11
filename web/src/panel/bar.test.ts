@@ -5,7 +5,7 @@ import { AGE_COLOR, DEFAULT_VIEW, FEATURES, GROUP, GROUP_COLOR, GROUP_COLUMNS, r
 import { activeRowScroll, tabsOf, type Tabs } from "./bar.ts"
 import { panelRows, type LayoutOffer, type Row } from "./rows.ts"
 
-const ROWS = panelRows({ features: FEATURES, first: GROUP.key, reading: readerOf([]), chosen: { number: 8427 }, votes: null })
+const ROWS = panelRows({ features: FEATURES, order: [GROUP.key], reading: readerOf([]), chosen: { number: 8427 }, votes: null })
 
 export function singleTab(row: Row, offer: LayoutOffer): Tabs {
   // @ts-expect-error tabs offer at least two forms

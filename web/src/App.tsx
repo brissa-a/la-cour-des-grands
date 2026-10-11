@@ -39,7 +39,7 @@ import type { Source } from "./sources/shapes.ts"
 import { seatsOf } from "./sources/seats.ts"
 import { featuresOf, useFeatureValues } from "./sources/useFeatureValues.ts"
 import type { FeatureCache } from "./sources/values.ts"
-import { DEFAULT_COLOR_FEATURE } from "./sources/views.ts"
+import { DEFAULT_COLOR_FEATURE, PANEL_ORDER } from "./sources/views.ts"
 import { pushParam, readParam, writeParam, writeParams } from "./url.ts"
 import { HEMICYCLE, readsVote, viewParams, type ParsedView, type View } from "./view/view.ts"
 import type { VotePosition } from "./votes/positions.ts"
@@ -273,7 +273,7 @@ export function App({ assembly, features, cache, initial }: Props) {
     [drawn, panelValues, vote, seats],
   )
   const rows = useMemo(
-    () => panelRows({ features, first: DEFAULT_COLOR_FEATURE, reading: panelRead, chosen, votes: voteCount }),
+    () => panelRows({ features, order: PANEL_ORDER, reading: panelRead, chosen, votes: voteCount }),
     [features, panelRead, chosen, voteCount],
   )
 

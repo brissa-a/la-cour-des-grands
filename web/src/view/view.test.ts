@@ -73,7 +73,7 @@ test("a view is written with the scrutin first, the default colour and the defau
   assert.equal(written({ scrutin: null, color: { paint: "palette", of: CIVILITY }, layout: HEMICYCLE }, old), "color=deputies%2Finit.csv%3Acivility&deputy=PA1")
 })
 
-const OFFERS = panelRows({ features: FEATURES, first: GROUP.key, reading: () => null, chosen: { number: 8427 }, votes: null })
+const OFFERS = panelRows({ features: FEATURES, order: [GROUP.key], reading: () => null, chosen: { number: 8427 }, votes: null })
 const COLOR_OFFERS = OFFERS.flatMap(row => row.color)
 const LAYOUT_OFFERS = OFFERS.flatMap(row => row.layout)
 

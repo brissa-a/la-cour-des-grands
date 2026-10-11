@@ -12,7 +12,7 @@ export function paintParts(parts: Categories): Paint {
 }
 
 export const palette = definePaint({
-  label: "Couleurs",
+  label: "Palette",
   glyph: [
     {
       kind: "stroke",

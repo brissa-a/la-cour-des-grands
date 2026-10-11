@@ -41,7 +41,7 @@ export type Row = FeatureRow | VoteRow
 
 export type RowInputs = {
   readonly features: readonly ColorableFeature[]
-  readonly first: FeatureKey
+  readonly order: readonly FeatureKey[]
   readonly reading: (source: Source) => Reading | null
   readonly chosen: ChosenVote | null
   readonly votes: number | null
@@ -49,10 +49,13 @@ export type RowInputs = {
 
 const LISTED_PARTS = 3
 
+const ELIDED = /^[aeiouyàâäéèêëîïôöùûüÿæœ]/iu
+
 const CHANNEL_WORDS: Readonly<Record<Channel, string>> = { color: "couleur", layout: "disposition" }
 
-export function panelRows({ features, first, reading, chosen, votes }: RowInputs): Row[] {
-  const sources = [...features.filter(f => f.key === first), ...features.filter(f => f.key !== first), SEAT]
+export function panelRows({ features, order, reading, chosen, votes }: RowInputs): Row[] {
+  const listed = order.flatMap(key => features.filter(feature => feature.key === key))
+  const sources = [...listed, ...features.filter(feature => !order.includes(feature.key)), SEAT]
   const featureRows = sources.map(
     (source): FeatureRow => ({
       kind: "feature",
@@ -188,7 +191,7 @@ function fromTo(parts: readonly Part[]): string | null {
   const [first, ...rest] = parts.filter(part => part.key !== MISSING)
   if (first === undefined) return null
   const last = rest.at(-1)
-  return last === undefined ? first.label : `de ${first.label} à ${last.label}`
+  return last === undefined ? first.label : `${ELIDED.test(first.label) ? "d'" : "de "}${first.label} à ${last.label}`
 }
 
 function colorOffers(source: Source): ColorOffer[] {

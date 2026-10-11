@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import type { CategoryFeature } from "../data/features.ts"
+import { PANEL_ORDER } from "../sources/views.ts"
 import { mainOf, VOTE_COLOR, type View } from "../view/view.ts"
 import {
   AGE,
@@ -23,7 +24,7 @@ import {
 import { voteId } from "../votes/voteId.ts"
 import { CHANNELS, chosenOf, choiceKey, greyedReason, holds, layoutHint, offerLabel, panelRows, pressed, replaces, rowHint, rowKey, rowTip, unfoldedRow, type ChosenVote, type Offer, type Row, type RowKey } from "./rows.ts"
 
-const rowsWith = (chosen: ChosenVote | null, reading = readerOf([])) => panelRows({ features: FEATURES, first: GROUP.key, reading, chosen, votes: null })
+const rowsWith = (chosen: ChosenVote | null, reading = readerOf([])) => panelRows({ features: FEATURES, order: [GROUP.key], reading, chosen, votes: null })
 
 const named = (rows: readonly Row[], name: string) => rows.find(row => row.name === name) ?? assert.fail(name)
 
@@ -37,16 +38,20 @@ export function rowAgainstChoice(row: Row, offer: Offer): boolean {
   return row.key === choiceKey(offer.choice)
 }
 
-test("rows list the default colour feature first, the others in catalog order, then the seat and the vote, each with the colourings and forms the registries accept", () => {
-  const rows = rowsWith(null)
+test("rows follow the panel's order, then the other features in catalog order, then the seat and the vote, each with the colourings and forms the registries accept", () => {
+  const REGION: CategoryFeature = { ...CIVILITY, key: "deputies/init.csv:region", title: "Région" }
+  const OTHER: CategoryFeature = { ...CIVILITY, key: "f:other", title: "Autre" }
+  const rows = panelRows({ features: [OTHER, CIVILITY, AGE, REGION, GROUP], order: PANEL_ORDER, reading: readerOf([]), chosen: null, votes: null })
   assert.deepEqual(
     rows.map(row => [row.name, row.color.map(offer => offer.label), row.layout.map(offer => offer.label)]),
     [
-      ["Groupe politique", ["Couleurs"], ["Colonnes"]],
-      ["Civilité", ["Couleurs"], ["Colonnes"]],
+      ["Groupe politique", ["Palette"], ["Colonnes"]],
       ["Âge", ["Dégradé"], ["Colonnes"]],
+      ["Civilité", ["Palette"], ["Colonnes"]],
+      ["Région", ["Palette"], ["Colonnes"]],
+      ["Autre", ["Palette"], ["Colonnes"]],
       ["Siège", [], ["Hémicycle"]],
-      ["Vote sur un scrutin", ["Couleurs"], ["Colonnes", "Demi-anneaux"]],
+      ["Vote sur un scrutin", ["Palette"], ["Colonnes", "Demi-anneaux"]],
     ],
   )
   for (const row of rows) for (const offer of [...row.color, ...row.layout]) assert.equal(rowKey(mainOf(offer.choice)), row.key, `${row.name} ${offer.label}`)
@@ -55,10 +60,10 @@ test("rows list the default colour feature first, the others in catalog order, t
 test("exactly one colour glyph and one layout glyph are pressed across the panel, the ones the view shows", () => {
   const rows = rowsWith({ number: 8427 })
   const pressedIn = (view: View) => CHANNELS.map(channel => rows.flatMap(row => row[channel].filter(offer => pressed(view, offer)).map(offer => offerLabel(row, offer))))
-  assert.deepEqual(pressedIn(DEFAULT_VIEW), [["Groupe politique en couleur · Couleurs"], ["Siège en hémicycle"]])
-  assert.deepEqual(pressedIn({ scrutin: null, color: GROUP_COLOR, layout: GROUP_COLUMNS }), [["Groupe politique en couleur · Couleurs"], ["Groupe politique en colonnes"]])
+  assert.deepEqual(pressedIn(DEFAULT_VIEW), [["Groupe politique en couleur · Palette"], ["Siège en hémicycle"]])
+  assert.deepEqual(pressedIn({ scrutin: null, color: GROUP_COLOR, layout: GROUP_COLUMNS }), [["Groupe politique en couleur · Palette"], ["Groupe politique en colonnes"]])
   assert.deepEqual(pressedIn({ scrutin: SCRUTIN, color: AGE_COLOR, layout: VOTE_RINGS }), [["Âge en couleur · Dégradé"], ["Vote n° 8427 en demi-anneaux"]])
-  assert.deepEqual(pressedIn({ scrutin: SCRUTIN, color: VOTE_COLOR, layout: VOTE_COLUMNS }), [["Vote n° 8427 en couleur · Couleurs"], ["Vote n° 8427 en colonnes"]])
+  assert.deepEqual(pressedIn({ scrutin: SCRUTIN, color: VOTE_COLOR, layout: VOTE_COLUMNS }), [["Vote n° 8427 en couleur · Palette"], ["Vote n° 8427 en colonnes"]])
 })
 
 test("each row knows the channels it holds, and the row holding the layout is the one unfolded", () => {
@@ -94,7 +99,7 @@ test("a row head puts each value before its unit: the count of each of a few val
     categoryValues(THREE, table("x", "y", "z"), ["x", "y", "z", "x", "x", "x"]),
     numberValues(AGE, [83, 25, null, 52, 40, 61]),
   ])
-  const rows = panelRows({ features: [GROUP, CIVILITY, REGION, OTHER, THREE, AGE], first: GROUP.key, reading, chosen: null, votes: null })
+  const rows = panelRows({ features: [GROUP, CIVILITY, REGION, OTHER, THREE, AGE], order: [GROUP.key], reading, chosen: null, votes: null })
   const heads = rows.flatMap(row => (row.kind === "feature" ? [[row.name, row.figures.map(({ value, unit }) => `${value} ${unit}`)]] : []))
   assert.deepEqual(heads, [
     ["Groupe politique", ["5 groupes"]],
@@ -109,13 +114,13 @@ test("a row head puts each value before its unit: the count of each of a few val
 
 test("a number head shows one value when all are equal and nothing when none is known, and an unloaded feature shows no value yet", () => {
   const head = (held: readonly (number | null)[]) => {
-    const rows = panelRows({ features: [AGE], first: AGE.key, reading: readerOf([numberValues(AGE, held)]), chosen: null, votes: null })
+    const rows = panelRows({ features: [AGE], order: [], reading: readerOf([numberValues(AGE, held)]), chosen: null, votes: null })
     const [row] = rows
     return row?.kind === "feature" ? row.figures : assert.fail()
   }
   assert.deepEqual(head([52, 52, null, null, null, 52]), [{ value: "52", unit: "ans" }])
   assert.deepEqual(head([null, null, null, null, null, null]), [])
-  const unloaded = panelRows({ features: FEATURES, first: GROUP.key, reading: () => null, chosen: null, votes: null })
+  const unloaded = panelRows({ features: FEATURES, order: [GROUP.key], reading: () => null, chosen: null, votes: null })
   assert.deepEqual(unloaded.map(row => (row.kind === "feature" ? row.figures : null)), [[], [], [], [], null])
 })
 
@@ -132,8 +137,8 @@ test("a glyph of another row says which feature it takes the channel from, and o
 
 test("the unfolded row tells the order its form lays the parts in, the absent set apart by the half-rings", () => {
   const vote = readVoteOf(["for", "against", "abstain", "absent", "for", "against"])
-  const reading = readerOf([categoryValues(GROUP, table("a", "b", "c"), ["c", "a", "", "b", "a", "a"]), numberValues(AGE, [27, 81, null, 40, 33, 52])], vote)
-  assert.equal(layoutHint(GROUP_COLUMNS, reading(GROUP)), "de a à c")
+  const reading = readerOf([categoryValues(GROUP, table("p", "q", "r"), ["r", "p", "", "q", "p", "p"]), numberValues(AGE, [27, 81, null, 40, 33, 52])], vote)
+  assert.equal(layoutHint(GROUP_COLUMNS, reading(GROUP)), "de p à r")
   assert.equal(layoutHint({ form: "columns", picks: { main: AGE } }, reading(AGE)), "de 25–29 ans à 80–84 ans")
   assert.equal(layoutHint(VOTE_COLUMNS, reading(VOTE_COLUMNS.picks.main)), "de Pour à Absent")
   assert.equal(layoutHint(VOTE_RINGS, reading(VOTE_RINGS.picks.main)), "de Pour à Abstention")
@@ -145,9 +150,18 @@ test("the unfolded row tells the order its form lays the parts in, the absent se
   assert.equal(layoutHint(GROUP_COLUMNS, none(GROUP)), null)
 })
 
+test("the order hint elides « de » before a vowel, accented or capital, but not before an h", () => {
+  const hint = (first: string, last: string) => layoutHint(GROUP_COLUMNS, readerOf([categoryValues(GROUP, table(first, last), [first, last, "", "", "", ""])])(GROUP))
+  assert.equal(hint("Auvergne-Rhône-Alpes", "Occitanie"), "d'Auvergne-Rhône-Alpes à Occitanie")
+  assert.equal(hint("Île-de-France", "Normandie"), "d'Île-de-France à Normandie")
+  assert.equal(hint("écologistes", "radicaux"), "d'écologistes à radicaux")
+  assert.equal(hint("Hauts-de-France", "Bretagne"), "de Hauts-de-France à Bretagne")
+  assert.equal(hint("Bretagne", "Occitanie"), "de Bretagne à Occitanie")
+})
+
 test("before a vote is chosen the vote row's head counts the scrutins, when the catalog knows how many, and a chosen vote leaves its number to say instead", () => {
   const head = (chosen: ChosenVote | null, votes: number | null) => {
-    const row = panelRows({ features: FEATURES, first: GROUP.key, reading: readerOf([]), chosen, votes }).at(-1)
+    const row = panelRows({ features: FEATURES, order: [GROUP.key], reading: readerOf([]), chosen, votes }).at(-1)
     return row?.kind === "vote" ? row.figures : assert.fail()
   }
   assert.deepEqual(head(null, 8672), [{ value: "8 672", unit: "scrutins" }])
@@ -165,10 +179,10 @@ test("the chosen vote tells its number only once that very vote is read, not whi
 })
 
 test("only the unfolded row tells the order of the form it is laid out in", () => {
-  const reading = readerOf([categoryValues(GROUP, table("a", "b", "c"), ["c", "a", "", "b", "a", "a"])])
+  const reading = readerOf([categoryValues(GROUP, table("p", "q", "r"), ["r", "p", "", "q", "p", "p"])])
   const rows = rowsWith(null, reading)
   const hints = (view: View) => rows.map(row => rowHint(view, row, reading))
-  assert.deepEqual(hints({ scrutin: null, color: AGE_COLOR, layout: GROUP_COLUMNS }), ["de a à c", null, null, null, null])
+  assert.deepEqual(hints({ scrutin: null, color: AGE_COLOR, layout: GROUP_COLUMNS }), ["de p à r", null, null, null, null])
   assert.deepEqual(hints(DEFAULT_VIEW), [null, null, null, "Chaque député à sa place", null])
 })
 

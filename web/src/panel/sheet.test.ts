@@ -5,7 +5,7 @@ import { panelRows, type Offer } from "./rows.ts"
 import { CLOSED, scheduleCollapse, sheetAfter, type Sheet, type SheetEvent } from "./sheet.ts"
 import type { Press } from "./viewState.ts"
 
-const ROWS = panelRows({ features: FEATURES, first: GROUP.key, reading: readerOf([]), chosen: { number: 8427 }, votes: null })
+const ROWS = panelRows({ features: FEATURES, order: [GROUP.key], reading: readerOf([]), chosen: { number: 8427 }, votes: null })
 
 function offer(name: string, channel: "color" | "layout", index = 0): Offer {
   const row = ROWS.find(r => r.name === name) ?? assert.fail(name)

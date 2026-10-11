@@ -3,6 +3,13 @@ import type { VotePosition } from "../votes/positions.ts"
 
 export const DEFAULT_COLOR_FEATURE: FeatureKey = "deputies/init.csv:group"
 
+export const PANEL_ORDER: readonly FeatureKey[] = [
+  "deputies/init.csv:group",
+  "deputies/init.csv:age",
+  "deputies/init.csv:civility",
+  "deputies/init.csv:region",
+]
+
 export const HIDDEN_FEATURES: ReadonlySet<FeatureKey> = new Set<FeatureKey>([
   "deputies/init.csv:in_office",
 ])
