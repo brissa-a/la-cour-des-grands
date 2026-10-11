@@ -2,9 +2,10 @@ import type { ColorableFeature } from "../data/features.ts"
 import type { Data, KindsFor, Reading, Shape, Source, SourceKind, SourceOf } from "../sources/shapes.ts"
 import { columns } from "./columns.ts"
 import type { Frame, FormSpec, Inputs, Order, Scene, ShapeIn, Shapes } from "./form.ts"
+import { halfRings } from "./halfRings.ts"
 import { hemicycle } from "./hemicycle.ts"
 
-export const FORMS = { hemicycle, columns }
+export const FORMS = { hemicycle, columns, halfRings }
 
 export type FormName = keyof typeof FORMS
 
@@ -42,6 +43,7 @@ export const LAYOUTS: { readonly [F in FormName]: Chooser<F> } = {
         return null
     }
   },
+  halfRings: main => (main.kind === "vote" ? { form: "halfRings", picks: { main } } : null),
 }
 
 type FormsFor<K extends SourceKind> = { [F in FormName]: K extends MainKinds<F> ? F : never }[FormName]

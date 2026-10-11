@@ -12,7 +12,12 @@ export type Target = { readonly frame: Frame; readonly order: Order }
 
 export type CardPolicy = "beside" | "above"
 
-export type Lay = { readonly kind: "flat"; readonly lineHeight: number } | { readonly kind: "slanted"; readonly degrees: number }
+export type Anchor = "start" | "end"
+
+export type Lay =
+  | { readonly kind: "flat"; readonly lineHeight: number }
+  | { readonly kind: "slanted"; readonly degrees: number }
+  | { readonly kind: "inline"; readonly anchor: Anchor }
 
 export type Mark =
   | { readonly kind: "room"; readonly room: Room; readonly empty: readonly Seat[]; readonly radius: number }

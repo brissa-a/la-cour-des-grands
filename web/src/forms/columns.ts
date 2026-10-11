@@ -2,6 +2,7 @@ import type { DeputyId } from "../data/deputyId.ts"
 import type { Part, Parts, Point } from "../sources/shapes.ts"
 import { defineForm, DOT_RADIUS, type Lay, type Mark, type Scene, type Target } from "./form.ts"
 import { bestGeometry, centerOffset, gridStep, MAX_COLUMN_WIDTH, type Bounds, type Geometry } from "./grid.ts"
+import { textEm } from "./text.ts"
 
 const TICK_GAP_EM = 0.4
 const FONT_PX = 12
@@ -20,8 +21,6 @@ const LABEL_SHARE = 0.4
 const FONT_SEARCH_STEPS = 12
 const RADIUS_PITCHES = 0.42
 const SNAP_PITCHES = 0.6
-const NARROW_CHARS = "fijlrtI'’.,;:·-"
-const WIDE_CHARS = "mwMW&"
 
 type Bucket = { part: Part; members: readonly DeputyId[] }
 
@@ -125,18 +124,3 @@ export function placeColumns({ main }: { readonly main: Parts }, { frame, order 
 }
 
 export const columns = defineForm({ label: "Colonnes", slots: { main: ["nominal", "ordinal"] }, place: placeColumns })
-
-// Each glyph class is as wide as its widest member in SF Pro, semibold digits included, so labels placed without measuring the DOM still clear each other.
-function textEm(text: string): number {
-  let em = 0
-  for (const char of text) em += charEm(char)
-  return em
-}
-
-function charEm(char: string): number {
-  if (char === " ") return 0.3
-  if (NARROW_CHARS.includes(char)) return 0.48
-  if (WIDE_CHARS.includes(char)) return 1
-  if (char >= "0" && char <= "9") return 0.68
-  return char === char.toLowerCase() ? 0.62 : 0.78
-}

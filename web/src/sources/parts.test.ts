@@ -4,7 +4,7 @@ import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import type { CategoryFeature, NumberFeature } from "../data/features.ts"
 import { isoDate } from "../data/isoDate.ts"
 import { voteId } from "../votes/voteId.ts"
-import { binnedParts, categoryParts, voteParts } from "./parts.ts"
+import { binnedParts, categoryParts, voteParts, voteTurnout } from "./parts.ts"
 import { numbersOf } from "./read.ts"
 import { MISSING } from "./shapes.ts"
 import { NEUTRAL, PALETTE, POSITION_COLORS } from "./views.ts"
@@ -100,4 +100,21 @@ test("vote parts follow the position table, keep only positions a drawn deputy t
   assert.equal(parts.title, "Scrutin n° 1")
   assert.deepEqual(voteParts(read, [a, b]).parts.map(p => p.key), ["for", "against"])
   assert.deepEqual([parts.colorOf(away), parts.keyOf(away), parts.colorOf(d)], [POSITION_COLORS.abstain, "abstain", NEUTRAL])
+})
+
+test("a vote's turnout sets apart the deputies absent from it, whatever the table order, and keeps every other part in order", () => {
+  const [a, b, c, d] = ids(4)
+  assert.ok(a && b && c && d)
+  const id = voteId("VTANR5L17V1")
+  const date = isoDate("2024-10-08")
+  assert.ok(id && date)
+  const vote = { id, number: 1, date, title: "t", kind: "censure_motion" as const, result: "rejected" as const, major: true, bill: null, file: "f", url: "u" }
+  const label = { for: "Pour", against: "Contre", abstain: "Abstention", not_voting: "Non-votant", absent: "Absent ou contre" }
+  const positions = new Map([[a, "for" as const], [b, "absent" as const], [c, "against" as const]])
+  const tally = { for: 1, against: 1, abstain: 0, not_voting: 0, absent: 1 }
+  const read = { vote, table: { order: ["for", "absent", "against"] as const, label }, reading: { roster: new Map(), positions, tally } }
+  const turnout = voteTurnout(voteParts(read, [a, b, c, d]))
+  assert.deepEqual(turnout.present.map(p => [p.key, p.members]), [["for", [a]], ["against", [c]], [MISSING, [d]]])
+  assert.deepEqual(turnout.absent && [turnout.absent.label, turnout.absent.members], ["Absent ou contre", [b]])
+  assert.equal(voteTurnout(voteParts(read, [a, c])).absent, null)
 })

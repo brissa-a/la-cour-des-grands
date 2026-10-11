@@ -27,6 +27,8 @@ export type Parts<P extends Part = Part> = {
 
 export type Categories = Parts<ColoredPart> & { readonly colorOf: (id: DeputyId) => string }
 
+export type Turnout = { readonly present: readonly Part[]; readonly absent: Part | null }
+
 export type Numbers = {
   readonly feature: NumberFeature
   readonly unit: string
@@ -47,6 +49,7 @@ export type Seats = {
 export type Data = {
   readonly nominal: Categories
   readonly ordinal: Parts
+  readonly turnout: Turnout
   readonly numbers: Numbers
   readonly seats: Seats
 }
@@ -64,7 +67,7 @@ export type SourceKind = Source["kind"]
 export const OFFERS = {
   category: ["nominal"],
   number: ["ordinal", "numbers"],
-  vote: ["nominal"],
+  vote: ["nominal", "turnout"],
   seat: ["seats"],
 } as const satisfies Readonly<Record<SourceKind, readonly Shape[]>>
 

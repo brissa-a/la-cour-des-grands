@@ -23,7 +23,12 @@ export function layoutOptions(features: readonly ColorableFeature[], scrutin: st
   return [
     ...room,
     ...offered(features, scrutin).flatMap(({ source, label, group }) =>
-      layoutsOf(source).map((choice, i) => ({ id: layoutId(choice), label, group: i === 0 ? group : FORMS[choice.form].label, choice })),
+      layoutsOf(source).map(choice => ({
+        id: layoutId(choice),
+        label: isDefaultLayout(choice) ? label : `${label} · ${FORMS[choice.form].label}`,
+        group,
+        choice,
+      })),
     ),
   ]
 }

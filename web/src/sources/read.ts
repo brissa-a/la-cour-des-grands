@@ -2,7 +2,7 @@ import type { DeputyId } from "../data/deputyId.ts"
 import type { FeatureKey } from "../data/features.ts"
 import { numberFormat } from "../profile/format.ts"
 import type { ReadVote } from "../votes/sources.ts"
-import { binnedParts, categoryParts, voteParts } from "./parts.ts"
+import { binnedParts, categoryParts, voteParts, voteTurnout } from "./parts.ts"
 import { MISSING, NOT_GIVEN, SEAT, type Line, type Numbers, type Parts, type Reading, type Seats, type Source } from "./shapes.ts"
 import type { FeatureValues, NumberValues } from "./values.ts"
 import { numberView } from "./views.ts"
@@ -31,7 +31,7 @@ export function readingOf(source: Source, { drawn, values: loaded, vote, seats }
     case "vote": {
       if (vote === null) return null
       const nominal = voteParts(vote, drawn)
-      return { source, data: { nominal }, lineOf: partLine(nominal) }
+      return { source, data: { nominal, turnout: voteTurnout(nominal) }, lineOf: partLine(nominal) }
     }
     case "seat":
       return readSeats(seats)

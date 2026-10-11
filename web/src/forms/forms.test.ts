@@ -40,7 +40,8 @@ function nominal(name: string, sizes: readonly number[]): Sample {
 
 function vote(sizes: readonly number[]): Sample {
   const parts = partsOf(sizes)
-  return { name: "vote", reading: { source: VOTE, data: { nominal: parts }, lineOf: () => null }, deputies: deputiesOf(parts) }
+  const turnout = { present: parts.parts.slice(0, -1), absent: parts.parts.at(-1) ?? null }
+  return { name: "vote", reading: { source: VOTE, data: { nominal: parts, turnout }, lineOf: () => null }, deputies: deputiesOf(parts) }
 }
 
 function ages(sizes: readonly number[]): Sample {

@@ -76,5 +76,13 @@ function Label({ mark }: { mark: Extract<Mark, { kind: "label" }> }) {
           {` ${text}`}
         </text>
       )
+    case "inline":
+      return (
+        <text x={at.x} y={at.y} textAnchor={lay.anchor} dominantBaseline="middle" style={{ fontSize: size }}>
+          {tooltip}
+          <tspan className="chart-count">{count}</tspan>
+          {` ${text}`}
+        </text>
+      )
   }
 }

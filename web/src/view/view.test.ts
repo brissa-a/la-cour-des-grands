@@ -29,6 +29,8 @@ export const impossible: readonly View[] = [
   { scrutin: null, color: { paint: "palette", of: GROUP }, layout: { form: "hemicycle", picks: { main: AGE } } },
   // @ts-expect-error columns of seats
   { scrutin: null, color: { paint: "palette", of: GROUP }, layout: { form: "columns", picks: { main: SEAT } } },
+  // @ts-expect-error half-rings of a feature, which has no turnout to split
+  { scrutin: SCRUTIN, color: VOTE_COLOR, layout: { form: "halfRings", picks: { main: CIVILITY } } },
 ]
 
 function parse(search: string) {
@@ -51,6 +53,7 @@ test("a link reads its colour and layout features, falls back to the default col
   })
   assert.deepEqual(parse("?color=bogus&chart=bogus&layout=bogus").view, parse("").view)
   assert.deepEqual(parse("?color=vote&chart=vote").view, parse("").view)
+  assert.deepEqual(parse("?chart=deputies/init.csv:civility&layout=halfRings").view, parse("?chart=deputies/init.csv:civility").view)
 })
 
 test("a scrutin in a link colours by the vote unless only the layout shows it, and an explicit vote colour wins", () => {
@@ -79,18 +82,29 @@ test("every view the pickers offer survives a round trip through the link", () =
     }
 })
 
+test("a vote drawn in half-rings keeps its link: the form is read back from it and the same link is written", () => {
+  const link = "vote=VTANR5L17V8427&chart=vote&layout=halfRings"
+  const { view } = parse(`?${link}`)
+  assert.deepEqual(view, { scrutin: SCRUTIN, color: { paint: "palette", of: GROUP }, layout: { form: "halfRings", picks: { main: VOTE } } })
+  assert.equal(written(view), link)
+})
+
 test("a view drops a scrutin that no channel shows and refuses a vote without one", () => {
   assert.equal(viewOf({ paint: "palette", of: GROUP }, HEMICYCLE, SCRUTIN)?.scrutin, null)
   assert.equal(viewOf(VOTE_COLOR, HEMICYCLE, null), null)
   assert.equal(viewOf({ paint: "palette", of: GROUP }, { form: "columns", picks: { main: VOTE } }, null), null)
 })
 
-test("the pickers offer the room first, each feature in catalog order, then the scrutin once one is chosen", () => {
+test("the pickers offer the room first, each feature in catalog order, then the scrutin once one is chosen, its half-rings right after its columns", () => {
   assert.deepEqual(layoutOptions(FEATURES, null).map(o => [o.label, o.group]), [
     ["Hémicycle", null],
     ["Civilité", "deputies/init.csv"],
     ["Âge", "deputies/init.csv"],
     ["Groupe politique", "deputies/init.csv"],
+  ])
+  assert.deepEqual(layoutOptions(FEATURES, "Scrutin n° 1").slice(-2).map(o => [o.label, o.group, o.choice.form]), [
+    ["Scrutin n° 1", "Scrutin", "columns"],
+    ["Scrutin n° 1 · Demi-anneaux", "Scrutin", "halfRings"],
   ])
   assert.deepEqual(colorOptions(FEATURES, "Scrutin n° 1").map(o => [o.label, o.group]), [
     ["Civilité", "deputies/init.csv"],

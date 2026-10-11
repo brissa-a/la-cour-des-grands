@@ -1,6 +1,7 @@
 import type { DeputyId } from "../data/deputyId.ts"
+import type { VotePosition } from "../votes/positions.ts"
 import type { ReadVote } from "../votes/sources.ts"
-import { MISSING, NOT_GIVEN, type Categories, type ColoredPart, type Numbers, type Part, type Parts } from "./shapes.ts"
+import { MISSING, NOT_GIVEN, type Categories, type ColoredPart, type Numbers, type Part, type Parts, type Turnout } from "./shapes.ts"
 import type { CategoryValues } from "./values.ts"
 import { NEUTRAL, PALETTE, POSITION_COLORS } from "./views.ts"
 
@@ -41,6 +42,13 @@ export function voteParts({ vote, table, reading }: ReadVote, drawn: readonly De
       return position === undefined ? NEUTRAL : POSITION_COLORS[position]
     },
   }
+}
+
+const ABSENT: VotePosition = "absent"
+
+export function voteTurnout(votes: Categories): Turnout {
+  const absent = votes.parts.find(part => part.key === ABSENT) ?? null
+  return { present: votes.parts.filter(part => part !== absent), absent }
 }
 
 export function binnedParts(numbers: Numbers, binWidth: number | undefined): Parts {
