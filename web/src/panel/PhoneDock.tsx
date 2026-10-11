@@ -156,7 +156,9 @@ function ViewSheet(props: Props) {
   const self = useRef<HTMLElement>(null)
   const list = useRef<HTMLUListElement>(null)
   const active = useRef<HTMLLIElement>(null)
+  const voteHead = useRef<HTMLButtonElement>(null)
   const searching = sheet.kind === "searching"
+  const wasSearching = useRef(searching)
   const activeKey = unfoldedRow(view)
   const [color, layout] = summary(view, chosen)
 
@@ -169,10 +171,15 @@ function ViewSheet(props: Props) {
 
   useEffect(() => self.current?.focus({ preventScroll: true }), [])
 
+  useEffect(() => {
+    if (wasSearching.current && !searching) voteHead.current?.focus()
+    wasSearching.current = searching
+  }, [searching])
+
   const press = (offer: Offer) => onSheet({ kind: "pressed", offer, press: onPress(offer) })
 
   return (
-    <section ref={self} className="sheet" role="dialog" aria-label="Réglages de la vue" tabIndex={-1}>
+    <section ref={self} className="sheet" role="dialog" aria-label="Réglages de la vue" tabIndex={-1} inert={searching}>
       <span className="dock-handle" aria-hidden="true" />
       <div className="sheet-head">
         <div className="sheet-summary" role="status" aria-label="Vue actuelle">
@@ -190,7 +197,7 @@ function ViewSheet(props: Props) {
       </div>
       <ul ref={list} className="feature-rows sheet-rows" aria-label="Caractéristiques">
         {rows.map(row => (
-          <SheetRow key={row.key} {...props} row={row} active={row.key === activeKey ? active : null} onPress={press} />
+          <SheetRow key={row.key} {...props} row={row} active={row.key === activeKey ? active : null} voteHead={voteHead} onPress={press} />
         ))}
       </ul>
       <div className="sheet-bottom">{bottom}</div>
@@ -198,9 +205,14 @@ function ViewSheet(props: Props) {
   )
 }
 
-type RowProps = Omit<Props, "onPress"> & { row: Row; active: RefObject<HTMLLIElement | null> | null; onPress: (offer: Offer) => void }
+type RowProps = Omit<Props, "onPress"> & {
+  row: Row
+  active: RefObject<HTMLLIElement | null> | null
+  voteHead: RefObject<HTMLButtonElement | null>
+  onPress: (offer: Offer) => void
+}
 
-function SheetRow({ row, view, pending, active, read, voteDetails, onPress, onSheet, onClearVote }: RowProps) {
+function SheetRow({ row, view, pending, active, voteHead, read, voteDetails, onPress, onSheet, onClearVote }: RowProps) {
   const labelled = active !== null
   const held = holds(view, row)
   const hintText = rowHint(view, row, read)
@@ -221,7 +233,7 @@ function SheetRow({ row, view, pending, active, read, voteDetails, onPress, onSh
   const classes = ["feature-row", held.length > 0 && "held", labelled && "unfolded"].filter(Boolean).join(" ")
   return (
     <li ref={active} className={classes}>
-      {row.kind === "vote" ? <VoteHead row={row} onSearch={() => onSheet({ kind: "search" })} onClear={onClearVote} /> : <RowHead row={row} />}
+      {row.kind === "vote" ? <VoteHead row={row} head={voteHead} onSearch={() => onSheet({ kind: "search" })} onClear={onClearVote} /> : <RowHead row={row} />}
       <span className="row-cells">
         <span className={cell("color")} role="group" aria-label={`${rowSubject(row)} · couleur`}>
           {row.color.map(glyph)}
@@ -236,10 +248,12 @@ function SheetRow({ row, view, pending, active, read, voteDetails, onPress, onSh
   )
 }
 
-function VoteHead({ row, onSearch, onClear }: { row: VoteRow; onSearch: () => void; onClear: () => void }) {
-  if (row.chosen !== null) return <VoteChosen name={row.name} chosen={row.chosen} onChange={onSearch} onClear={onClear} />
+type HeadProps = { row: VoteRow; head: RefObject<HTMLButtonElement | null>; onSearch: () => void; onClear: () => void }
+
+function VoteHead({ row, head, onSearch, onClear }: HeadProps) {
+  if (row.chosen !== null) return <VoteChosen name={row.name} chosen={row.chosen} ref={head} onChange={onSearch} onClear={onClear} />
   return (
-    <VoteIdle row={row} onSearch={onSearch}>
+    <VoteIdle row={row} ref={head} onSearch={onSearch}>
       <Chevron towards="right" />
     </VoteIdle>
   )

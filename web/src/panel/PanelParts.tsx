@@ -44,11 +44,12 @@ type GlyphProps = {
   waiting: boolean
   labelled: boolean
   size: number
+  describedBy?: string | undefined
   onPress: (offer: Offer) => void
   onHint?: (shown: boolean) => void
 }
 
-export function GlyphButton({ offer, label, pressed, greyed, waiting, labelled, size, onPress, onHint }: GlyphProps) {
+export function GlyphButton({ offer, label, pressed, greyed, waiting, labelled, size, describedBy, onPress, onHint }: GlyphProps) {
   const classes = ["glyph-button", labelled && "labelled", greyed !== null && "greyed", waiting && "waiting"].filter(Boolean).join(" ")
   const title = greyed === null ? label : `${label} · ${greyed}`
   return (
@@ -58,6 +59,7 @@ export function GlyphButton({ offer, label, pressed, greyed, waiting, labelled, 
       aria-pressed={pressed}
       aria-label={waiting ? `${title} · en attente d'un scrutin` : title}
       title={title}
+      aria-describedby={describedBy}
       onClick={() => onPress(offer)}
       onPointerEnter={() => onHint?.(true)}
       onPointerLeave={() => onHint?.(false)}

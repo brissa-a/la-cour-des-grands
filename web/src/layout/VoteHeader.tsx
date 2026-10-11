@@ -1,7 +1,7 @@
 import { POSITION_COLORS } from "../sources/views.ts"
 import type { DeputyId } from "../data/assembly.ts"
 import { cardShown, usePreview, type PreviewStore } from "../preview/previewStore.ts"
-import { longDate } from "../profile/format.ts"
+import { longDate, shortDate } from "../profile/format.ts"
 import type { VotePosition } from "../votes/positions.ts"
 import type { VoteView } from "../votes/useVoteView.ts"
 import { voteTitle, type Vote, type VoteKind } from "../votes/votes.ts"
@@ -44,7 +44,7 @@ export function VoteHeader({ view, unplaced, legend, docked, store, selected, on
   return (
     <section {...placement} className={`${placement.className}${view.status === "loading" ? " pending" : ""}`} aria-label="Scrutin">
       <p className="vote-meta">
-        <time dateTime={vote.date}>{longDate(vote.date)}</time>
+        <time dateTime={vote.date}>{docked ? shortDate(vote.date) : longDate(vote.date)}</time>
         <span>{ready.labels.kind[vote.kind]}</span>
         <span className={`vote-outcome ${vote.result}`}>{ready.labels.result[vote.result]}</span>
         {!docked && <VoteLink vote={vote} />}

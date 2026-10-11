@@ -113,6 +113,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const [side, setSide] = useState<Side>(() => besideSheet("open", sheetOpen, crowded))
   const [viewSheet, onViewSheet] = useSheet()
   const svgRef = useRef<SVGSVGElement>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
   const frame = useStageFrame(svgRef)
 
   const order = useMemo(() => (settled && chosenColored ? rankThenName(chosenColored.paint, sitting) : null), [settled, chosenColored, sitting])
@@ -283,6 +284,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const colorsVote = colored.reading.source.kind === "vote"
   const layoutGlyph = FORMS[staged.arrangement?.form ?? HEMICYCLE.form].glyph
   const folded = side !== "open"
+  const searchingVote = phone && viewSheet.kind === "searching"
   const classes = ["app", selected && "panel-open", !phone && folded && "side-folded", phone && viewSheet.kind !== "closed" && "sheet-open"].filter(Boolean).join(" ")
   const pastComposition = vote && pastSitting ? composition(vote.vote.date, pastSitting.emptySeats.length) : null
   const voteHeader = (docked: boolean) =>
@@ -317,6 +319,8 @@ export function App({ assembly, features, cache, initial }: Props) {
       onAddress={openFromAddress}
       onVote={pickVote}
       onResults={setSearchResults}
+      inputRef={searchInput}
+      inert={searchingVote}
     />
   )
 
@@ -332,7 +336,8 @@ export function App({ assembly, features, cache, initial }: Props) {
           composition={pastComposition}
           read={panelRead}
           search={search}
-          voteDetails={voteHeader(true)}
+          searchInput={searchInput}
+          voteDetails={!folded && voteHeader(true)}
           bottom={photosAndConfig}
           finder={finder}
           voteCount={voteCount}
@@ -342,7 +347,7 @@ export function App({ assembly, features, cache, initial }: Props) {
           onFold={() => setSide(toggled)}
         />
       )}
-      <main className="stage">
+      <main className="stage" inert={searchingVote}>
         <Stage
           svgRef={svgRef}
           viewBox={assembly.background.viewBox}
@@ -358,8 +363,8 @@ export function App({ assembly, features, cache, initial }: Props) {
         />
         <div className="stage-bottom" data-overlay="">
           {hint && selected === null && !phone && <RestHint store={preview} touch={touchOnly} />}
-          {phone && voteHeader(false)}
-          {!(phone && colorsVote) && <Legend paint={colored.paint} store={preview} selected={selected} onHover={setHovered} />}
+          {(phone || folded) && voteHeader(false)}
+          {!colorsVote && <Legend paint={colored.paint} store={preview} selected={selected} onHover={setHovered} />}
         </div>
       </main>
       {phone ? (

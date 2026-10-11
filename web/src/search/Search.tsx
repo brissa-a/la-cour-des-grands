@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type Ref } from "react"
 import { AddressSuggestions, type AddressPick } from "../address/AddressSuggestions.tsx"
 import type { ConstituencyCode } from "../address/codes.ts"
 import { addressesFirst, addressQuery, type GeocodedAddress } from "../address/geocoder.ts"
@@ -30,9 +30,11 @@ type Props = {
   onAddress: (id: DeputyId, located: Located) => void
   onVote: (vote: Vote) => void
   onResults: (ids: ReadonlySet<DeputyId>) => void
+  inputRef?: Ref<HTMLInputElement>
+  inert?: boolean
 }
 
-export function Search({ assembly, loadCommunes, findVotes, lookupSources, onHalo, onSelect, onAddress, onVote, onResults }: Props) {
+export function Search({ assembly, loadCommunes, findVotes, lookupSources, onHalo, onSelect, onAddress, onVote, onResults, inputRef, inert }: Props) {
   const index = useMemo(() => createDeputySearch(assembly.deputies), [assembly])
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<DeputyResult[]>([])
@@ -74,6 +76,8 @@ export function Search({ assembly, loadCommunes, findVotes, lookupSources, onHal
       : results.map(r => r.ref)
     onResults(new Set(highlighted))
   }, [results, imprecise, assembly, onResults])
+
+  useEffect(() => () => onResults(new Set()), [onResults])
 
   useEffect(() => {
     const close = (e: PointerEvent) => {
@@ -176,8 +180,9 @@ export function Search({ assembly, loadCommunes, findVotes, lookupSources, onHal
   )
 
   return (
-    <div className="search panel" ref={wrapper} data-obstacle="">
+    <div className="search panel" ref={wrapper} data-obstacle="" inert={inert}>
       <input
+        ref={inputRef}
         data-overlay=""
         type="search"
         autoComplete="off"

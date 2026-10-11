@@ -10,7 +10,6 @@
   --panel-width: 380px;
   --side-width: 300px;
   --rail-width: 44px;
-  --side: 0px;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   color-scheme: dark;
   font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -44,23 +43,17 @@ a { color: var(--accent); }
   -webkit-backdrop-filter: blur(6px) saturate(60%);
 }
 
+.app { --side: var(--side-width); }
+
+.app.side-folded { --side: var(--rail-width); }
+
 .stage {
   position: fixed;
-  inset: 0;
-  transition: right 0.22s var(--ease-out);
+  inset: 0 0 0 var(--side);
+  transition: left 0.22s var(--ease-out), right 0.22s var(--ease-out);
 }
 
 .app.panel-open .stage { right: var(--panel-width); }
-
-@media (min-width: 760px) {
-  .app { --side: var(--side-width); }
-
-  .app.side-folded { --side: var(--rail-width); }
-
-  .stage { left: var(--side); transition-property: left, right; }
-
-  .config-panel { top: auto; right: auto; bottom: 12px; left: calc(var(--side) + 12px); }
-}
 
 .pan-zoom {
   width: 100%;
@@ -271,6 +264,8 @@ a { color: var(--accent); }
   background: #1e1e1e;
   font-size: 13px;
 }
+
+.app .config-panel { top: auto; right: auto; bottom: 12px; left: calc(var(--side) + 12px); }
 
 .config-head { flex: none; display: flex; align-items: center; justify-content: space-between; font-weight: 500; }
 
@@ -773,18 +768,25 @@ mark { background: none; color: var(--accent); font-weight: 700; }
   background: #1e1e1e;
   box-shadow: 8px 0 24px rgba(0, 0, 0, 0.5);
   font-size: 13px;
-  transition: width 0.22s var(--ease-out);
+  /* Clipped while it widens, so the content is revealed rather than squeezed; visible once open, for the search results. */
+  overflow: visible;
+  transition: width 0.22s var(--ease-out), overflow 0s 0.22s;
+  transition-behavior: allow-discrete;
 }
+
+.side-panel.folded { overflow: hidden; transition-delay: 0s; }
 
 .side-rail { display: none; }
 
-.side-panel.folded .side-rail { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 12px 0; color: var(--cream); }
+.side-panel.folded .side-rail { width: var(--rail-width); flex: none; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 12px 0; color: var(--cream); }
 
 .side-panel.folded .side-content { display: none; }
 
 .side-panel .icon-button { margin: 0; }
 
-.side-content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.rail-search .search-icon { stroke: var(--cream); }
+
+.side-content { flex: 1; min-height: 0; width: calc(var(--side-width) - 1px); display: flex; flex-direction: column; }
 
 .side-top { position: relative; flex: none; display: flex; align-items: center; gap: 6px; height: 56px; padding: 0 8px 0 14px; }
 
@@ -962,7 +964,7 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 .vote-header.docked .vote-meta time { font-size: 13px; font-weight: 500; color: var(--fg); }
 
-.vote-header.docked .vote-title { margin: 4px 0; font-size: 13px; line-height: 18px; -webkit-line-clamp: 4; color: #d9d9d9; }
+.vote-header.docked .vote-title { margin: 4px 0; font-size: 13px; line-height: 18px; -webkit-line-clamp: 3; color: #d9d9d9; }
 
 .vote-header.docked .vote-link { display: block; margin-top: 4px; }
 
@@ -1174,7 +1176,7 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 }
 
 @media (max-width: 759px) {
-  .app { position: fixed; inset: 0; display: flex; flex-direction: column; padding-top: 64px; }
+  .app { --side: 0px; position: fixed; inset: 0; display: flex; flex-direction: column; padding-top: 64px; }
 
   .app.panel-open { padding-bottom: 60vh; }
 
@@ -1188,7 +1190,7 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
   .legend { font-size: 12px; }
 
-  .config-panel { top: 4px; right: 8px; width: min(380px, calc(100vw - 16px)); max-height: calc(100dvh - 8px); }
+  .app .config-panel { top: 4px; right: 8px; bottom: auto; left: auto; width: min(380px, calc(100vw - 16px)); max-height: calc(100dvh - 8px); }
 
   .search { left: 0; width: 100%; max-height: 62vh; }
 
