@@ -770,13 +770,8 @@ mark { background: none; color: var(--accent); font-weight: 700; }
   background: #1e1e1e;
   box-shadow: 8px 0 24px rgba(0, 0, 0, 0.5);
   font-size: 13px;
-  /* Clipped while it widens, so the content is revealed rather than squeezed; visible once open, for the search results. */
-  overflow: visible;
-  transition: width 0.22s var(--ease-out), overflow 0s 0.22s;
-  transition-behavior: allow-discrete;
+  transition: width 0.22s var(--ease-out);
 }
-
-.side-panel.folded { overflow: hidden; transition-delay: 0s; }
 
 .side-rail { display: none; }
 
@@ -788,7 +783,13 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 .rail-search .search-icon { stroke: var(--cream); }
 
-.side-content { flex: 1; min-height: 0; width: calc(var(--side-width) - 1px); display: flex; flex-direction: column; }
+.side-content { flex: 1; min-height: 0; width: calc(var(--side-width) - 1px); display: flex; flex-direction: column; animation: side-reveal 0.22s var(--ease-out); }
+
+/* The content keeps its width and is uncovered as the panel widens; no clip is left once open, so the search results overflow the panel. */
+@keyframes side-reveal {
+  from { clip-path: inset(0 calc(100% - var(--rail-width)) 0 0); }
+  to { clip-path: inset(0); }
+}
 
 .side-top { position: relative; flex: none; display: flex; align-items: center; gap: 6px; height: 56px; padding: 0 8px 0 14px; }
 
@@ -1174,7 +1175,7 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   .stage, .footer, .side-panel, .deputy-panel, .deputy-panel.open, .preview-card, .preview-card.visible { transition: none; }
 
-  .sheet { animation: none; }
+  .sheet, .side-content { animation: none; }
 }
 
 @media (max-width: 759px) {

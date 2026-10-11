@@ -18,7 +18,7 @@ export type ViewState = NoVote | VoteChosen
 
 export type Press = { readonly kind: "view" } | { readonly kind: "wait"; readonly waiting: boolean }
 
-export type Pressed = { readonly state: ViewState; readonly press: Press }
+type Pressed = { readonly state: ViewState; readonly press: Press }
 
 const VIEWED: Press = { kind: "view" }
 
