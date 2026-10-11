@@ -3,6 +3,7 @@ import type { Glyph } from "../glyph/glyph.ts"
 import { PAINTS } from "../paint/registry.ts"
 import { shortDate } from "../profile/format.ts"
 import type { View } from "../view/view.ts"
+import type { Pending } from "./intent.ts"
 import { layoutPhrase, subjectOf, type ChosenVote } from "./rows.ts"
 
 export type Sentence = { readonly subject: string; readonly phrase: string; readonly glyph: Glyph }
@@ -16,6 +17,11 @@ export function summary(view: View, chosen: ChosenVote | null): readonly [color:
 
 export function sentenceText({ subject, phrase }: Sentence): string {
   return `${subject} ${phrase}`
+}
+
+export function afterPick(pending: Pending | null): string {
+  const shown = pending?.intent.channel === "layout" ? layoutPhrase(pending.intent.choice.form) : "en couleur"
+  return `Une fois choisi, le vote sera ${shown}`
 }
 
 export function composition(date: string, emptySeats: number): string {

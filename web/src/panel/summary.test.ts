@@ -4,7 +4,7 @@ import { FORMS } from "../forms/registry.ts"
 import { PAINTS } from "../paint/registry.ts"
 import { VOTE_COLOR, type View } from "../view/view.ts"
 import { AGE_COLOR, DEFAULT_VIEW, GROUP_COLOR, HEMICYCLE, SCRUTIN, VOTE_COLUMNS, VOTE_RINGS } from "./fixtures.test.ts"
-import { composition, sentenceText, summary } from "./summary.ts"
+import { afterPick, composition, sentenceText, summary } from "./summary.ts"
 
 test("the summary says the colour channel, then the layout channel, each led by the feature and drawn with its glyph", () => {
   const said = (view: View, number: number | null) => summary(view, { number }).map(sentenceText)
@@ -21,4 +21,11 @@ test("a past composition gives its date, then its empty seats when there are som
   assert.equal(composition("2026-07-20", 13), "Composition au 20 juil. 2026 · 13 sièges vides")
   assert.equal(composition("2026-07-20", 1), "Composition au 20 juil. 2026 · 1 siège vide")
   assert.equal(composition("2026-07-20", 0), "Composition au 20 juil. 2026")
+})
+
+test("the vote search says what the chosen vote will show: the form waiting for it, or the colour when nothing waits", () => {
+  assert.equal(afterPick(null), "Une fois choisi, le vote sera en couleur")
+  assert.equal(afterPick({ needs: "scrutin", intent: { channel: "layout", choice: VOTE_RINGS } }), "Une fois choisi, le vote sera en demi-anneaux")
+  assert.equal(afterPick({ needs: "scrutin", intent: { channel: "layout", choice: VOTE_COLUMNS } }), "Une fois choisi, le vote sera en colonnes")
+  assert.equal(afterPick({ needs: "scrutin", intent: { channel: "color", choice: VOTE_COLOR } }), "Une fois choisi, le vote sera en couleur")
 })
