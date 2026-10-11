@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AddressBlock } from "./address/AddressBlock.tsx"
 import type { Located } from "./address/lookup.ts"
 import { createLookupSources } from "./address/sources.ts"
+import { rowCount } from "./data/catalog.ts"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId, type Person, type Sitting } from "./data/assembly.ts"
 import type { ColorableFeature } from "./data/features.ts"
 import type { Order } from "./forms/form.ts"
-import { arrange, FORMS, picksOf, type LayoutChoice } from "./forms/registry.ts"
+import { arrange, FORMS, picksOf } from "./forms/registry.ts"
 import { Stage } from "./layout/Stage.tsx"
 import { Legend } from "./layout/Legend.tsx"
 import { VoteHeader } from "./layout/VoteHeader.tsx"
@@ -18,7 +19,7 @@ import { ConfigButton, ConfigPanel } from "./config/ConfigPanel.tsx"
 import { useConfig } from "./config/useConfig.ts"
 import { FeaturePanel } from "./panel/FeaturePanel.tsx"
 import { PhoneDock } from "./panel/PhoneDock.tsx"
-import { layoutHint, panelRows, type ChosenVote, type Offer } from "./panel/rows.ts"
+import { chosenOf, panelRows, type Offer } from "./panel/rows.ts"
 import { besideSheet, toggled, type Side } from "./panel/side.ts"
 import { useSheet } from "./panel/useSheet.ts"
 import { chosenVote, cleared, initialState, pendingIntent, picked, pressed, type Press, type ViewState } from "./panel/viewState.ts"
@@ -46,7 +47,7 @@ import { sittingOn } from "./votes/sitting.ts"
 import { voteFinder } from "./votes/voteSearch.ts"
 import { createVoteSource, type ReadVote } from "./votes/sources.ts"
 import { shownVote, useVoteView } from "./votes/useVoteView.ts"
-import type { Vote } from "./votes/votes.ts"
+import { VOTES_FILE, type Vote } from "./votes/votes.ts"
 
 const NO_IDS: ReadonlySet<DeputyId> = new Set()
 const PANEL_HISTORY_STATE = { panel: true }
@@ -60,6 +61,7 @@ type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache:
 export function App({ assembly, features, cache, initial }: Props) {
   const votes = useMemo(() => createVoteSource(assembly.catalog, assembly.people), [assembly])
   const finder = useMemo(() => voteFinder(votes.index), [votes])
+  const voteCount = rowCount(assembly.catalog, VOTES_FILE)
   const [panel, setPanel] = useState(() => initialState(initial))
   const { view, fallback: fallbackColor } = panel
   const remembered = chosenVote(panel)
@@ -264,17 +266,15 @@ export function App({ assembly, features, cache, initial }: Props) {
     writeParam("showPic", showPhotos ? null : "true")
   }
 
-  const chosenNumber = readVote !== null && readVote.vote.id === remembered ? readVote.vote.number : null
-  const chosen = useMemo((): ChosenVote | null => (remembered === null ? null : { number: chosenNumber }), [remembered, chosenNumber])
+  const chosen = useMemo(() => chosenOf(remembered, readVote), [remembered, readVote])
   const panelRead = useCallback(
     (source: Source) => readingOf(source, { drawn, values: panelValues, vote, seats }),
     [drawn, panelValues, vote, seats],
   )
   const rows = useMemo(
-    () => panelRows({ features, first: DEFAULT_COLOR_FEATURE, reading: panelRead, chosen }),
-    [features, panelRead, chosen],
+    () => panelRows({ features, first: DEFAULT_COLOR_FEATURE, reading: panelRead, chosen, votes: voteCount }),
+    [features, panelRead, chosen, voteCount],
   )
-  const hintFor = useCallback((choice: LayoutChoice) => layoutHint(choice, panelRead(choice.picks.main)), [panelRead])
 
   if (colored === null) return null
 
@@ -330,11 +330,12 @@ export function App({ assembly, features, cache, initial }: Props) {
           pending={pending}
           folded={folded}
           composition={pastComposition}
-          hint={hintFor}
+          read={panelRead}
           search={search}
           voteDetails={voteHeader(true)}
           bottom={photosAndConfig}
           finder={finder}
+          voteCount={voteCount}
           onPress={pressOffer}
           onPickVote={pickVote}
           onClearVote={clearVote}
@@ -369,10 +370,11 @@ export function App({ assembly, features, cache, initial }: Props) {
           pending={pending}
           sheet={viewSheet}
           composition={pastComposition}
-          hint={hintFor}
+          read={panelRead}
           voteDetails={voteHeader(true)}
           bottom={photosAndConfig}
           finder={finder}
+          voteCount={voteCount}
           store={preview}
           people={sitting.byId}
           readerLine={readerLine}

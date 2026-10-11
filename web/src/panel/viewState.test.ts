@@ -5,7 +5,7 @@ import { AGE_COLOR, CIVILITY_COLOR, DEFAULT_VIEW, FEATURES, GROUP, GROUP_COLOR, 
 import { panelRows, type Offer } from "./rows.ts"
 import { cleared, initialState, picked, pressed, waitsFor, type Intent, type NoVote, type ViewState, type VoteChosen } from "./viewState.ts"
 
-const ROWS = panelRows({ features: FEATURES, first: GROUP.key, reading: readerOf([]), chosen: null })
+const ROWS = panelRows({ features: FEATURES, first: GROUP.key, reading: readerOf([]), chosen: null, votes: null })
 
 function offer(name: string, channel: "color" | "layout", index = 0): Offer {
   const row = ROWS.find(r => r.name === name) ?? assert.fail(name)

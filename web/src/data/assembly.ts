@@ -1,5 +1,5 @@
 import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
-import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
+import { CATALOG_FILE, parseCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
 import { parseSeatRows, SEAT_COLUMNS, SEATS_FILE, type EmptySeat, type Seat } from "./seats.ts"
@@ -48,7 +48,7 @@ export type Assembly = Omit<Sitting, "emptySeats"> & {
 const GROUP_VALUE_COLUMNS = ["value", "label_fr", "short_fr", "color"] as const
 
 export async function loadAssembly(): Promise<Assembly> {
-  const catalogLoaded = loadCatalog()
+  const catalogLoaded = fetchText(CATALOG_FILE).then(text => parseCatalog(JSON.parse(text)))
   const [catalog, groupRows, rows, seatRows, svg] = await Promise.all([
     catalogLoaded,
     catalogLoaded.then(catalog => loadCsv(valuesTablePath(catalog, "deputies/init.csv", "group"), GROUP_VALUE_COLUMNS)),

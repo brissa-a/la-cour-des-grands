@@ -1,5 +1,5 @@
 import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
-import type { FeatureRow, Offer } from "./rows.ts"
+import type { FeatureRow, Figure, Offer } from "./rows.ts"
 import type { Sentence } from "./summary.ts"
 
 export function SummaryLine({ sentence }: { sentence: Sentence }) {
@@ -16,15 +16,23 @@ export function SummaryLine({ sentence }: { sentence: Sentence }) {
 export function RowHead({ row }: { row: FeatureRow }) {
   return (
     <span className="row-head">
-      {row.figures.map(({ value, unit }, i) => (
+      <HeadText figures={row.figures} name={row.name} />
+    </span>
+  )
+}
+
+export function HeadText({ figures, name }: { figures: readonly Figure[]; name: string }) {
+  return (
+    <>
+      {figures.map(({ value, unit }, i) => (
         <span key={i} className="row-figure">
           {i > 0 && <span className="row-dot">· </span>}
           <span className="figure-value">{value}</span> <span className="figure-unit">{unit}</span>
         </span>
       ))}
-      {row.figures.length > 0 && <span className="row-dot">·</span>}
-      <span className="row-name">{row.name}</span>
-    </span>
+      {figures.length > 0 && <span className="row-dot">·</span>}
+      <span className="row-name">{name}</span>
+    </>
   )
 }
 

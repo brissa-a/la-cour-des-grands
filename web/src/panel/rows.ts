@@ -6,6 +6,8 @@ import { numberFormat } from "../profile/format.ts"
 import { MISSING, SEAT, sourceKey, VOTE, type Data, type Numbers, type Part, type Reading, type Shape, type Source, type VoteSource } from "../sources/shapes.ts"
 import { partNoun } from "../sources/views.ts"
 import { mainOf, type View } from "../view/view.ts"
+import type { ReadVote } from "../votes/sources.ts"
+import type { VoteId } from "../votes/voteId.ts"
 
 export type Channel = "color" | "layout"
 
@@ -33,7 +35,7 @@ type RowBase = { readonly key: RowKey; readonly name: string; readonly color: re
 
 export type FeatureRow = RowBase & { readonly kind: "feature"; readonly figures: readonly Figure[] }
 
-export type VoteRow = RowBase & { readonly kind: "vote"; readonly chosen: ChosenVote | null }
+export type VoteRow = RowBase & { readonly kind: "vote"; readonly chosen: ChosenVote | null; readonly figures: readonly Figure[] }
 
 export type Row = FeatureRow | VoteRow
 
@@ -42,13 +44,14 @@ export type RowInputs = {
   readonly first: FeatureKey
   readonly reading: (source: Source) => Reading | null
   readonly chosen: ChosenVote | null
+  readonly votes: number | null
 }
 
 const LISTED_PARTS = 3
 
 const CHANNEL_WORDS: Readonly<Record<Channel, string>> = { color: "couleur", layout: "disposition" }
 
-export function panelRows({ features, first, reading, chosen }: RowInputs): Row[] {
+export function panelRows({ features, first, reading, chosen, votes }: RowInputs): Row[] {
   const sources = [...features.filter(f => f.key === first), ...features.filter(f => f.key !== first), SEAT]
   const featureRows = sources.map(
     (source): FeatureRow => ({
@@ -60,7 +63,15 @@ export function panelRows({ features, first, reading, chosen }: RowInputs): Row[
       layout: layoutOffers(source),
     }),
   )
-  const voteRow: VoteRow = { kind: "vote", key: rowKey(VOTE), name: nameOf(VOTE), chosen, color: colorOffers(VOTE), layout: layoutOffers(VOTE) }
+  const voteRow: VoteRow = {
+    kind: "vote",
+    key: rowKey(VOTE),
+    name: nameOf(VOTE),
+    chosen,
+    figures: chosen === null && votes !== null ? [measure(votes, "scrutins")] : [],
+    color: colorOffers(VOTE),
+    layout: layoutOffers(VOTE),
+  }
   return [...featureRows, voteRow]
 }
 
@@ -78,6 +89,11 @@ function nameOf(source: Source): string {
 
 export function subjectOf(source: Source, chosen: ChosenVote | null): string {
   return source.kind === "vote" && chosen !== null && chosen.number !== null ? `Vote n° ${chosen.number}` : nameOf(source)
+}
+
+export function chosenOf(vote: VoteId | null, read: ReadVote | null): ChosenVote | null {
+  if (vote === null) return null
+  return { number: read !== null && read.vote.id === vote ? read.vote.number : null }
 }
 
 export function greyedReason(row: Row): string | null {
@@ -133,6 +149,15 @@ export function replaces(view: View, offer: Offer, chosen: ChosenVote | null): s
   const holder = mainOf(view[offer.channel])
   if (rowKey(holder) === rowKey(mainOf(offer.choice))) return null
   return `Remplace ${subjectOf(holder, chosen)} en ${CHANNEL_WORDS[offer.channel]}`
+}
+
+export function rowTip(view: View, row: Row, offer: Offer, chosen: ChosenVote | null): string | null {
+  return greyedReason(row) ?? replaces(view, offer, chosen)
+}
+
+export function rowHint(view: View, row: Row, reading: (source: Source) => Reading | null): string | null {
+  if (unfoldedRow(view) !== row.key) return null
+  return layoutHint(view.layout, reading(view.layout.picks.main))
 }
 
 export function layoutHint(choice: LayoutChoice, reading: Reading | null): string | null {

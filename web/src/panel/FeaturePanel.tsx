@@ -1,11 +1,11 @@
-import { useRef, useState, type ReactNode, type RefObject } from "react"
-import type { LayoutChoice } from "../forms/registry.ts"
+import { useState, type ReactNode } from "react"
 import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
+import type { Reading, Source } from "../sources/shapes.ts"
 import type { View } from "../view/view.ts"
 import type { VoteFinder } from "../votes/voteSearch.ts"
 import type { Vote } from "../votes/votes.ts"
 import { Chevron, GlyphButton, RowHead, SummaryLine } from "./PanelParts.tsx"
-import { choiceKey, greyedReason, holds, offerLabel, pressed, replaces, rowSubject, unfoldedRow, type ChoiceKey, type ChosenVote, type Offer, type Row } from "./rows.ts"
+import { choiceKey, greyedReason, holds, offerLabel, pressed, rowHint, rowSubject, rowTip, unfoldedRow, type ChoiceKey, type ChosenVote, type Offer, type Row } from "./rows.ts"
 import { sentenceText, summary } from "./summary.ts"
 import { VotePicker } from "./VotePicker.tsx"
 import { waitsFor, type Intent, type Press } from "./viewState.ts"
@@ -19,11 +19,12 @@ type Props = {
   pending: Intent | null
   folded: boolean
   composition: string | null
-  hint: (choice: LayoutChoice) => string | null
+  read: (source: Source) => Reading | null
   search: ReactNode
   voteDetails: ReactNode
   bottom: ReactNode
   finder: () => Promise<VoteFinder>
+  voteCount: number | null
   onPress: (offer: Offer) => Press
   onPickVote: (vote: Vote) => void
   onClearVote: () => void
@@ -32,7 +33,7 @@ type Props = {
 
 export function FeaturePanel(props: Props) {
   const { view, rows, chosen, folded, composition, search, bottom, onFold } = props
-  const voteInput = useRef<HTMLInputElement>(null)
+  const [voteEditing, setVoteEditing] = useState(false)
   const [color, layout] = summary(view, chosen)
 
   return (
@@ -68,7 +69,7 @@ export function FeaturePanel(props: Props) {
           </div>
           <ul className="feature-rows" aria-label="Caractéristiques">
             {rows.map(row => (
-              <FeatureRow key={row.key} {...props} row={row} voteInput={voteInput} />
+              <FeatureRow key={row.key} {...props} row={row} voteEditing={voteEditing} onVoteEditing={setVoteEditing} />
             ))}
           </ul>
         </div>
@@ -78,20 +79,20 @@ export function FeaturePanel(props: Props) {
   )
 }
 
-type RowProps = Props & { row: Row; voteInput: RefObject<HTMLInputElement | null> }
+type RowProps = Props & { row: Row; voteEditing: boolean; onVoteEditing: (editing: boolean) => void }
 
-function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, voteInput, onPress, onPickVote, onClearVote }: RowProps) {
+function FeatureRow(props: RowProps) {
+  const { row, view, chosen, pending, read, voteDetails, finder, voteCount, voteEditing, onVoteEditing, onPress, onPickVote, onClearVote } = props
   const [hovered, setHovered] = useState<ChoiceKey | null>(null)
   const hoveredOffer = [...row.color, ...row.layout].find(offer => choiceKey(offer.choice) === hovered)
   const greyed = greyedReason(row)
-  const tip = hoveredOffer && (greyed ?? replaces(view, hoveredOffer, chosen))
+  const tip = hoveredOffer && rowTip(view, row, hoveredOffer, chosen)
   const held = holds(view, row)
   const unfolded = unfoldedRow(view) === row.key
-  const unfoldedLayout = unfolded ? row.layout.find(offer => pressed(view, offer)) : undefined
-  const hintText = unfoldedLayout && hint(unfoldedLayout.choice)
+  const hintText = rowHint(view, row, read)
   const press = (offer: Offer) => {
     const result = onPress(offer)
-    if (result.kind === "wait" && result.waiting) voteInput.current?.focus()
+    if (result.kind === "wait" && result.waiting) onVoteEditing(true)
   }
   const glyph = (offer: Offer, labelled: boolean) => (
     <GlyphButton
@@ -111,7 +112,7 @@ function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, vot
   return (
     <li className={classes}>
       {row.kind === "vote" ? (
-        <VotePicker name={row.name} chosen={row.chosen} finder={finder} inputRef={voteInput} onPick={onPickVote} onClear={onClearVote} />
+        <VotePicker row={row} count={voteCount} editing={voteEditing} finder={finder} onEditing={onVoteEditing} onPick={onPickVote} onClear={onClearVote} />
       ) : (
         <RowHead row={row} />
       )}

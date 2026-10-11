@@ -1,20 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react"
 import type { DeputyId, Person } from "../data/assembly.ts"
-import type { LayoutChoice } from "../forms/registry.ts"
 import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
 import type { ColorLine } from "../preview/lines.ts"
 import type { Direction } from "../preview/neighbours.ts"
 import { usePreview, type PreviewStore } from "../preview/previewStore.ts"
 import { Reader } from "../preview/Reader.tsx"
+import type { Reading, Source } from "../sources/shapes.ts"
 import type { View } from "../view/view.ts"
 import type { VoteFinder } from "../votes/voteSearch.ts"
 import type { Vote } from "../votes/votes.ts"
 import { activeRowScroll, tabsOf, type Tabs } from "./bar.ts"
-import { Chevron, CloseIcon, GlyphButton, RowHead, SearchIcon, SummaryLine } from "./PanelParts.tsx"
-import { choiceKey, greyedReason, holds, offerLabel, pressed, rowSubject, unfoldedRow, type ChosenVote, type Offer, type Row, type VoteRow } from "./rows.ts"
+import { Chevron, CloseIcon, GlyphButton, RowHead, SummaryLine } from "./PanelParts.tsx"
+import { choiceKey, greyedReason, holds, offerLabel, pressed, rowHint, rowSubject, unfoldedRow, type ChosenVote, type Offer, type Row, type VoteRow } from "./rows.ts"
 import type { Sheet, SheetEvent } from "./sheet.ts"
 import { sentenceText, summary, type Sentence } from "./summary.ts"
-import { VoteChosen } from "./VotePicker.tsx"
+import { VoteChosen, VoteIdle } from "./VotePicker.tsx"
 import { VoteSearchScreen } from "./VoteSearchScreen.tsx"
 import { waitsFor, type Intent, type Press } from "./viewState.ts"
 
@@ -25,10 +25,11 @@ type Props = {
   pending: Intent | null
   sheet: Sheet
   composition: string | null
-  hint: (choice: LayoutChoice) => string | null
+  read: (source: Source) => Reading | null
   voteDetails: ReactNode
   bottom: ReactNode
   finder: () => Promise<VoteFinder>
+  voteCount: number | null
   store: PreviewStore
   people: ReadonlyMap<DeputyId, Person>
   readerLine: (id: DeputyId) => ColorLine | null
@@ -41,7 +42,7 @@ type Props = {
 }
 
 export function PhoneDock(props: Props) {
-  const { sheet, finder, pending, onSheet, onPickVote } = props
+  const { sheet, finder, voteCount, pending, onSheet, onPickVote } = props
   const searched = () => onSheet({ kind: "searched" })
   return (
     <>
@@ -49,6 +50,7 @@ export function PhoneDock(props: Props) {
       {sheet.kind === "searching" && (
         <VoteSearchScreen
           finder={finder}
+          count={voteCount}
           pending={pending}
           onPick={vote => {
             onPickVote(vote)
@@ -198,11 +200,10 @@ function ViewSheet(props: Props) {
 
 type RowProps = Omit<Props, "onPress"> & { row: Row; active: RefObject<HTMLLIElement | null> | null; onPress: (offer: Offer) => void }
 
-function SheetRow({ row, view, pending, active, hint, voteDetails, onPress, onSheet, onClearVote }: RowProps) {
+function SheetRow({ row, view, pending, active, read, voteDetails, onPress, onSheet, onClearVote }: RowProps) {
   const labelled = active !== null
   const held = holds(view, row)
-  const shownLayout = labelled ? row.layout.find(offer => pressed(view, offer)) : undefined
-  const hintText = shownLayout && hint(shownLayout.choice)
+  const hintText = rowHint(view, row, read)
   const glyph = (offer: Offer) => (
     <GlyphButton
       key={choiceKey(offer.choice)}
@@ -238,10 +239,8 @@ function SheetRow({ row, view, pending, active, hint, voteDetails, onPress, onSh
 function VoteHead({ row, onSearch, onClear }: { row: VoteRow; onSearch: () => void; onClear: () => void }) {
   if (row.chosen !== null) return <VoteChosen name={row.name} chosen={row.chosen} onChange={onSearch} onClear={onClear} />
   return (
-    <button type="button" className="vote-change" onClick={onSearch} aria-label="Choisir un scrutin">
-      <SearchIcon />
-      <span className="row-name">{row.name}</span>
+    <VoteIdle row={row} onSearch={onSearch}>
       <Chevron towards="right" />
-    </button>
+    </VoteIdle>
   )
 }

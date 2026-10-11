@@ -7,6 +7,7 @@ import { useAddressSuggestions } from "../address/useAddressSuggestions.ts"
 import { useConfig } from "../config/useConfig.ts"
 import type { Assembly, DeputyId } from "../data/assembly.ts"
 import { constituencyLong } from "../profile/format.ts"
+import { useVoteFinder } from "../votes/useVoteFinder.ts"
 import { searchVotes, type VoteFinder, type VoteMatch } from "../votes/voteSearch.ts"
 import type { Vote } from "../votes/votes.ts"
 import { addCommunes, createDeputySearch, type DeputyMatch, type DeputyResult } from "./deputySearch.ts"
@@ -31,14 +32,12 @@ type Props = {
   onResults: (ids: ReadonlySet<DeputyId>) => void
 }
 
-type VotesState = { status: "idle" | "loading" | "failed" } | { status: "ready"; finder: VoteFinder }
-
 export function Search({ assembly, loadCommunes, findVotes, lookupSources, onHalo, onSelect, onAddress, onVote, onResults }: Props) {
   const index = useMemo(() => createDeputySearch(assembly.deputies), [assembly])
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<DeputyResult[]>([])
   const [communesState, setCommunesState] = useState<"idle" | "loading" | "ready" | "failed">("idle")
-  const [votes, setVotes] = useState<VotesState>({ status: "idle" })
+  const { state: votes, load: loadVotes } = useVoteFinder(findVotes)
   const [voteResults, setVoteResults] = useState<VoteMatch[]>([])
   const [votesOnTop, setVotesOnTop] = useState(false)
   const [open, setOpen] = useState(false)
@@ -88,16 +87,7 @@ export function Search({ assembly, loadCommunes, findVotes, lookupSources, onHal
 
   const onFocus = () => {
     setOpen(true)
-    if (votes.status === "idle") {
-      setVotes({ status: "loading" })
-      findVotes().then(
-        finder => setVotes({ status: "ready", finder }),
-        (error: unknown) => {
-          console.error(error)
-          setVotes({ status: "failed" })
-        },
-      )
-    }
+    loadVotes()
     if (communesState !== "idle") return
     setCommunesState("loading")
     loadCommunes()

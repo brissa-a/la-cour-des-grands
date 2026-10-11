@@ -1,7 +1,6 @@
 import { isList, isRecord, type JsonRecord } from "./json.ts"
-import { fetchText } from "./source.ts"
 
-const CATALOG_FILE = "catalog.json"
+export const CATALOG_FILE = "catalog.json"
 
 const PLAIN_TYPES = ["text", "date", "code", "list", "link", "image"] as const
 
@@ -16,13 +15,9 @@ export type Feature = ColumnKind & { column: string }
 
 export type ColumnsOf = { entity: string; feature: ColumnKind }
 
-export type CatalogFile = { file: string; entity: string; features: Feature[]; columnsOf: ColumnsOf | null }
+export type CatalogFile = { file: string; entity: string; rows: number | null; features: Feature[]; columnsOf: ColumnsOf | null }
 
 export type Catalog = { files: CatalogFile[] }
-
-export async function loadCatalog(): Promise<Catalog> {
-  return parseCatalog(JSON.parse(await fetchText(CATALOG_FILE)))
-}
 
 export function parseCatalog(json: unknown): Catalog {
   if (!isRecord(json) || !isList(json.files)) throw invalid("no files list")
@@ -35,6 +30,10 @@ export function valuesTablePath(catalog: Catalog, file: string, column: string):
   return feature.values
 }
 
+export function rowCount(catalog: Catalog, file: string): number | null {
+  return catalog.files.find(f => f.file === file)?.rows ?? null
+}
+
 export function columnsValuesTablePath(catalog: Catalog, file: string): string {
   const feature = catalog.files.find(f => f.file === file)?.columnsOf?.feature
   if (feature?.type !== "category") throw invalid(`${file} has no category columns`)
@@ -45,9 +44,16 @@ function catalogFile(value: unknown, index: number): CatalogFile {
   if (!isRecord(value) || typeof value.file !== "string") throw invalid(`file ${index} has no name`)
   const { file, entity } = value
   if (typeof entity !== "string") throw invalid(`${file} has no entity`)
-  if (isList(value.features)) return { file, entity, features: value.features.map(item => catalogFeature(item, file)), columnsOf: null }
-  if (isRecord(value.columnsOf)) return { file, entity, features: [], columnsOf: columnsOf(value.columnsOf, file) }
+  const rows = rowsOf(value.rows, file)
+  if (isList(value.features)) return { file, entity, rows, features: value.features.map(item => catalogFeature(item, file)), columnsOf: null }
+  if (isRecord(value.columnsOf)) return { file, entity, rows, features: [], columnsOf: columnsOf(value.columnsOf, file) }
   throw invalid(`${file} lists neither features nor columnsOf`)
+}
+
+function rowsOf(value: unknown, file: string): number | null {
+  if (value === undefined) return null
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) throw invalid(`${file} has a row count that is not a whole number`)
+  return value
 }
 
 function catalogFeature(value: unknown, file: string): Feature {
