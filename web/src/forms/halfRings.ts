@@ -1,6 +1,6 @@
 import type { DeputyId } from "../data/deputyId.ts"
 import type { Part, Point, Turnout } from "../sources/shapes.ts"
-import { defineForm, DOT_RADIUS, type Anchor, type Mark, type Order, type Scene, type Target } from "./form.ts"
+import { defineForm, DOT_RADIUS, type Anchor, type Lay, type Mark, type Order, type Scene, type Screen, type Target } from "./form.ts"
 import { textEm } from "./text.ts"
 
 const DOT_PITCHES = 0.42
@@ -17,7 +17,9 @@ const INNER_STEP = 0.02
 const LINK_PITCHES = 1.6
 const SEARCH_STEPS = 24
 const SNAP_PITCHES = 0.6
-const FONT_PX = 12
+// The sizes and the gap of the approved mockups.
+const LABEL_PX: Readonly<Record<Screen, { readonly count: number; readonly text: number }>> = { desktop: { count: 21, text: 15 }, phone: { count: 14, text: 12 } }
+const COUNT_GAP_EM = 0.28
 const LINE_EM = 1.25
 const GAP_EM = 0.5
 const STACK_EM = 0.2
@@ -48,6 +50,8 @@ type Head = { readonly part: Part; readonly count: number; readonly angle: numbe
 
 type Box = { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number }
 
+type Font = { readonly count: number; readonly text: number; readonly gap: number }
+
 type Label = { readonly head: Head; readonly anchor: Anchor; readonly width: number; x: number; y: number; readonly ideal: Point }
 
 export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, order }: Target): Scene {
@@ -69,8 +73,9 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
     { left: 0, top: 0, right: 0, bottom: 0 },
   )
 
-  const { area, px } = frame
-  const font = FONT_PX * px
+  const { area, px, screen } = frame
+  const sizes = LABEL_PX[screen]
+  const font: Font = { count: sizes.count * px, text: sizes.text * px, gap: COUNT_GAP_EM * sizes.count * px }
   const width = area.right - area.left
   const height = area.bottom - area.top
   const radiusAt = (pitch: number) => Math.min(DOT_RADIUS, DOT_PITCHES * pitch)
@@ -115,11 +120,12 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
   const marks = labels.flatMap((label): Mark[] => {
     const { head, anchor, x, y, ideal } = label
     const at = { x: cx + x, y: cy + y }
-    const text: Mark = { kind: "label", at, count: head.count, text: head.part.label, title: `${head.count} · ${head.part.title}`, size: font, lay: { kind: "inline", anchor } }
-    if (head.ring === grid.rings - 1 && Math.hypot(x - ideal.x, y - ideal.y) <= LEADER_EM * font) return [text]
-    const edge = (grid.inner + head.ring + DOT_PITCHES) * pitch + LEADER_INSET_EM * font
+    const lay: Lay = { kind: "inline", anchor, gap: font.gap, textSize: font.text }
+    const text: Mark = { kind: "label", at, count: head.count, text: head.part.label, title: `${head.count} · ${head.part.title}`, size: font.count, lay }
+    if (head.ring === grid.rings - 1 && Math.hypot(x - ideal.x, y - ideal.y) <= LEADER_EM * font.count) return [text]
+    const edge = (grid.inner + head.ring + DOT_PITCHES) * pitch + LEADER_INSET_EM * font.count
     const from = { x: cx + edge * Math.cos(head.angle), y: cy - edge * Math.sin(head.angle) }
-    const to = { x: at.x + (anchor === "start" ? -1 : 1) * LEADER_INSET_EM * font, y: at.y }
+    const to = { x: at.x + (anchor === "start" ? -1 : 1) * LEADER_INSET_EM * font.count, y: at.y }
     return [{ kind: "rule", from, to, tone: "leader" }, text]
   })
 
@@ -348,13 +354,13 @@ function laneOf(apart: boolean): number {
   return apart ? APART_LANE_PITCHES : LANE_PITCHES
 }
 
-function placeLabels(heads: readonly Head[], edge: number, font: number): Label[] {
-  const clear = edge + GAP_EM * font
-  const height = LINE_EM * font
+function placeLabels(heads: readonly Head[], edge: number, font: Font): Label[] {
+  const clear = edge + GAP_EM * font.count
+  const height = LINE_EM * font.count
   const box = boxOf(font)
   const labels = heads.map(head => {
     const anchor: Anchor = head.angle > Math.PI / 2 ? "end" : "start"
-    const width = textEm(`${head.count} ${head.part.label}`) * font
+    const width = textEm(String(head.count)) * font.count + font.gap + textEm(head.part.label) * font.text
     const at = (distance: number) => ({ x: distance * Math.cos(head.angle), y: -distance * Math.sin(head.angle) })
     const distance = least(clear, clear + width + height, d => distanceTo(box({ anchor, width, ...at(d) })) >= clear)
     const ideal = at(distance)
@@ -365,7 +371,7 @@ function placeLabels(heads: readonly Head[], edge: number, font: number): Label[
     const stacked = labels.filter(label => label.anchor === side).sort((a, b) => b.y - a.y)
     stacked.forEach((label, i) => {
       const below = stacked[i - 1]
-      if (below) label.y = Math.min(label.y, below.y - height - STACK_EM * font)
+      if (below) label.y = Math.min(label.y, below.y - height - STACK_EM * font.count)
     })
   }
   return labels
@@ -383,8 +389,8 @@ function least(low: number, high: number, enough: (value: number) => boolean): n
   return long
 }
 
-function boxOf(font: number): (label: Pick<Label, "anchor" | "width" | "x" | "y">) => Box {
-  const height = LINE_EM * font
+function boxOf(font: Font): (label: Pick<Label, "anchor" | "width" | "x" | "y">) => Box {
+  const height = LINE_EM * font.count
   return ({ anchor, width, x, y }) => {
     const left = anchor === "start" ? x : x - width
     return { left, top: y - height / 2, right: left + width, bottom: y + height / 2 }

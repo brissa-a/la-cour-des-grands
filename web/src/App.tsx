@@ -114,7 +114,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const [viewSheet, onViewSheet] = useSheet()
   const svgRef = useRef<SVGSVGElement>(null)
   const searchInput = useRef<HTMLInputElement>(null)
-  const frame = useStageFrame(svgRef)
+  const frame = useStageFrame(svgRef, phone ? "phone" : "desktop")
 
   const order = useMemo(() => (settled && chosenColored ? rankThenName(chosenColored.paint, sitting) : null), [settled, chosenColored, sitting])
   const arrangement = useMemo(

@@ -7,9 +7,9 @@ import { placeColumns } from "./columns.ts"
 import type { Frame, Scene } from "./form.ts"
 
 const PX = 0.002
-const WIDE: Frame = { area: { left: -1, top: -0.8, right: 1.8, bottom: 0.2 }, px: PX }
-const NARROW: Frame = { area: { left: 0, top: 0, right: 0.7, bottom: 0.8 }, px: PX }
-const SHORT: Frame = { area: { left: 0, top: 0, right: 0.7, bottom: 0.28 }, px: PX }
+const WIDE: Frame = { area: { left: -1, top: -0.8, right: 1.8, bottom: 0.2 }, px: PX, screen: "desktop" }
+const NARROW: Frame = { area: { left: 0, top: 0, right: 0.7, bottom: 0.8 }, px: PX, screen: "desktop" }
+const SHORT: Frame = { area: { left: 0, top: 0, right: 0.7, bottom: 0.28 }, px: PX, screen: "desktop" }
 const NARROWEST_CHAR_EM = 0.5
 
 const VOTE = { Pour: 296, Contre: 224, Abstention: 41, "Non-votant": 1, Absent: 15 }

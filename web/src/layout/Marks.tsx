@@ -1,6 +1,6 @@
 import { useRef } from "react"
 import type { Mark } from "../forms/form.ts"
-import { RULE_CLASS, labelAttributes } from "./markAttributes.ts"
+import { RULE_CLASS, labelAttributes, nameAttributes } from "./markAttributes.ts"
 
 type RoomMark = Extract<Mark, { kind: "room" }>
 
@@ -57,17 +57,12 @@ function MarkShape(mark: Mark, index: number) {
 
 function Label({ mark }: { mark: Extract<Mark, { kind: "label" }> }) {
   const { at, count, text, title, size, lay } = mark
+  const name = nameAttributes(at, lay)
   return (
     <text x={at.x} y={at.y} {...labelAttributes(at, lay)} style={{ fontSize: size }}>
       <title>{title}</title>
       <tspan className="chart-count">{count}</tspan>
-      {lay.kind === "flat" ? (
-        <tspan x={at.x} dy={lay.lineHeight}>
-          {text}
-        </tspan>
-      ) : (
-        ` ${text}`
-      )}
+      {name ? <tspan {...name}>{text}</tspan> : ` ${text}`}
     </text>
   )
 }

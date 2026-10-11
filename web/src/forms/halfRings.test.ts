@@ -6,8 +6,8 @@ import type { Frame, Order, Scene } from "./form.ts"
 import { halfRingGrid, placeHalfRings, type Slot } from "./halfRings.ts"
 import { textEm } from "./text.ts"
 
-const DESKTOP: Frame = { area: { left: -1.18, top: -0.89, right: 1.18, bottom: 0.0283 }, px: 1 / 600 }
-const PHONE: Frame = { area: { left: -1.0296, top: -0.8897, right: 1.0296, bottom: 0.7529 }, px: 1 / 170.45 }
+const DESKTOP: Frame = { area: { left: -1.18, top: -0.89, right: 1.18, bottom: 0.0283 }, px: 1 / 600, screen: "desktop" }
+const PHONE: Frame = { area: { left: -1.0296, top: -0.8897, right: 1.0296, bottom: 0.7529 }, px: 1 / 170.45, screen: "phone" }
 
 const VOTE = { Pour: 296, Contre: 224, Abstention: 41, "Non-votant": 1 }
 const VOTE_ABSENT = 15
@@ -157,7 +157,7 @@ test("each sector is headed by its count then its label, in the parts' order, cl
       assert.deepEqual(labels.map(label => [label.count, label.text]), [...Object.entries(present).map(([text, count]) => [count, text]), [absent, "Absent"]])
       const boxes = labels.map(({ at, count, text, size, lay }) => {
         assert.ok(lay.kind === "inline")
-        const width = textEm(`${count} ${text}`) * size
+        const width = textEm(String(count)) * size + lay.gap + textEm(text) * lay.textSize
         const left = lay.anchor === "start" ? at.x : at.x - width
         return { left, right: left + width, top: at.y - (1.25 * size) / 2, bottom: at.y + (1.25 * size) / 2 }
       })
@@ -173,8 +173,16 @@ test("each sector is headed by its count then its label, in the parts' order, cl
     }
 })
 
+test("a sector label sets its count then its name in the mockups' sizes and gap: 21, 15 and 5.88 px on a desktop, 14, 12 and 3.92 px on a phone", () => {
+  for (const [frame, pixels] of [[DESKTOP, [21, 15, 5.88]], [PHONE, [14, 12, 3.92]]] as const)
+    for (const { size, lay } of labelsOf(place(turnoutOf(VOTE, VOTE_ABSENT), frame))) {
+      assert.ok(lay.kind === "inline")
+      assert.deepEqual([size, lay.textSize, lay.gap].map(length => Math.round((length / frame.px) * 1e9) / 1e9), pixels, frame.screen)
+    }
+})
+
 test("each label sits on its own sector's ray, give or take half a line when a neighbour on its side nudges it, half a line outside the arc, and runs away from it", () => {
-  const levelAcross = { Pour: 161, Contre: 116, Abstention: 1, "Non-votant": 4 }
+  const levelAcross = { Pour: 102, Contre: 163, Abstention: 18, "Non-votant": 1 }
   for (const [present, absent] of [[VOTE, VOTE_ABSENT], [CENSURE, CENSURE_ABSENT], [levelAcross, 292]] as const)
     for (const frame of [DESKTOP, PHONE]) {
       const turnout = turnoutOf(present, absent)
@@ -190,7 +198,7 @@ test("each label sits on its own sector's ray, give or take half a line when a n
         const angles = part.members.map(id => angleOf(dotOf(scene)(id)))
         const nudged = (0.5 * label.size) / distance(label.at, centre) + 1e-6
         assert.ok(angleOf(label.at) >= Math.min(...angles) - nudged && angleOf(label.at) <= Math.max(...angles) + nudged, label.text)
-        assert.deepEqual(label.lay, { kind: "inline", anchor: label.at.x < centre.x ? "end" : "start" })
+        assert.equal(label.lay.kind === "inline" && label.lay.anchor, label.at.x < centre.x ? "end" : "start", label.text)
         const beyond = (distance(label.at, centre) - edge) / label.size
         assert.ok(beyond >= 0.5 - 1e-6 && beyond <= 0.5 + 1.25, `${label.text}: ${beyond} em beyond the arc`)
       }
@@ -298,8 +306,8 @@ test("a roster keeps the ring count and inner radius tuned for it, from one depu
 })
 
 test("a frame too small for the labels still holds every dot, as large as its narrow side allows", () => {
-  const narrow: Frame = { area: { left: 0, top: 0, right: 0.05, bottom: 0.8 }, px: 0.002 }
-  const low: Frame = { area: { left: 0, top: 0, right: 1, bottom: 0.05 }, px: 0.01 }
+  const narrow: Frame = { area: { left: 0, top: 0, right: 0.05, bottom: 0.8 }, px: 0.002, screen: "desktop" }
+  const low: Frame = { area: { left: 0, top: 0, right: 1, bottom: 0.05 }, px: 0.01, screen: "desktop" }
   for (const [frame, side] of [[narrow, "x"], [low, "y"]] as const) {
     const scene = place(turnoutOf(VOTE, VOTE_ABSENT), frame)
     const { area } = frame
@@ -383,32 +391,32 @@ test("half-rings keep their tuned geometry, for a full vote, a vote most deputie
   }
   assert.deepEqual(digest(turnoutOf(VOTE, VOTE_ABSENT)), {
     card: "beside",
-    radius: 0.017142,
-    snap: 0.024488,
+    radius: 0.017052,
+    snap: 0.024359,
     rings: 13,
-    first: [[-0.464902, 0.011158], [-0.112019, -0.831029], [0.738048, -0.345915], [0.804895, -0.110974], [0.648943, -0.029989]],
-    centres: [[-0.540401, -0.389302], [0.244865, -0.551998], [0.585453, -0.201268], [0.804895, -0.110974], [0.581944, 0.005667]],
+    first: [[-0.488973, 0.006425], [-0.137944, -0.831339], [0.707658, -0.348772], [0.774153, -0.115066], [0.619021, -0.034506]],
+    centres: [[-0.564076, -0.391932], [0.217065, -0.553773], [0.555864, -0.204886], [0.774153, -0.115066], [0.552373, 0.000962]],
     labels: [
-      ["296 · Pour", "end", -0.764151, -0.592323, 0.02],
-      ["224 · Contre", "start", 0.378033, -0.794372, 0.02],
-      ["41 · Abstention", "start", 0.796973, -0.279638, 0.02],
-      ["1 · Non-votant", "start", 0.833403, -0.114951, 0.02],
-      ["15 · Absent", "start", 0.840514, 0.011158, 0.02],
+      ["296 · Pour", "end", -0.796948, -0.602846, 0.035],
+      ["224 · Contre", "start", 0.357202, -0.808642, 0.035],
+      ["41 · Abstention", "start", 0.776129, -0.286147, 0.035],
+      ["1 · Non-votant", "start", 0.811112, -0.120222, 0.035],
+      ["15 · Absent", "start", 0.817138, 0.006425, 0.035],
     ],
   })
   assert.deepEqual(digest(turnoutOf({ Pour: 96, Contre: 134, Abstention: 2, "Non-votant": 15 }, 329)), {
     card: "beside",
-    radius: 0.016659,
-    snap: 0.023799,
+    radius: 0.015752,
+    snap: 0.022502,
     rings: 13,
-    first: [[-0.354503, 0.011641], [-0.720704, -0.411056], [-0.237873, -0.811993], [-0.100035, -0.439684], [0.038182, -0.579369]],
-    centres: [[-0.608483, -0.12297], [-0.392212, -0.485602], [-0.227933, -0.794389], [-0.120389, -0.623042], [0.464723, -0.405396]],
+    first: [[-0.309711, 0.012548], [-0.655959, -0.387116], [-0.199436, -0.766208], [-0.069109, -0.414185], [0.061577, -0.546259]],
+    centres: [[-0.549853, -0.114728], [-0.345366, -0.457601], [-0.190038, -0.749563], [-0.088354, -0.587552], [0.464877, -0.381765]],
     labels: [
-      ["96 · Pour", "end", -0.840306, -0.173674, 0.02],
-      ["134 · Contre", "end", -0.571191, -0.656809, 0.02],
-      ["2 · Abstention", "end", -0.250108, -0.8485, 0.02],
-      ["15 · Non-votant", "end", -0.169588, -0.8775, 0.02],
-      ["329 · Absent", "start", 0.677491, -0.627668, 0.02],
+      ["96 · Pour", "end", -0.778762, -0.164719, 0.035],
+      ["134 · Contre", "end", -0.524959, -0.630851, 0.035],
+      ["2 · Abstention", "end", -0.216586, -0.817375, 0.035],
+      ["15 · Non-votant", "end", -0.138953, -0.868125, 0.035],
+      ["329 · Absent", "start", 0.676698, -0.602573, 0.035],
     ],
   })
   assert.deepEqual(digest(turnoutOf({ Pour: 1 }, null)), {
@@ -416,8 +424,8 @@ test("half-rings keep their tuned geometry, for a full vote, a vote most deputie
     radius: 0.019,
     snap: 0.027143,
     rings: 1,
-    first: [[-0.0253, -0.469898]],
-    centres: [[-0.0253, -0.469898]],
-    labels: [["1 · Pour", "start", -0.0253, -0.511398, 0.02]],
+    first: [[-0.03855, -0.456773]],
+    centres: [[-0.03855, -0.456773]],
+    labels: [["1 · Pour", "start", -0.03855, -0.515148, 0.035]],
   })
 })

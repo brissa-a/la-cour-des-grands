@@ -7,7 +7,9 @@ export const DOT_RADIUS = 0.019
 
 export const NO_HOLLOW: ReadonlySet<DeputyId> = new Set()
 
-export type Frame = { readonly area: Rect; readonly px: number }
+export type Screen = "desktop" | "phone"
+
+export type Frame = { readonly area: Rect; readonly px: number; readonly screen: Screen }
 
 export type Order = (a: DeputyId, b: DeputyId) => number
 
@@ -22,7 +24,7 @@ export type Tone = "grid" | "base" | "leader"
 export type Lay =
   | { readonly kind: "flat"; readonly lineHeight: number }
   | { readonly kind: "slanted"; readonly degrees: number }
-  | { readonly kind: "inline"; readonly anchor: Anchor }
+  | { readonly kind: "inline"; readonly anchor: Anchor; readonly gap: number; readonly textSize: number }
 
 export type Mark =
   | { readonly kind: "room"; readonly room: Room; readonly empty: readonly Seat[]; readonly radius: number }

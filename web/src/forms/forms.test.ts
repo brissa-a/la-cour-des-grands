@@ -12,10 +12,10 @@ import { defineForm, type Frame, type Scene } from "./form.ts"
 import { arrange, FORMS, LAYOUTS, layOut, layoutsOf, type ExtraSources, type FormName } from "./registry.ts"
 
 const FRAMES: Readonly<Record<string, Frame>> = {
-  wide: { area: { left: -1.18, top: -0.887, right: 1.18, bottom: -0.04 }, px: 1 / 600 },
-  narrow: { area: { left: 0, top: 0, right: 0.7, bottom: 0.8 }, px: 0.002 },
-  short: { area: { left: 0, top: 0, right: 0.7, bottom: 0.28 }, px: 0.002 },
-  phone: { area: { left: -1.03, top: -1.441, right: 1.03, bottom: 0.495 }, px: 1 / 170.45 },
+  wide: { area: { left: -1.18, top: -0.887, right: 1.18, bottom: -0.04 }, px: 1 / 600, screen: "desktop" },
+  narrow: { area: { left: 0, top: 0, right: 0.7, bottom: 0.8 }, px: 0.002, screen: "desktop" },
+  short: { area: { left: 0, top: 0, right: 0.7, bottom: 0.28 }, px: 0.002, screen: "desktop" },
+  phone: { area: { left: -1.03, top: -1.441, right: 1.03, bottom: 0.495 }, px: 1 / 170.45, screen: "phone" },
 }
 
 const GROUP: CategoryFeature = { kind: "category", key: "f:group", file: "f", column: "group", title: "Groupe", values: "v" }
