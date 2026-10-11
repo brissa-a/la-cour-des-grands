@@ -1,12 +1,13 @@
 import type { ConstituencyCode } from "../address/codes.ts"
-import type { DeputyId, Seat } from "../data/assembly.ts"
+import type { DeputyId } from "../data/deputyId.ts"
+import type { EmptySeat, Seat } from "../data/seats.ts"
 import type { Roster } from "./roster.ts"
 
 type Seated<P> = P & { readonly seat: Seat }
 
 type Today<P> = {
   readonly byConstituency: ReadonlyMap<ConstituencyCode, Seated<P>>
-  readonly emptySeats: readonly Seat[]
+  readonly emptySeats: readonly EmptySeat[]
   readonly people: ReadonlyMap<DeputyId, P>
 }
 
@@ -18,15 +19,27 @@ export type PastSitting<P> = {
 }
 
 export function sittingOn<P extends { readonly id: DeputyId }>(today: Today<P>, roster: Roster): PastSitting<P> {
+  const holders = new Map(Array.from(roster, ([constituency, id]) => [constituency, today.people.get(id)]))
   const deputies: Seated<P>[] = []
-  const emptySeats: Seat[] = [...today.emptySeats]
+  const freedSeats: Seat[] = []
   for (const [constituency, current] of today.byConstituency) {
-    const holder = roster.get(constituency)
-    const past = holder === undefined || holder === current.id ? undefined : today.people.get(holder)
-    if (holder === current.id) deputies.push(current)
+    const past = holders.get(constituency)
+    if (past?.id === current.id) deputies.push(current)
     else if (past) deputies.push({ ...past, seat: current.seat })
-    else emptySeats.push(current.seat)
+    else freedSeats.push(current.seat)
   }
-  const unplaced = Array.from(roster.keys()).filter(constituency => !today.byConstituency.has(constituency)).length
+  const vacantSeats = new Map(today.emptySeats.map(seat => [seat.constituency, seat]))
+  const takenSeats = new Set<Seat>()
+  let unplaced = 0
+  for (const [constituency, past] of holders) {
+    if (today.byConstituency.has(constituency)) continue
+    const seat = vacantSeats.get(constituency)
+    if (seat === undefined) unplaced++
+    else if (past) {
+      takenSeats.add(seat)
+      deputies.push({ ...past, seat })
+    }
+  }
+  const emptySeats = [...today.emptySeats.filter(seat => !takenSeats.has(seat)), ...freedSeats]
   return { deputies, byId: new Map(deputies.map(d => [d.id, d])), emptySeats, unplaced }
 }

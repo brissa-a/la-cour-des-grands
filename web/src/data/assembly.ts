@@ -2,18 +2,15 @@ import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
 import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
+import { readSeats, SEAT_COLUMNS, SEATS_FILE, type EmptySeat, type Seat } from "./seats.ts"
 import { fetchText } from "./source.ts"
 
-export type { DeputyId }
+export type { DeputyId, Seat }
 
 const INIT_COLUMNS = [
   "deputy_id", "photo", "last_name", "first_name", "civility", "birth_date", "age", "in_office",
   "constituency", "department", "department_number", "constituency_number", "mandate_periods", "group",
 ] as const
-
-const SEAT_COLUMNS = ["seat", "x", "y", "deputy"] as const
-
-export type Seat = { number: string; x: number; y: number }
 
 type InitRow = Row<(typeof INIT_COLUMNS)[number]>
 
@@ -37,7 +34,8 @@ export type Sitting = {
   emptySeats: readonly Seat[]
 }
 
-export type Assembly = Sitting & {
+export type Assembly = Omit<Sitting, "emptySeats"> & {
+  emptySeats: readonly EmptySeat[]
   catalog: Catalog
   initRows: ReadonlyMap<DeputyId, Readonly<Record<string, string>>>
   people: ReadonlyMap<DeputyId, Person>
@@ -55,17 +53,11 @@ export async function loadAssembly(): Promise<Assembly> {
     catalogLoaded,
     catalogLoaded.then(catalog => loadCsv(valuesTablePath(catalog, "deputies/init.csv", "group"), GROUP_VALUE_COLUMNS)),
     loadCsv("deputies/init.csv", INIT_COLUMNS),
-    loadCsv("seats/hemicycle.csv", SEAT_COLUMNS),
+    loadCsv(SEATS_FILE, SEAT_COLUMNS),
     fetchText("seats/hemicycle.svg"),
   ])
 
-  const seatOf = new Map<string, Seat>()
-  const emptySeats: Seat[] = []
-  for (const r of seatRows) {
-    const seat = { number: r.seat, x: Number(r.x), y: Number(r.y) }
-    if (r.deputy) seatOf.set(r.deputy, seat)
-    else emptySeats.push(seat)
-  }
+  const { seatOf, emptySeats } = readSeats(seatRows)
   const groups = groupRows.map((r): Group => ({ name: r.value, short: r.short_fr, color: r.color, seatCount: 0 }))
   const groupByName = new Map(groups.map(g => [g.name, g]))
   const people = rows.map((row): Person => {
@@ -81,7 +73,7 @@ export async function loadAssembly(): Promise<Assembly> {
     if (person.in_office !== "yes") continue
     const seat = seatOf.get(person.id)
     if (!seat) {
-      console.warn(`${person.id} is in office but has no seat in seats/hemicycle.csv`)
+      console.warn(`${person.id} is in office but has no seat in ${SEATS_FILE}`)
       continue
     }
     person.politicalGroup.seatCount++

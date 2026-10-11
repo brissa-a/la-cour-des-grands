@@ -182,6 +182,8 @@
                 "group": [
                   "**/data/assembly",
                   "**/data/assembly.*",
+                  "**/data/seats",
+                  "**/data/seats.*",
                   "**/sources/seats",
                   "**/sources/seats.*"
                 ],
