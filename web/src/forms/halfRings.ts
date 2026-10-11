@@ -11,7 +11,6 @@ const ONE_RING_MAX_INNER_PITCHES = 3 * MIN_INNER_PITCHES
 const LEAST_INNER_PER_RING = 0.72
 const MOST_INNER_PER_RING = 3.55
 const HOLE_RATIO = 0.45
-const MAX_LOOSENESS = 1.15
 // Rings sit one pitch apart, so dots on rings farther apart than this can never crowd each other.
 const CROWDING_RINGS = Math.floor(2 * DOT_PITCHES + APART_LANE_PITCHES)
 const INNER_STEP = 0.02
@@ -143,18 +142,16 @@ export const halfRings = defineForm({ label: "Demi-anneaux", slots: { main: ["tu
 
 export function halfRingGrid(sectors: readonly Sector[]): Grid {
   const dots = total(sectors.map(({ count }) => count))
-  let best: (Grid & { readonly loose: boolean; readonly score: number }) | null = null
+  let best: (Grid & { readonly score: number }) | null = null
   for (let rings = 1; ; rings++) {
     const low = Math.max(MIN_INNER_PITCHES, LEAST_INNER_PER_RING * (rings - 1))
     const high = rings > 1 ? Math.max(low, MOST_INNER_PER_RING * (rings - 1)) : ONE_RING_MAX_INNER_PITCHES
     const found = tightest(sectors, dots, rings, low, high)
     if (!found) continue
-    const loose = found.looseness > MAX_LOOSENESS
     const hole = found.inner / (found.inner + rings - 1)
     const score = Math.abs(hole - HOLE_RATIO) + 2 * (found.looseness - 1)
-    if (best === null || (!loose && best.loose) || (loose === best.loose && score < best.score))
-      best = { rings, inner: found.inner, sectors: found.sectors, loose, score }
-    if (loose && found.inner <= low) return best
+    if (best === null || score < best.score) best = { rings, inner: found.inner, sectors: found.sectors, score }
+    if (found.inner <= low) return best
   }
 }
 
@@ -281,7 +278,7 @@ function grow(cursors: readonly Cursor[], count: number, lean: number | null): S
       const outer = fronts[front.cursor.ring + 1]
       if (front.latest === null) {
         passBehind(front, outer?.first ?? null, step)
-        if (taken.length === 0 ? front !== outermost : !outer || !touches(slotAt(front), outer)) continue
+        if (taken.length === 0 ? front !== outermost : !outer?.first) continue
       }
       if (!isOpen(front)) continue
       const angle = angleOf(front.cursor, front.at)
@@ -298,7 +295,6 @@ function grow(cursors: readonly Cursor[], count: number, lean: number | null): S
     best.latest = slot
     best.at += step
   }
-  if (!fromRight) for (const { cursor, at } of fronts) cursor.next = at
   return taken
 }
 
@@ -314,11 +310,6 @@ function isOpen({ cursor, at }: Front): boolean {
 
 function slotAt({ cursor, at }: Front): Slot {
   return { ring: cursor.ring, radius: cursor.radius, angle: angleOf(cursor, at) }
-}
-
-function touches(slot: Slot, { first, latest }: Front): boolean {
-  if (!first || !latest) return false
-  return (slot.angle <= Math.max(first.angle, latest.angle) && slot.angle >= Math.min(first.angle, latest.angle)) || near(slot, first) || near(slot, latest)
 }
 
 function near(a: Slot, b: Slot): boolean {

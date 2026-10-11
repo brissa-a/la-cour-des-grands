@@ -234,6 +234,21 @@ test("labels crowded at either end of the arc stack a line apart in the parts' o
   assert.ok(top.marks.every(mark => mark.kind !== "rule" || distance(mark.to, alone.at) > alone.size), "a label alone on its side of the top was pushed by the other side")
 })
 
+test("a label whose sector stops short of the outer ring is tied to it by a leader, even when no neighbour nudges it", () => {
+  for (const [present, absent] of [[{ Pour: 298, Contre: 226, Abstention: 37, "Non-votant": 1 }, 14], [{ Pour: 194, Contre: 363, Abstention: 15 }, 1]] as const)
+    for (const frame of [DESKTOP, PHONE]) {
+      const turnout = turnoutOf(present, absent)
+      const scene = place(turnout, frame)
+      const outerRing = new Set(scene.lines.at(-1))
+      const short = [...turnout.present, turnout.absent ?? assert.fail()].filter(part => !part.members.some(id => outerRing.has(id)))
+      assert.ok(short.length > 0)
+      for (const part of short) {
+        const label = labelsOf(scene).find(({ text }) => text === part.label) ?? assert.fail()
+        assert.ok(scene.marks.some(mark => mark.kind === "rule" && distance(mark.to, label.at) <= 0.3 * label.size), `${part.label} ${frame.px}`)
+      }
+    }
+})
+
 test("each label reads as its own sector's: the dot nearest its near end, or the start of its leader, is one of that sector's", () => {
   for (const [present, absent] of ROSTERS)
     for (const frame of [DESKTOP, PHONE]) {
@@ -249,10 +264,12 @@ test("each label reads as its own sector's: the dot nearest its near end, or the
     }
 })
 
-test("a part nobody holds gets neither a sector nor a label", () => {
+test("a part nobody holds gets neither a sector nor a label, and the last part with dots still ends on the right base line", () => {
   const scene = place(turnoutOf({ Pour: 5, Contre: 0 }, 5), DESKTOP)
   assert.equal(scene.dots.size, 10)
   assert.deepEqual(labelsOf(scene).map(label => label.text), ["Pour", "Absent"])
+  const [, against] = halfRingGrid([{ count: 20, apart: false }, { count: 20, apart: false }, { count: 0, apart: false }]).sectors
+  for (const ring of new Set(against?.map(slot => slot.ring))) assert.equal(Math.min(...(against ?? []).filter(slot => slot.ring === ring).map(slot => slot.angle)), 0, `ring ${ring}`)
 })
 
 test("a roster keeps the ring count and inner radius tuned for it, from one deputy to a full house", () => {
@@ -268,19 +285,30 @@ test("a roster keeps the ring count and inner radius tuned for it, from one depu
     [[12], false, 1, 3.52],
     [[5, 5], true, 1, 3.52],
     [[3, 3], true, 1, 2.5],
+    [[13, 13], false, 3, 2.5],
+    [[4, 4, 4], false, 2, 2.5],
     [[1], false, 1, 2.5],
   ]
   for (const [sizes, lastApart, rings, inner] of tuned) {
     const grid = halfRingGrid(sizes.map((count, i) => ({ count, apart: lastApart && i === sizes.length - 1 })))
     assert.deepEqual([grid.rings, Math.round(grid.inner * 100) / 100], [rings, inner], sizes.join(","))
+    assert.deepEqual(grid.sectors.map(slots => slots.length), sizes, sizes.join(","))
   }
 })
 
-test("a frame too narrow for the labels still keeps every dot inside it", () => {
-  const frame: Frame = { area: { left: 0, top: 0, right: 0.05, bottom: 0.8 }, px: 0.002 }
-  const scene = place(turnoutOf(VOTE, VOTE_ABSENT), frame)
-  for (const { x, y } of scene.dots.values())
-    assert.ok(x - scene.radius >= -1e-12 && x + scene.radius <= 0.05 + 1e-12 && y - scene.radius >= -1e-12 && y + scene.radius <= 0.8 + 1e-12)
+test("a frame too small for the labels still holds every dot, as large as its narrow side allows", () => {
+  const narrow: Frame = { area: { left: 0, top: 0, right: 0.05, bottom: 0.8 }, px: 0.002 }
+  const low: Frame = { area: { left: 0, top: 0, right: 1, bottom: 0.05 }, px: 0.01 }
+  for (const [frame, side] of [[narrow, "x"], [low, "y"]] as const) {
+    const scene = place(turnoutOf(VOTE, VOTE_ABSENT), frame)
+    const { area } = frame
+    const points = [...scene.dots.values()]
+    for (const { x, y } of points)
+      assert.ok(x - scene.radius >= area.left - 1e-12 && x + scene.radius <= area.right + 1e-12 && y - scene.radius >= area.top - 1e-12 && y + scene.radius <= area.bottom + 1e-12)
+    const along = points.map(point => point[side])
+    const [from, to] = side === "x" ? [area.left, area.right] : [area.top, area.bottom]
+    assert.ok(Math.abs(Math.min(...along) - scene.radius - from) < 1e-9 && Math.abs(Math.max(...along) + scene.radius - to) < 1e-9, side)
+  }
 })
 
 test("each reading line is one ring: its dots sit at one distance from the centre, a distance of its own", () => {
@@ -332,7 +360,7 @@ test("each deputy's place is their sector's part", () => {
   assert.equal(scene.where(deputyId("nobody")), null)
 })
 
-test("half-rings keep their tuned geometry, for a vote and for a single deputy", () => {
+test("half-rings keep their tuned geometry, for a full vote, a vote most deputies missed and a single deputy", () => {
   const round = (n: number) => Math.round(n * 1e6) / 1e6 + 0
   const digest = (turnout: Turnout) => {
     const scene = place(turnout, DESKTOP)
@@ -345,6 +373,10 @@ test("half-rings keep their tuned geometry, for a vote and for a single deputy",
         const { x, y } = dotOf(scene)(part.members.toSorted(byId)[0] ?? assert.fail())
         return [round(x), round(y)]
       }),
+      centres: [...turnout.present, ...(turnout.absent ? [turnout.absent] : [])].map(part => {
+        const points = part.members.map(dotOf(scene))
+        return [round(points.reduce((sum, { x }) => sum + x, 0) / points.length), round(points.reduce((sum, { y }) => sum + y, 0) / points.length)]
+      }),
       labels: labelsOf(scene).map(label => [label.title, label.lay.kind === "inline" ? label.lay.anchor : null, round(label.at.x), round(label.at.y), round(label.size)]),
     }
   }
@@ -354,6 +386,7 @@ test("half-rings keep their tuned geometry, for a vote and for a single deputy",
     snap: 0.024488,
     rings: 13,
     first: [[-0.464902, 0.011158], [-0.112019, -0.831029], [0.738048, -0.345915], [0.804895, -0.110974], [0.648943, -0.029989]],
+    centres: [[-0.540401, -0.389302], [0.244865, -0.551998], [0.585453, -0.201268], [0.804895, -0.110974], [0.581944, 0.005667]],
     labels: [
       ["296 · Pour", "end", -0.764151, -0.592323, 0.02],
       ["224 · Contre", "start", 0.378033, -0.794372, 0.02],
@@ -362,12 +395,28 @@ test("half-rings keep their tuned geometry, for a vote and for a single deputy",
       ["15 · Absent", "start", 0.840514, 0.011158, 0.02],
     ],
   })
+  assert.deepEqual(digest(turnoutOf({ Pour: 96, Contre: 134, Abstention: 2, "Non-votant": 15 }, 329)), {
+    card: "beside",
+    radius: 0.016659,
+    snap: 0.023799,
+    rings: 13,
+    first: [[-0.354503, 0.011641], [-0.720704, -0.411056], [-0.237873, -0.811993], [-0.100035, -0.439684], [0.038182, -0.579369]],
+    centres: [[-0.608483, -0.12297], [-0.392212, -0.485602], [-0.227933, -0.794389], [-0.120389, -0.623042], [0.464723, -0.405396]],
+    labels: [
+      ["96 · Pour", "end", -0.840306, -0.173674, 0.02],
+      ["134 · Contre", "end", -0.571191, -0.656809, 0.02],
+      ["2 · Abstention", "end", -0.250108, -0.8485, 0.02],
+      ["15 · Non-votant", "end", -0.169588, -0.8775, 0.02],
+      ["329 · Absent", "start", 0.677491, -0.627668, 0.02],
+    ],
+  })
   assert.deepEqual(digest(turnoutOf({ Pour: 1 }, null)), {
     card: "beside",
     radius: 0.019,
     snap: 0.027143,
     rings: 1,
     first: [[-0.0253, -0.469898]],
+    centres: [[-0.0253, -0.469898]],
     labels: [["1 · Pour", "start", -0.0253, -0.511398, 0.02]],
   })
 })
