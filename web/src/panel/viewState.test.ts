@@ -3,7 +3,7 @@ import { test } from "node:test"
 import { VOTE_COLOR, type PlainView, type View } from "../view/view.ts"
 import { AGE_COLOR, CIVILITY_COLOR, DEFAULT_VIEW, FEATURES, GROUP, GROUP_COLOR, GROUP_COLUMNS, HEMICYCLE, readerOf, SCRUTIN, VOTE_COLUMNS, VOTE_RINGS } from "./fixtures.test.ts"
 import { panelRows, type Offer } from "./rows.ts"
-import { cleared, initialState, picked, pressed, waitsFor, type Intent, type NoVote, type ViewState, type VoteChosen } from "./viewState.ts"
+import { chosenVote, cleared, initialState, pendingIntent, picked, pressed, waitsFor, type Intent, type NoVote, type ViewState, type VoteChosen } from "./viewState.ts"
 
 const ROWS = panelRows({ features: FEATURES, order: [GROUP.key], reading: readerOf([]), chosen: null, votes: null })
 
@@ -33,6 +33,10 @@ test("a view read with a scrutin starts with that vote chosen, and one without s
   const voted: View = { scrutin: SCRUTIN, color: VOTE_COLOR, layout: HEMICYCLE }
   assert.deepEqual(initialState({ view: voted, fallback: AGE_COLOR }), { kind: "chosen", vote: SCRUTIN, view: voted, fallback: AGE_COLOR })
   assert.deepEqual(initialState({ view: DEFAULT_VIEW, fallback: GROUP_COLOR }), NOTHING)
+  assert.equal(chosenVote(initialState({ view: voted, fallback: AGE_COLOR })), SCRUTIN)
+  assert.equal(chosenVote(WAITING_RINGS), null)
+  assert.deepEqual(pendingIntent(WAITING_RINGS), { channel: "layout", choice: VOTE_RINGS })
+  assert.equal(pendingIntent(chosen(DEFAULT_VIEW)), null)
 })
 
 test("a greyed vote glyph waits for a scrutin instead of changing the view, and pressing it again stops waiting", () => {
@@ -56,6 +60,9 @@ test("a plain choice in the channel an intent waits for drops the intent, and on
   const age = pressed(WAITING_RINGS, offer("Âge", "color"))
   assert.deepEqual(age.state, { kind: "none", view: { scrutin: null, color: AGE_COLOR, layout: HEMICYCLE }, fallback: AGE_COLOR, pending: WAITING_RINGS.pending })
   assert.deepEqual(picked(age.state, SCRUTIN).view, { scrutin: SCRUTIN, color: AGE_COLOR, layout: VOTE_RINGS })
+  const waitingColour: NoVote = { ...NOTHING, pending: { channel: "color", choice: VOTE_COLOR } }
+  assert.equal(pendingIntent(pressed(waitingColour, offer("Âge", "color")).state), null)
+  assert.deepEqual(pendingIntent(pressed(waitingColour, offer("Groupe politique", "layout")).state), waitingColour.pending)
 })
 
 test("a scrutin picked while a glyph waits applies that glyph: the vote in half-rings keeps the colour, the vote in colour keeps the layout", () => {

@@ -50,6 +50,7 @@ test("a past holder sits at today's seat of their constituency and a seat withou
     emptySeats: ["590", "199", "225", "400"],
     unplaced: 0,
   })
+  assert.equal(sitting.byId.get(castiglione.id)?.seat.number, "180")
 })
 
 test("a deputy who held their constituency on that date stays today's very object, so their memoised dot does not re-render", () => {
