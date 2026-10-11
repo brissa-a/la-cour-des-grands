@@ -5,7 +5,7 @@ import type { View } from "../view/view.ts"
 import type { VoteFinder } from "../votes/voteSearch.ts"
 import type { Vote } from "../votes/votes.ts"
 import { Chevron, GlyphButton, RowHead, SummaryLine } from "./PanelParts.tsx"
-import { choiceKey, greyedReason, holds, offerLabel, pressed, replaces, rowSubject, unfoldedRow, type ChosenVote, type Offer, type Row } from "./rows.ts"
+import { choiceKey, greyedReason, holds, offerLabel, pressed, replaces, rowSubject, unfoldedRow, type ChoiceKey, type ChosenVote, type Offer, type Row } from "./rows.ts"
 import { sentenceText, summary } from "./summary.ts"
 import { VotePicker } from "./VotePicker.tsx"
 import { waitsFor, type Intent, type Press } from "./viewState.ts"
@@ -81,7 +81,7 @@ export function FeaturePanel(props: Props) {
 type RowProps = Props & { row: Row; voteInput: RefObject<HTMLInputElement | null> }
 
 function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, voteInput, onPress, onPickVote, onClearVote }: RowProps) {
-  const [hovered, setHovered] = useState<string | null>(null)
+  const [hovered, setHovered] = useState<ChoiceKey | null>(null)
   const hoveredOffer = [...row.color, ...row.layout].find(offer => choiceKey(offer.choice) === hovered)
   const greyed = greyedReason(row)
   const tip = hoveredOffer && (greyed ?? replaces(view, hoveredOffer, chosen))

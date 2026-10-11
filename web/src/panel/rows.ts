@@ -21,11 +21,15 @@ export type LayoutOffer = OfferBase & { readonly channel: "layout"; readonly cho
 
 export type Offer = ColorOffer | LayoutOffer
 
+export type RowKey = string & { readonly __brand: "RowKey" }
+
+export type ChoiceKey = string & { readonly __brand: "ChoiceKey" }
+
 export type Figure = { readonly value: string; readonly unit: string }
 
 export type ChosenVote = { readonly number: number | null }
 
-type RowBase = { readonly key: string; readonly name: string; readonly color: readonly ColorOffer[]; readonly layout: readonly LayoutOffer[] }
+type RowBase = { readonly key: RowKey; readonly name: string; readonly color: readonly ColorOffer[]; readonly layout: readonly LayoutOffer[] }
 
 export type FeatureRow = RowBase & { readonly kind: "feature"; readonly figures: readonly Figure[] }
 
@@ -49,14 +53,14 @@ export function panelRows({ features, first, reading, chosen }: RowInputs): Row[
   const featureRows = sources.map(
     (source): FeatureRow => ({
       kind: "feature",
-      key: sourceKey(source),
+      key: rowKey(source),
       name: nameOf(source),
       figures: figuresOf(source, reading(source)),
       color: colorOffers(source),
       layout: layoutOffers(source),
     }),
   )
-  const voteRow: VoteRow = { kind: "vote", key: sourceKey(VOTE), name: nameOf(VOTE), chosen, color: colorOffers(VOTE), layout: layoutOffers(VOTE) }
+  const voteRow: VoteRow = { kind: "vote", key: rowKey(VOTE), name: nameOf(VOTE), chosen, color: colorOffers(VOTE), layout: layoutOffers(VOTE) }
   return [...featureRows, voteRow]
 }
 
@@ -102,8 +106,15 @@ export function offerLabel(row: Row, offer: Offer): string {
   }
 }
 
-export function choiceKey(choice: ColorChoice | LayoutChoice): string {
-  return "of" in choice ? JSON.stringify([choice.paint, sourceKey(choice.of)]) : JSON.stringify([choice.form, ...picksOf(choice).map(sourceKey)])
+export function rowKey(source: Source): RowKey {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: a row shows one source, and source keys are unique among sources
+  return sourceKey(source) as RowKey
+}
+
+export function choiceKey(choice: ColorChoice | LayoutChoice): ChoiceKey {
+  const key = "of" in choice ? JSON.stringify([choice.paint, sourceKey(choice.of)]) : JSON.stringify([choice.form, ...picksOf(choice).map(sourceKey)])
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the paint or form with the keys of the sources it reads names one choice
+  return key as ChoiceKey
 }
 
 export function pressed(view: View, offer: Offer): boolean {
@@ -111,16 +122,16 @@ export function pressed(view: View, offer: Offer): boolean {
 }
 
 export function holds(view: View, row: Row): Channel[] {
-  return CHANNELS.filter(channel => sourceKey(mainOf(view[channel])) === row.key)
+  return CHANNELS.filter(channel => rowKey(mainOf(view[channel])) === row.key)
 }
 
-export function unfoldedRow(view: View): string {
-  return sourceKey(view.layout.picks.main)
+export function unfoldedRow(view: View): RowKey {
+  return rowKey(view.layout.picks.main)
 }
 
 export function replaces(view: View, offer: Offer, chosen: ChosenVote | null): string | null {
   const holder = mainOf(view[offer.channel])
-  if (sourceKey(holder) === sourceKey(mainOf(offer.choice))) return null
+  if (rowKey(holder) === rowKey(mainOf(offer.choice))) return null
   return `Remplace ${subjectOf(holder, chosen)} en ${CHANNEL_WORDS[offer.channel]}`
 }
 

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import type { CategoryFeature } from "../data/features.ts"
-import { sourceKey } from "../sources/shapes.ts"
 import { mainOf, VOTE_COLOR, type View } from "../view/view.ts"
 import {
   AGE,
@@ -21,11 +20,21 @@ import {
   VOTE_COLUMNS,
   VOTE_RINGS,
 } from "./fixtures.test.ts"
-import { CHANNELS, greyedReason, holds, layoutHint, offerLabel, panelRows, pressed, replaces, unfoldedRow, type ChosenVote, type Row } from "./rows.ts"
+import { CHANNELS, choiceKey, greyedReason, holds, layoutHint, offerLabel, panelRows, pressed, replaces, rowKey, unfoldedRow, type ChosenVote, type Offer, type Row, type RowKey } from "./rows.ts"
 
 const rowsWith = (chosen: ChosenVote | null, reading = readerOf([])) => panelRows({ features: FEATURES, first: GROUP.key, reading, chosen })
 
 const named = (rows: readonly Row[], name: string) => rows.find(row => row.name === name) ?? assert.fail(name)
+
+export function keyedByHand(row: Row): readonly RowKey[] {
+  // @ts-expect-error a row key comes only from rowKey
+  return [row.key, "deputies/init.csv:group"]
+}
+
+export function rowAgainstChoice(row: Row, offer: Offer): boolean {
+  // @ts-expect-error a row key is never compared with a choice key
+  return row.key === choiceKey(offer.choice)
+}
 
 test("rows list the default colour feature first, the others in catalog order, then the seat and the vote, each with the colourings and forms the registries accept", () => {
   const rows = rowsWith(null)
@@ -39,7 +48,7 @@ test("rows list the default colour feature first, the others in catalog order, t
       ["Vote sur un scrutin", ["Couleurs"], ["Colonnes", "Demi-anneaux"]],
     ],
   )
-  for (const row of rows) for (const offer of [...row.color, ...row.layout]) assert.equal(sourceKey(mainOf(offer.choice)), row.key, `${row.name} ${offer.label}`)
+  for (const row of rows) for (const offer of [...row.color, ...row.layout]) assert.equal(rowKey(mainOf(offer.choice)), row.key, `${row.name} ${offer.label}`)
 })
 
 test("exactly one colour glyph and one layout glyph are pressed across the panel, the ones the view shows", () => {
