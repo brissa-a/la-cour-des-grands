@@ -2,7 +2,7 @@ import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
 import { CATALOG_FILE, parseCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
-import { parseSeatRows, SEAT_COLUMNS, SEATS_FILE, type EmptySeat, type Seat } from "./seats.ts"
+import { parseSeatRows, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS, SEATS_FILE, seatProblemWarning, type EmptySeat, type Seat } from "./seats.ts"
 import { fetchText } from "./source.ts"
 
 export type { DeputyId, Seat }
@@ -53,11 +53,10 @@ export async function loadAssembly(): Promise<Assembly> {
     catalogLoaded,
     catalogLoaded.then(catalog => loadCsv(valuesTablePath(catalog, "deputies/init.csv", "group"), GROUP_VALUE_COLUMNS)),
     loadCsv("deputies/init.csv", INIT_COLUMNS),
-    loadCsv(SEATS_FILE, SEAT_COLUMNS),
+    loadCsv(SEATS_FILE, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS),
     fetchText("seats/hemicycle.svg"),
   ])
 
-  const { seatOf, emptySeats } = parseSeatRows(seatRows)
   const groups = groupRows.map((r): Group => ({ name: r.value, short: r.short_fr, color: r.color, seatCount: 0 }))
   const groupByName = new Map(groups.map(g => [g.name, g]))
   const people = rows.map((row): Person => {
@@ -67,10 +66,13 @@ export async function loadAssembly(): Promise<Assembly> {
     if (!civility) throw new Error(`deputies/init.csv: ${row.deputy_id} has civility ${row.civility}`)
     return { ...row, civility, id: deputyId(row.deputy_id), politicalGroup: group }
   })
+  const inOffice = people.filter(p => p.in_office === "yes")
+
+  const { seatOf, emptySeats, problems } = parseSeatRows(seatRows, new Set(inOffice.map(p => p.id)))
+  for (const problem of problems) console.warn(seatProblemWarning(problem))
 
   const deputies: Deputy[] = []
-  for (const person of people) {
-    if (person.in_office !== "yes") continue
+  for (const person of inOffice) {
     const seat = seatOf.get(person.id)
     if (!seat) {
       console.warn(`${person.id} is in office but has no seat in ${SEATS_FILE}`)

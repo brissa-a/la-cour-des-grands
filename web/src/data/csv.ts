@@ -1,17 +1,12 @@
-import Papa from "papaparse"
+import { parseCsv, type Row } from "./csvRows.ts"
 import { fetchText } from "./source.ts"
 
-export type Row<C extends string> = Readonly<Record<C, string>>
+export type { Row }
 
-export async function loadCsv<const C extends string>(path: string, columns: readonly C[]): Promise<Row<C>[]> {
-  const { data, meta, errors } = Papa.parse<Record<string, string>>(await fetchText(path), {
-    header: true,
-    skipEmptyLines: true,
-  })
-  const [error] = errors
-  if (error) throw new Error(`${path}: ${error.message}`)
-  const missing = columns.filter(c => !meta.fields?.includes(c))
-  if (missing.length) throw new Error(`${path}: missing columns ${missing.join(", ")}`)
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- Papa reports any row with too few fields as an error, so with no error and every column in the header each row has them all
-  return data as Row<C>[]
+export async function loadCsv<const C extends string, const O extends string = never>(
+  path: string,
+  columns: readonly C[],
+  optionalColumns?: readonly O[],
+): Promise<Row<C | NoInfer<O>>[]> {
+  return parseCsv(path, await fetchText(path), columns, optionalColumns)
 }
