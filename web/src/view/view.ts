@@ -1,15 +1,15 @@
 import type { ColorableFeature, FeatureKey } from "../data/features.ts"
-import { layoutsOf, type LayoutChoice } from "../forms/registry.ts"
-import { coloringsOf, type ColorChoice } from "../paint/registry.ts"
+import { defaultLayout, EXTRA_SLOTS, isDefaultLayout, layoutsOf, type ExtraSources, type LayoutChoice } from "../forms/registry.ts"
+import { COLORINGS, DEFAULT_PAINT, isDefaultColoring, type ColorChoice } from "../paint/registry.ts"
 import { SEAT, sourceKey, VOTE, type Source, type VoteSource } from "../sources/shapes.ts"
 import type { Param } from "../url.ts"
 import { voteId, type VoteId } from "../votes/voteId.ts"
 
-type Channel = { readonly of: Source }
+type Choice = ColorChoice | LayoutChoice
 
-export type ReadsVote<C extends Channel> = Extract<C, { readonly of: VoteSource }>
+export type ReadsVote<C extends Choice> = C extends { readonly of: VoteSource } | { readonly picks: { readonly main: VoteSource } } ? C : never
 
-export type Plain<C extends Channel> = Exclude<C, { readonly of: VoteSource }>
+export type Plain<C extends Choice> = Exclude<C, ReadsVote<C>>
 
 export type View =
   | { readonly scrutin: null; readonly color: Plain<ColorChoice>; readonly layout: Plain<LayoutChoice> }
@@ -18,12 +18,16 @@ export type View =
 
 export type ParsedView = { readonly view: View; readonly fallback: Plain<ColorChoice> }
 
-export const HEMICYCLE: Plain<LayoutChoice> = { form: "hemicycle", of: SEAT }
+export const HEMICYCLE: Plain<LayoutChoice> = { form: "hemicycle", picks: { main: SEAT } }
 
 export const VOTE_COLOR: ReadsVote<ColorChoice> = { paint: "palette", of: VOTE }
 
-export function readsVote<C extends Channel>(choice: C): choice is ReadsVote<C> {
-  return choice.of.kind === "vote"
+export function mainOf(choice: Choice): Source {
+  return "of" in choice ? choice.of : choice.picks.main
+}
+
+export function readsVote<C extends Choice>(choice: C): choice is ReadsVote<C> {
+  return mainOf(choice).kind === "vote"
 }
 
 export function viewOf(color: ColorChoice, layout: LayoutChoice, scrutin: VoteId | null): View | null {
@@ -37,7 +41,7 @@ export function viewOf(color: ColorChoice, layout: LayoutChoice, scrutin: VoteId
 }
 
 export function colorFor(feature: ColorableFeature): Plain<ColorChoice> | null {
-  const [choice] = coloringsOf(feature)
+  const choice = COLORINGS[DEFAULT_PAINT[feature.kind]](feature)
   return choice && !readsVote(choice) ? choice : null
 }
 
@@ -48,9 +52,14 @@ export function parseView(read: (name: string) => string | null, features: reado
   if (!fallback) return null
   const scrutin = voteId(read("vote") ?? "")
   const chart = read("chart")
-  const source: Source = (scrutin && chart === VOTE.kind ? VOTE : feature(chart)) ?? SEAT
-  const layouts = layoutsOf(source)
-  const layout = layouts.find(choice => choice.form === read("layout")) ?? layouts[0] ?? HEMICYCLE
+  const main: Source = (scrutin && chart === VOTE.kind ? VOTE : feature(chart)) ?? SEAT
+  const extra: ExtraSources = Object.fromEntries(
+    EXTRA_SLOTS.flatMap((slot): [string, ColorableFeature][] => {
+      const picked = feature(read(slot))
+      return picked ? [[slot, picked]] : []
+    }),
+  )
+  const layout = layoutsOf(main, extra).find(choice => choice.form === read("layout")) ?? defaultLayout(main, extra) ?? HEMICYCLE
   const color = scrutin && (read("color") === VOTE.kind || !readsVote(layout)) ? VOTE_COLOR : fallback
   const view = viewOf(color, layout, scrutin)
   return view && { view, fallback }
@@ -58,11 +67,15 @@ export function parseView(read: (name: string) => string | null, features: reado
 
 export function viewParams(view: View, defaultColor: FeatureKey): readonly Param[] {
   const { color, layout } = view
-  const defaultPaint = coloringsOf(color.of)[0]?.paint
+  const picks: Readonly<Partial<Record<string, Source>>> = layout.picks
   return [
     ["vote", view.scrutin],
-    ["color", sourceKey(color.of) === defaultColor && color.paint === defaultPaint ? null : sourceKey(color.of)],
-    ["chart", layout.of.kind === SEAT.kind ? null : sourceKey(layout.of)],
-    ["layout", layoutsOf(layout.of)[0]?.form === layout.form ? null : layout.form],
+    ["color", sourceKey(color.of) === defaultColor && isDefaultColoring(color) ? null : sourceKey(color.of)],
+    ["chart", layout.picks.main.kind === SEAT.kind ? null : sourceKey(layout.picks.main)],
+    ...EXTRA_SLOTS.map((slot): Param => {
+      const picked = picks[slot]
+      return [slot, picked ? sourceKey(picked) : null]
+    }),
+    ["layout", isDefaultLayout(layout) ? null : layout.form],
   ]
 }

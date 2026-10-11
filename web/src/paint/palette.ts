@@ -1,7 +1,7 @@
-import type { Parts } from "../sources/shapes.ts"
+import type { Categories } from "../sources/shapes.ts"
 import { definePaint, LAST, type Paint } from "./paint.ts"
 
-export function paintParts(parts: Parts): Paint {
+export function paintParts(parts: Categories): Paint {
   const rankOf = new Map(parts.parts.map((part, i) => [part.key, i]))
   return {
     colorOf: parts.colorOf,

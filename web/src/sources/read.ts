@@ -1,4 +1,5 @@
 import type { DeputyId } from "../data/deputyId.ts"
+import type { FeatureKey } from "../data/features.ts"
 import { numberFormat } from "../profile/format.ts"
 import type { ReadVote } from "../votes/sources.ts"
 import { binnedParts, categoryParts, voteParts } from "./parts.ts"
@@ -8,20 +9,22 @@ import { numberView } from "./views.ts"
 
 export type ReadInputs = {
   readonly drawn: readonly DeputyId[]
-  readonly values: FeatureValues | null
+  readonly values: ReadonlyMap<FeatureKey, FeatureValues>
   readonly vote: ReadVote | null
   readonly seats: Seats
 }
 
-export function readingOf(source: Source, { drawn, values, vote, seats }: ReadInputs): Reading | null {
+export function readingOf(source: Source, { drawn, values: loaded, vote, seats }: ReadInputs): Reading | null {
   switch (source.kind) {
     case "category": {
-      if (values?.kind !== "category" || values.feature.key !== source.key) return null
+      const values = loaded.get(source.key)
+      if (values?.kind !== "category") return null
       const nominal = categoryParts(values, drawn)
       return { source, data: { nominal }, lineOf: partLine(nominal) }
     }
     case "number": {
-      if (values?.kind !== "number" || values.feature.key !== source.key) return null
+      const values = loaded.get(source.key)
+      if (values?.kind !== "number") return null
       const numbers = numbersOf(values, drawn)
       return { source, data: { numbers, ordinal: binnedParts(numbers, numberView(source.key).binWidth) }, lineOf: numberLine(numbers) }
     }

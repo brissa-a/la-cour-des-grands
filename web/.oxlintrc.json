@@ -171,7 +171,7 @@
     },
     {
       "files": [
-        "src/forms/*.ts"
+        "src/forms/**/*.{ts,tsx}"
       ],
       "rules": {
         "no-restricted-imports": [
@@ -180,8 +180,10 @@
             "patterns": [
               {
                 "group": [
-                  "**/data/assembly.ts",
-                  "**/sources/seats.ts"
+                  "**/data/assembly",
+                  "**/data/assembly.*",
+                  "**/sources/seats",
+                  "**/sources/seats.*"
                 ],
                 "message": "Only the hemicycle form reads the seats: a form computed from values must not draw or mimic the room."
               }
@@ -193,7 +195,7 @@
     {
       "files": [
         "src/forms/hemicycle.ts",
-        "src/forms/*.test.ts"
+        "src/forms/**/*.test.ts"
       ],
       "rules": {
         "no-restricted-imports": "off"

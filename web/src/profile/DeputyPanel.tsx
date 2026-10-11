@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import type { Person, Seat } from "../data/assembly.ts"
 import type { Where } from "../forms/form.ts"
-import type { Colored } from "../preview/lines.ts"
+import type { Colored } from "../paint/registry.ts"
 import { birth, constituencyLong, numberFormat } from "./format.ts"
 
 const COPIED_MS = 1500

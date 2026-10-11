@@ -1,9 +1,7 @@
 import type { DeputyId } from "../data/deputyId.ts"
-import type { Order, Scene } from "../forms/form.ts"
-import type { FormName } from "../forms/registry.ts"
+import type { Scene } from "../forms/form.ts"
+import type { Arrangement } from "../forms/registry.ts"
 import type { Reading } from "../sources/shapes.ts"
-
-export type Arrangement = { readonly form: FormName; readonly reading: Reading; readonly order: Order }
 
 export type Staging = { readonly scene: Scene; readonly reading: Reading; readonly arrangement: Arrangement | null }
 

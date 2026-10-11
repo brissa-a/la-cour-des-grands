@@ -1,12 +1,12 @@
 import type { DeputyId } from "../data/deputyId.ts"
-import type { Data, Part, Shape } from "../sources/shapes.ts"
+import type { ColoredPart, Data, Shape } from "../sources/shapes.ts"
 
 export const LAST = Number.MAX_SAFE_INTEGER
 
 export type Tick = { readonly value: number; readonly ratio: number }
 
 export type Legend =
-  | { readonly kind: "swatches"; readonly title: string; readonly swatches: readonly Part[]; readonly keyOf: (id: DeputyId) => string }
+  | { readonly kind: "swatches"; readonly title: string; readonly swatches: readonly ColoredPart[]; readonly keyOf: (id: DeputyId) => string }
   | {
       readonly kind: "ramp"
       readonly title: string

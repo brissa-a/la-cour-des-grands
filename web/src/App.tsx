@@ -5,6 +5,7 @@ import { createLookupSources } from "./address/sources.ts"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId, type Person, type Sitting } from "./data/assembly.ts"
 import type { ColorableFeature } from "./data/features.ts"
 import type { Order } from "./forms/form.ts"
+import { arrange, picksOf } from "./forms/registry.ts"
 import { Stage } from "./layout/Stage.tsx"
 import { Legend } from "./layout/Legend.tsx"
 import { VoteHeader } from "./layout/VoteHeader.tsx"
@@ -12,11 +13,11 @@ import { useStageFrame } from "./layout/useStageFrame.ts"
 import { useStaging } from "./layout/useStaging.ts"
 import { useMediaQuery } from "./layout/useMediaQuery.ts"
 import type { Paint } from "./paint/paint.ts"
-import { paintWith, type PaintName } from "./paint/registry.ts"
+import { colorWith, type Colored } from "./paint/registry.ts"
 import { ConfigButton, ConfigPanel } from "./config/ConfigPanel.tsx"
 import { useConfig } from "./config/useConfig.ts"
 import { hasOpenedPanel, rememberPanelOpened } from "./preview/firstUse.ts"
-import { colorLine, layoutLine, layoutPlace, type Colored } from "./preview/lines.ts"
+import { colorLine, layoutLine, layoutPlace } from "./preview/lines.ts"
 import { step, type Direction } from "./preview/neighbours.ts"
 import { PreviewCard } from "./preview/PreviewCard.tsx"
 import { cardShown, createPreviewStore, usePreview, type Hit, type PreviewStore } from "./preview/previewStore.ts"
@@ -28,8 +29,7 @@ import { Footer } from "./Footer.tsx"
 import { voteParts } from "./sources/parts.ts"
 import { readingOf } from "./sources/read.ts"
 import { seatsOf } from "./sources/seats.ts"
-import type { Data, Reading } from "./sources/shapes.ts"
-import { featureOf, useFeatureValues } from "./sources/useFeatureValues.ts"
+import { featuresOf, useFeatureValues } from "./sources/useFeatureValues.ts"
 import type { FeatureCache } from "./sources/values.ts"
 import { DEFAULT_COLOR_FEATURE } from "./sources/views.ts"
 import { pushParam, readParam, writeParam, writeParams } from "./url.ts"
@@ -63,24 +63,17 @@ export function App({ assembly, features, cache, initial }: Props) {
   const seats = useMemo(() => seatsOf(sitting, assembly.background), [sitting, assembly])
   const vote = voteInView ? readVote : null
 
-  const colorValues = useFeatureValues(cache, featureOf(view.color.of))
-  const fallbackValues = useFeatureValues(cache, featureOf(fallbackColor.of))
-  const layoutValues = useFeatureValues(cache, featureOf(view.layout.of))
-  const colorReading = useMemo(
-    () => readingOf(view.color.of, { drawn, values: colorValues, vote, seats }),
-    [view.color.of, drawn, colorValues, vote, seats],
+  const colorValues = useFeatureValues(cache, featuresOf([view.color.of]))
+  const fallbackValues = useFeatureValues(cache, featuresOf([fallbackColor.of]))
+  const layoutValues = useFeatureValues(cache, featuresOf(picksOf(view.layout)))
+  const chosenColored = useMemo(
+    () => colorWith(view.color, source => readingOf(source, { drawn, values: colorValues, vote, seats })),
+    [view.color, drawn, colorValues, vote, seats],
   )
-  const fallbackReading = useMemo(
-    () => readingOf(fallbackColor.of, { drawn, values: fallbackValues, vote, seats }),
-    [fallbackColor.of, drawn, fallbackValues, vote, seats],
+  const fallbackColored = useMemo(
+    () => colorWith(fallbackColor, source => readingOf(source, { drawn, values: fallbackValues, vote, seats })),
+    [fallbackColor, drawn, fallbackValues, vote, seats],
   )
-  const layoutReading = useMemo(
-    () => readingOf(view.layout.of, { drawn, values: layoutValues, vote, seats }),
-    [view.layout.of, drawn, layoutValues, vote, seats],
-  )
-
-  const chosenColored = useMemo(() => colorWith(view.color.paint, colorReading), [view.color.paint, colorReading])
-  const fallbackColored = useMemo(() => colorWith(fallbackColor.paint, fallbackReading), [fallbackColor.paint, fallbackReading])
   const lastPlainColored = useRef<Colored | null>(null)
   const colored = chosenColored ?? fallbackColored ?? lastPlainColored.current
   if (colored && colored.reading.source.kind !== "vote") lastPlainColored.current = colored
@@ -104,8 +97,8 @@ export function App({ assembly, features, cache, initial }: Props) {
 
   const order = useMemo(() => chosenColored && rankThenName(chosenColored.paint, sitting), [chosenColored, sitting])
   const arrangement = useMemo(
-    () => layoutReading && order && { form: view.layout.form, reading: layoutReading, order },
-    [view.layout.form, layoutReading, order],
+    () => order && arrange(view.layout, source => readingOf(source, { drawn, values: layoutValues, vote, seats }), order),
+    [view.layout, order, drawn, layoutValues, vote, seats],
   )
   const staged = useStaging(arrangement, frame, seats, drawn)
 
@@ -360,13 +353,6 @@ function RestHint({ store, touch }: { store: PreviewStore; touch: boolean }) {
         : "Survolez un point pour voir qui siège là · cliquez pour ouvrir sa fiche"}
     </p>
   )
-}
-
-function colorWith(paint: PaintName, reading: Reading | null): Colored | null {
-  if (reading === null) return null
-  const data: Partial<Data> = reading.data
-  const painted = paintWith(paint, data)
-  return painted && { reading, paint: painted }
 }
 
 function rankThenName({ rank }: Paint, sitting: Sitting): Order {

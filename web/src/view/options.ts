@@ -1,6 +1,6 @@
 import type { ColorableFeature } from "../data/features.ts"
-import { FORMS, layoutsOf, type LayoutChoice } from "../forms/registry.ts"
-import { coloringsOf, PAINTS, type ColorChoice } from "../paint/registry.ts"
+import { FORMS, isDefaultLayout, layoutsOf, picksOf, type LayoutChoice } from "../forms/registry.ts"
+import { coloringsOf, isDefaultColoring, PAINTS, type ColorChoice } from "../paint/registry.ts"
 import { SEAT, sourceKey, VOTE, type Source } from "../sources/shapes.ts"
 
 export type Option<C> = { readonly id: string; readonly label: string; readonly group: string | null; readonly choice: C }
@@ -10,11 +10,12 @@ type Offered = { readonly source: Source; readonly label: string; readonly group
 const SCRUTIN_GROUP = "Scrutin"
 
 export function layoutId(choice: LayoutChoice): string {
-  return layoutsOf(choice.of)[0]?.form === choice.form ? sourceKey(choice.of) : `${choice.form}|${sourceKey(choice.of)}`
+  const keys = picksOf(choice).map(sourceKey)
+  return (isDefaultLayout(choice) ? keys : [choice.form, ...keys]).join("|")
 }
 
 export function colorId(choice: ColorChoice): string {
-  return coloringsOf(choice.of)[0]?.paint === choice.paint ? sourceKey(choice.of) : `${choice.paint}|${sourceKey(choice.of)}`
+  return isDefaultColoring(choice) ? sourceKey(choice.of) : `${choice.paint}|${sourceKey(choice.of)}`
 }
 
 export function layoutOptions(features: readonly ColorableFeature[], scrutin: string | null): Option<LayoutChoice>[] {

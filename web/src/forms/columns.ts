@@ -1,9 +1,9 @@
 import type { DeputyId } from "../data/deputyId.ts"
 import type { Part, Parts, Point } from "../sources/shapes.ts"
 import { defineForm, DOT_RADIUS, type Lay, type Mark, type Scene, type Target } from "./form.ts"
+import { bestGeometry, centerOffset, gridStep, MAX_COLUMN_WIDTH, type Bounds, type Geometry } from "./grid.ts"
 
 const TICK_GAP_EM = 0.4
-const MAX_COLUMN_WIDTH = 30
 const FONT_PX = 12
 const TOP_EM = 0.6
 const LINE_EM = 1.25
@@ -25,14 +25,12 @@ const WIDE_CHARS = "mwMW&"
 
 type Bucket = { part: Part; members: readonly DeputyId[] }
 
-type Room = { width: number; height: number; depth: number; tickWidth: number; overhangs: readonly number[] }
-
-type Geometry = { across: number; gap: number; rows: number; pitch: number }
+type Room = Bounds & { readonly depth: number }
 
 type Layout = { labelRoom: Room; geometry: Geometry; font: number }
 
-export function placeColumns(input: Parts, { frame, order }: Target): Scene {
-  const buckets: Bucket[] = input.parts.map(part => ({ part, members: [...part.members].sort(order) }))
+export function placeColumns({ main }: { readonly main: Parts }, { frame, order }: Target): Scene {
+  const buckets: Bucket[] = main.parts.map(part => ({ part, members: [...part.members].sort(order) }))
 
   const { area, px } = frame
   const fontFor = (depthEm: number) => Math.min(FONT_PX * px, (LABEL_SHARE * (area.bottom - area.top)) / depthEm)
@@ -114,13 +112,11 @@ export function placeColumns(input: Parts, { frame, order }: Target): Scene {
 
   return {
     card: "above",
-    box: area,
-    pitch,
     radius: Math.min(DOT_RADIUS, pitch * RADIUS_PITCHES),
     snap: SNAP_PITCHES * pitch,
     dots,
     marks,
-    lines: [...byRow].sort(([a], [b]) => a - b).map(([, ids]) => ids),
+    lines: [...byRow.values()],
     where: id => {
       const part = partOf.get(id)
       return part ? { kind: "part", part, within: "la colonne" } : null
@@ -128,24 +124,7 @@ export function placeColumns(input: Parts, { frame, order }: Target): Scene {
   }
 }
 
-export const columns = defineForm({ label: "Colonnes", shapes: ["nominal", "ordinal"], place: placeColumns })
-
-function bestGeometry(columns: number, largest: number, { width, height, tickWidth, overhangs }: Room): Geometry {
-  let best: Geometry = { across: 1, gap: 1, rows: largest, pitch: 0 }
-  for (let across = 1; across <= MAX_COLUMN_WIDTH; across++) {
-    const gap = Math.max(1, Math.round(across / 4))
-    const rows = Math.ceil(largest / across)
-    const span = columns * across + (columns - 1) * gap + 2
-    const fits = overhangs.map((overhang, i) => (width - overhang) / (span - centerOffset(i, across, gap)))
-    const pitch = Math.min(height / rows, (width - tickWidth) / span, ...fits)
-    if (pitch > best.pitch) best = { across, gap, rows, pitch }
-  }
-  return best
-}
-
-function centerOffset(column: number, across: number, gap: number): number {
-  return 1 + column * (across + gap) + across / 2
-}
+export const columns = defineForm({ label: "Colonnes", slots: { main: ["nominal", "ordinal"] }, place: placeColumns })
 
 // Each glyph class is as wide as its widest member in SF Pro, semibold digits included, so labels placed without measuring the DOM still clear each other.
 function textEm(text: string): number {
@@ -160,10 +139,4 @@ function charEm(char: string): number {
   if (WIDE_CHARS.includes(char)) return 1
   if (char >= "0" && char <= "9") return 0.68
   return char === char.toLowerCase() ? 0.62 : 0.78
-}
-
-function gridStep(rows: number, columnWidth: number): number {
-  const target = (rows * columnWidth) / 4
-  const deputies = [5, 10, 20, 25, 30, 40, 50, 60, 80, 100, 150, 200].find(step => step >= target && step % columnWidth === 0)
-  return deputies ? deputies / columnWidth : Math.max(1, Math.round(rows / 4))
 }

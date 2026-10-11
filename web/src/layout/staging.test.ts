@@ -11,7 +11,7 @@ const B = deputyId("PA1")
 
 function staging(ids: readonly DeputyId[]): Staging {
   const seats = seatsOf({ deputies: ids.map((id, i) => ({ id, seat: { number: String(i), x: i, y: 0 } })), emptySeats: [] }, { viewBox: "0 0 1 1", markup: "" })
-  return { scene: placeHemicycle(seats), reading: readSeats(seats), arrangement: null }
+  return { scene: placeHemicycle({ main: seats }), reading: readSeats(seats), arrangement: null }
 }
 
 test("the first scene that places every drawn deputy is shown, otherwise the room", () => {

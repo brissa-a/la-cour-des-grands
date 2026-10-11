@@ -1,12 +1,10 @@
 import type { DeputyId } from "../data/deputyId.ts"
 import type { Where } from "../forms/form.ts"
-import type { Paint } from "../paint/paint.ts"
+import type { Colored } from "../paint/registry.ts"
 import { sourceKey, type Line, type Reading, type Source } from "../sources/shapes.ts"
 import { PREVIEW_HEADER_FEATURES } from "../sources/views.ts"
 
 export type ColorLine = Line & { readonly color: string }
-
-export type Colored = { readonly reading: Reading; readonly paint: Paint }
 
 export function sameSource(a: Source, b: Source): boolean {
   return sourceKey(a) === sourceKey(b)

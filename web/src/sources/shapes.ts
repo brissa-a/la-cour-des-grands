@@ -1,6 +1,5 @@
 import type { CategoryFeature, NumberFeature } from "../data/features.ts"
 import type { DeputyId } from "../data/deputyId.ts"
-import type { Rect } from "../preview/placement.ts"
 
 export const MISSING = ""
 
@@ -15,16 +14,18 @@ export type Part = {
   readonly label: string
   readonly title: string
   readonly caption: string | null
-  readonly color: string
   readonly members: readonly DeputyId[]
 }
 
-export type Parts = {
+export type ColoredPart = Part & { readonly color: string }
+
+export type Parts<P extends Part = Part> = {
   readonly title: string
-  readonly parts: readonly Part[]
+  readonly parts: readonly P[]
   readonly keyOf: (id: DeputyId) => string
-  readonly colorOf: (id: DeputyId) => string
 }
+
+export type Categories = Parts<ColoredPart> & { readonly colorOf: (id: DeputyId) => string }
 
 export type Numbers = {
   readonly feature: NumberFeature
@@ -41,12 +42,10 @@ export type Seats = {
   readonly seatOf: ReadonlyMap<DeputyId, Seat>
   readonly empty: readonly Seat[]
   readonly room: Room
-  readonly box: Rect
-  readonly pitch: number
 }
 
 export type Data = {
-  readonly nominal: Parts
+  readonly nominal: Categories
   readonly ordinal: Parts
   readonly numbers: Numbers
   readonly seats: Seats

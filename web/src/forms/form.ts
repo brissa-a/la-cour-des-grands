@@ -32,8 +32,6 @@ export type Where = { readonly kind: "part"; readonly part: Part; readonly withi
 
 export type Scene = {
   readonly card: CardPolicy
-  readonly box: Rect
-  readonly pitch: number
   readonly radius: number
   readonly snap: number
   readonly dots: ReadonlyMap<DeputyId, Point>
@@ -42,12 +40,20 @@ export type Scene = {
   readonly where: (id: DeputyId) => Where | null
 }
 
-export type FormSpec<S extends Shape> = {
+export type Shapes<S extends Shape = Shape> = readonly [S, ...S[]]
+
+export type ShapeIn<T> = T extends Shapes<infer S> ? S : never
+
+export type Slots<S extends Shape = Shape> = { readonly main: Shapes<S> } & { readonly [slot: string]: Shapes<S> }
+
+export type Inputs<X extends Slots> = { readonly [K in keyof X]: Data[ShapeIn<X[K]>] }
+
+export type FormSpec<X extends Slots> = {
   readonly label: string
-  readonly shapes: readonly [S, ...S[]]
-  readonly place: (input: Data[S], target: Target) => Scene
+  readonly slots: X
+  readonly place: (inputs: Inputs<X>, target: Target) => Scene
 }
 
-export function defineForm<const S extends Shape>(spec: FormSpec<S>): FormSpec<S> {
+export function defineForm<const X extends Slots<Exclude<Shape, "seats">>>(spec: FormSpec<X>): FormSpec<X> {
   return spec
 }
