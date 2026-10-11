@@ -3,7 +3,10 @@ import { test } from "node:test"
 import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import type { CategoryFeature, NumberFeature } from "../data/features.ts"
 import { isoDate } from "../data/isoDate.ts"
+import type { VotePosition } from "../votes/positions.ts"
+import type { ReadVote } from "../votes/sources.ts"
 import { voteId } from "../votes/voteId.ts"
+import type { Vote } from "../votes/votes.ts"
 import { binnedParts, categoryParts, voteParts, voteTurnout } from "./parts.ts"
 import { numbersOf } from "./read.ts"
 import { MISSING } from "./shapes.ts"
@@ -83,11 +86,11 @@ test("vote parts follow the position table, keep only positions a drawn deputy t
   const id = voteId("VTANR5L17V1")
   const date = isoDate("2024-10-08")
   assert.ok(id && date)
-  const vote = { id, number: 1, date, title: "t", kind: "ordinary" as const, result: "adopted" as const, major: true, bill: null, file: "f", url: "u" }
+  const vote: Vote = { id, number: 1, date, title: "t", kind: "ordinary", result: "adopted", major: true, bill: null, file: "f", url: "u" }
   const label = { for: "Pour", against: "Contre", abstain: "Abstention", not_voting: "Non-votant", absent: "Absent" }
-  const positions = new Map([[a, "against" as const], [b, "for" as const], [c, "against" as const], [away, "abstain" as const]])
+  const positions = new Map<DeputyId, VotePosition>([[a, "against"], [b, "for"], [c, "against"], [away, "abstain"]])
   const tally = { for: 1, against: 2, abstain: 1, not_voting: 0, absent: 0 }
-  const read = { vote, table: { order: ["for", "against", "abstain"] as const, label }, reading: { roster: new Map(), positions, tally } }
+  const read: ReadVote = { vote, table: { order: ["for", "against", "abstain"], label }, reading: { roster: new Map(), positions, tally } }
   const parts = voteParts(read, [a, b, c, d])
   assert.deepEqual(
     parts.parts.map(p => [p.key, p.label, p.color, p.members]),
@@ -108,11 +111,11 @@ test("a vote's turnout sets apart the deputies absent from it, whatever the tabl
   const id = voteId("VTANR5L17V1")
   const date = isoDate("2024-10-08")
   assert.ok(id && date)
-  const vote = { id, number: 1, date, title: "t", kind: "censure_motion" as const, result: "rejected" as const, major: true, bill: null, file: "f", url: "u" }
+  const vote: Vote = { id, number: 1, date, title: "t", kind: "censure_motion", result: "rejected", major: true, bill: null, file: "f", url: "u" }
   const label = { for: "Pour", against: "Contre", abstain: "Abstention", not_voting: "Non-votant", absent: "Absent ou contre" }
-  const positions = new Map([[a, "for" as const], [b, "absent" as const], [c, "against" as const]])
+  const positions = new Map<DeputyId, VotePosition>([[a, "for"], [b, "absent"], [c, "against"]])
   const tally = { for: 1, against: 1, abstain: 0, not_voting: 0, absent: 1 }
-  const read = { vote, table: { order: ["for", "absent", "against"] as const, label }, reading: { roster: new Map(), positions, tally } }
+  const read: ReadVote = { vote, table: { order: ["for", "absent", "against"], label }, reading: { roster: new Map(), positions, tally } }
   const turnout = voteTurnout(voteParts(read, [a, b, c, d]))
   assert.deepEqual(turnout.present.map(p => [p.key, p.members]), [["for", [a]], ["against", [c]], [MISSING, [d]]])
   assert.deepEqual(turnout.absent && [turnout.absent.label, turnout.absent.members], ["Absent ou contre", [b]])

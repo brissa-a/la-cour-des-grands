@@ -1,9 +1,12 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { deputyId } from "../data/deputyId.ts"
+import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import type { CategoryFeature, NumberFeature } from "../data/features.ts"
 import { isoDate } from "../data/isoDate.ts"
+import type { VotePosition } from "../votes/positions.ts"
+import type { ReadVote } from "../votes/sources.ts"
 import { voteId } from "../votes/voteId.ts"
+import type { Vote } from "../votes/votes.ts"
 import { readingOf } from "./read.ts"
 import { seatsOf } from "./seats.ts"
 import { MISSING, VOTE } from "./shapes.ts"
@@ -59,18 +62,23 @@ test("a feature is read only from values loaded under its key and of its kind", 
   )
 })
 
-test("a vote is read once its positions are loaded, each drawn deputy by their position", () => {
+test("a vote is read once its positions are loaded, each drawn deputy by their position, the absent set apart from the others", () => {
   assert.equal(readingOf(VOTE, { drawn: [PA0], values: new Map(), vote: null, seats }), null)
   const id = voteId("VTANR5L17V1")
   const date = isoDate("2024-10-08")
   assert.ok(id && date)
-  const vote = { id, number: 1, date, title: "t", kind: "ordinary" as const, result: "adopted" as const, major: true, bill: null, file: "f", url: "u" }
+  const PA2 = deputyId("PA2")
+  const PA3 = deputyId("PA3")
+  const vote: Vote = { id, number: 1, date, title: "t", kind: "ordinary", result: "adopted", major: true, bill: null, file: "f", url: "u" }
   const label = { for: "Pour", against: "Contre", abstain: "Abstention", not_voting: "Non-votant", absent: "Absent" }
-  const positions = new Map([[PA0, "for" as const]])
-  const loaded = { vote, table: { order: ["for", "against"] as const, label }, reading: { roster: new Map(), positions, tally: { for: 1, against: 0, abstain: 0, not_voting: 0, absent: 0 } } }
-  const reading = readingOf(VOTE, { drawn: [PA0, PA1], values: new Map(), vote: loaded, seats })
-  assert.ok(reading && "nominal" in reading.data)
-  assert.deepEqual(reading.data.nominal.parts.map(part => [part.key, part.members]), [["for", [PA0]], [MISSING, [PA1]]])
+  const positions = new Map<DeputyId, VotePosition>([[PA0, "for"], [PA2, "absent"], [PA3, "against"]])
+  const tally = { for: 1, against: 1, abstain: 0, not_voting: 0, absent: 1 }
+  const loaded: ReadVote = { vote, table: { order: ["for", "absent", "against"], label }, reading: { roster: new Map(), positions, tally } }
+  const reading = readingOf(VOTE, { drawn: [PA0, PA1, PA2, PA3], values: new Map(), vote: loaded, seats })
+  assert.ok(reading && "turnout" in reading.data)
+  assert.deepEqual(reading.data.nominal.parts.map(part => [part.key, part.members]), [["for", [PA0]], ["absent", [PA2]], ["against", [PA3]], [MISSING, [PA1]]])
+  const { present, absent } = reading.data.turnout
+  assert.deepEqual([present.map(part => [part.key, part.members]), absent?.members], [[["for", [PA0]], ["against", [PA3]], [MISSING, [PA1]]], [PA2]])
   assert.deepEqual([reading.lineOf(PA0), reading.lineOf(PA1)], [
     { label: "Pour", caption: null, missing: false },
     { label: "Non renseigné", caption: "Scrutin n° 1", missing: true },
