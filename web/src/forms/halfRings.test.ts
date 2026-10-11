@@ -226,7 +226,7 @@ test("labels crowded at either end of the arc stack a line apart in the parts' o
       assert.ok(angleOf(from) >= Math.min(...angles) - 1e-9 && angleOf(from) <= Math.max(...angles) + 1e-9, label.text)
       const own = Math.max(...sector.members.map(id => distance(dotOf(scene)(id), centre))) + scene.radius
       assert.ok(distance(from, centre) > own && distance(from, centre) < distance(to, centre), label.text)
-      assert.equal(tone, "grid")
+      assert.equal(tone, "leader")
     }
   }
   const top = place(turnoutOf(AT_THE_TOP, AT_THE_TOP_ABSENT), DESKTOP)

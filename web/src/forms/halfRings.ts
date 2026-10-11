@@ -121,7 +121,7 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
     const edge = (grid.inner + head.ring + DOT_PITCHES) * pitch + LEADER_INSET_EM * font
     const from = { x: cx + edge * Math.cos(head.angle), y: cy - edge * Math.sin(head.angle) }
     const to = { x: at.x + (anchor === "start" ? -1 : 1) * LEADER_INSET_EM * font, y: at.y }
-    return [{ kind: "rule", from, to, tone: "grid" }, text]
+    return [{ kind: "rule", from, to, tone: "leader" }, text]
   })
 
   return {

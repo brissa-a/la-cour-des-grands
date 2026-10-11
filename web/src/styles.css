@@ -76,6 +76,8 @@ a { color: var(--accent); }
 
 .chart-axes .chart-baseline { stroke: var(--muted); }
 
+.chart-axes .chart-leader { stroke: var(--muted); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+
 .chart-axes .chart-count { fill: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .empty-seat { fill: none; stroke: var(--muted); stroke-width: 0.3; }

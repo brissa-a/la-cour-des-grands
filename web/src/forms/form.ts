@@ -16,6 +16,8 @@ export type CardPolicy = "beside" | "above"
 
 export type Anchor = "start" | "end"
 
+export type Tone = "grid" | "base" | "leader"
+
 export type Lay =
   | { readonly kind: "flat"; readonly lineHeight: number }
   | { readonly kind: "slanted"; readonly degrees: number }
@@ -23,7 +25,7 @@ export type Lay =
 
 export type Mark =
   | { readonly kind: "room"; readonly room: Room; readonly empty: readonly Seat[]; readonly radius: number }
-  | { readonly kind: "rule"; readonly from: Point; readonly to: Point; readonly tone: "grid" | "base" }
+  | { readonly kind: "rule"; readonly from: Point; readonly to: Point; readonly tone: Tone }
   | { readonly kind: "tick"; readonly at: Point; readonly text: string; readonly size: number }
   | {
       readonly kind: "label"

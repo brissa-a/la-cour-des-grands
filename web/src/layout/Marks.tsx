@@ -1,5 +1,6 @@
 import { useRef } from "react"
 import type { Mark } from "../forms/form.ts"
+import { RULE_CLASS, labelAttributes } from "./markAttributes.ts"
 
 type RoomMark = Extract<Mark, { kind: "room" }>
 
@@ -36,7 +37,7 @@ function MarkShape(mark: Mark, index: number) {
       return (
         <line
           key={index}
-          className={mark.tone === "base" ? "chart-baseline" : undefined}
+          className={RULE_CLASS[mark.tone]}
           x1={mark.from.x}
           x2={mark.to.x}
           y1={mark.from.y}
@@ -56,33 +57,17 @@ function MarkShape(mark: Mark, index: number) {
 
 function Label({ mark }: { mark: Extract<Mark, { kind: "label" }> }) {
   const { at, count, text, title, size, lay } = mark
-  const tooltip = <title>{title}</title>
-  switch (lay.kind) {
-    case "flat":
-      return (
-        <text x={at.x} y={at.y} textAnchor="middle" style={{ fontSize: size }}>
-          {tooltip}
-          <tspan className="chart-count">{count}</tspan>
-          <tspan x={at.x} dy={lay.lineHeight}>
-            {text}
-          </tspan>
-        </text>
-      )
-    case "slanted":
-      return (
-        <text x={at.x} y={at.y} textAnchor="end" transform={`rotate(${-lay.degrees} ${at.x} ${at.y})`} style={{ fontSize: size }}>
-          {tooltip}
-          <tspan className="chart-count">{count}</tspan>
-          {` ${text}`}
-        </text>
-      )
-    case "inline":
-      return (
-        <text x={at.x} y={at.y} textAnchor={lay.anchor} dominantBaseline="middle" style={{ fontSize: size }}>
-          {tooltip}
-          <tspan className="chart-count">{count}</tspan>
-          {` ${text}`}
-        </text>
-      )
-  }
+  return (
+    <text x={at.x} y={at.y} {...labelAttributes(at, lay)} style={{ fontSize: size }}>
+      <title>{title}</title>
+      <tspan className="chart-count">{count}</tspan>
+      {lay.kind === "flat" ? (
+        <tspan x={at.x} dy={lay.lineHeight}>
+          {text}
+        </tspan>
+      ) : (
+        ` ${text}`
+      )}
+    </text>
+  )
 }
