@@ -1,4 +1,5 @@
 import type { DeputyId } from "../data/deputyId.ts"
+import type { Glyph } from "../glyph/glyph.ts"
 import type { ColoredPart, Data, Shape } from "../sources/shapes.ts"
 
 export const LAST = Number.MAX_SAFE_INTEGER
@@ -28,6 +29,7 @@ export type Paint = {
 
 export type PaintSpec<S extends Shape> = {
   readonly label: string
+  readonly glyph: Glyph
   readonly shapes: readonly [S, ...S[]]
   readonly paint: (input: Data[S]) => Paint
 }

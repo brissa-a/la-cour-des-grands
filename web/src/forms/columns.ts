@@ -1,4 +1,5 @@
 import type { DeputyId } from "../data/deputyId.ts"
+import { dots } from "../glyph/glyph.ts"
 import type { Part, Parts, Point } from "../sources/shapes.ts"
 import { defineForm, DOT_RADIUS, NO_HOLLOW, type Lay, type Mark, type Scene, type Target } from "./form.ts"
 import { bestGeometry, centerOffset, gridStep, MAX_COLUMN_WIDTH, type Bounds, type Geometry } from "./grid.ts"
@@ -124,4 +125,9 @@ export function placeColumns({ main }: { readonly main: Parts }, { frame, order 
   }
 }
 
-export const columns = defineForm({ label: "Colonnes", slots: { main: ["nominal", "ordinal"] }, place: placeColumns })
+export const columns = defineForm({
+  label: "Colonnes",
+  glyph: dots(1.55, [[5.5, 20], [5.5, 16.4], [5.5, 12.8], [5.5, 9.2], [5.5, 5.6], [12, 20], [12, 16.4], [12, 12.8], [18.5, 20], [18.5, 16.4], [18.5, 12.8], [18.5, 9.2]]),
+  slots: { main: ["nominal", "ordinal"] },
+  place: placeColumns,
+})

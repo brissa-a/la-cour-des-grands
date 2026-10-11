@@ -4,6 +4,7 @@ export function freeArea(stage: Rect, overlays: readonly Rect[], clearance: numb
   let top = stage.top
   let bottom = stage.bottom
   for (const overlay of overlays) {
+    if (overlay.right <= stage.left || overlay.left >= stage.right) continue
     if (overlay.top + overlay.bottom < stage.top + stage.bottom) top = Math.max(top, overlay.bottom)
     else bottom = Math.min(bottom, overlay.top)
   }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { createVoteSearch, searchVotes } from "./voteSearch.ts"
+import { createVoteSearch, findVotes, searchVotes } from "./voteSearch.ts"
 import { parseVotes } from "./votes.ts"
 
 function votes(...rows: { number: number; date: string; title: string; major: boolean }[]) {
@@ -49,4 +49,28 @@ test("function words neither match a title nor weigh in the ranking", async () =
   )
   assert.deepEqual(searchVotes(search, "le de la du"), [])
   assert.equal(searchVotes(search, "loi le finances")[0]?.score, searchVotes(search, "loi finances")[0]?.score)
+})
+
+test("with nothing typed, the vote list offers the major votes, newest first, the latest number first on the same day", async () => {
+  const all = votes(
+    { number: 10, date: "2025-01-10", title: "le projet de loi A.", major: true },
+    { number: 11, date: "2025-03-01", title: "le projet de loi B.", major: false },
+    { number: 12, date: "2025-02-01", title: "le projet de loi C.", major: true },
+    { number: 13, date: "2025-02-01", title: "le projet de loi D.", major: true },
+  )
+  const finder = { search: await createVoteSearch(all), votes: all, labels: { kind: { ordinary: "", solemn: "", censure_motion: "" }, result: { adopted: "", rejected: "" } } }
+  assert.deepEqual(numbers(findVotes(finder, " ")), [13, 12, 10])
+})
+
+test("typing a vote's number, with or without n°, puts that vote first and keeps the title matches after it", async () => {
+  const all = votes(
+    { number: 2025, date: "2025-01-10", title: "le budget pour 2025.", major: false },
+    { number: 30, date: "2025-03-01", title: "la loi de finances pour 2025.", major: true },
+  )
+  const finder = { search: await createVoteSearch(all), votes: all, labels: { kind: { ordinary: "", solemn: "", censure_motion: "" }, result: { adopted: "", rejected: "" } } }
+  assert.deepEqual(numbers(findVotes(finder, "n° 30")), [30])
+  assert.deepEqual(numbers(findVotes(finder, "N°2025")), [2025])
+  assert.deepEqual(numbers(findVotes(finder, "2025")), [2025, 30])
+  assert.deepEqual(numbers(findVotes(finder, "finances")), [30])
+  assert.deepEqual(findVotes(finder, "30")[0]?.matches, [])
 })

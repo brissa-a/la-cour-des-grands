@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import type { CategoryFeature, ColorableFeature, NumberFeature } from "../data/features.ts"
+import type { Glyph } from "../glyph/glyph.ts"
 import { definePaint } from "../paint/paint.ts"
 import { paintParts } from "../paint/palette.ts"
 import { readSeats } from "../sources/read.ts"
@@ -196,19 +197,21 @@ test("a layout is arranged from its choice's own sources, each read once and onl
   assert.equal(arrange(columnsOfAge, () => room().reading, order), null)
 })
 
+const GLYPH: Glyph = [{ kind: "dot", x: 12, y: 12, r: 2 }]
+
 export const probes = [
   // @ts-expect-error a form computed from values whose place reads seats
-  defineForm({ label: "x", slots: { main: ["nominal"] }, place: ({ main }: { main: Seats }) => placed(main) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, place: ({ main }: { main: Seats }) => placed(main) }),
   // @ts-expect-error a form computed from values drawing the room from a plain string
-  defineForm({ label: "x", slots: { main: ["nominal"] }, place: () => ({ ...placed(null), marks: [{ kind: "room", room: "<g/>", empty: [], radius: 1 }] }) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, place: () => ({ ...placed(null), marks: [{ kind: "room", room: "<g/>", empty: [], radius: 1 }] }) }),
   // @ts-expect-error a form computed from values that also takes the seats, to draw the room
-  defineForm({ label: "x", slots: { main: ["nominal", "seats"] }, place: () => placed(null) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal", "seats"] }, place: () => placed(null) }),
   // @ts-expect-error a scene without reading lines
-  defineForm({ label: "x", slots: { main: ["nominal"] }, place: () => ({ card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], where: () => null }) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, place: () => ({ card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], where: () => null }) }),
   // @ts-expect-error a second slot read in a shape it does not take
-  defineForm({ label: "x", slots: { main: ["numbers"], y: ["numbers"] }, place: ({ main, y }: { main: Numbers; y: Parts }) => placed([main, y]) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["numbers"], y: ["numbers"] }, place: ({ main, y }: { main: Numbers; y: Parts }) => placed([main, y]) }),
   // @ts-expect-error a palette over bins, which carry no colour
-  definePaint({ label: "x", shapes: ["nominal", "ordinal"], paint: paintParts }),
+  definePaint({ label: "x", glyph: GLYPH, shapes: ["nominal", "ordinal"], paint: paintParts }),
 ]
 
 export const choosers: readonly unknown[] = [

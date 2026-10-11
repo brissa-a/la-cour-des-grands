@@ -31,13 +31,20 @@ export function readsVote<C extends Choice>(choice: C): choice is ReadsVote<C> {
 }
 
 export function viewOf(color: ColorChoice, layout: LayoutChoice, scrutin: VoteId | null): View | null {
-  if (scrutin === null) {
-    if (readsVote(color) || readsVote(layout)) return null
-    return { scrutin, color, layout }
-  }
+  if (scrutin !== null) return viewWithScrutin(color, layout, scrutin)
+  if (readsVote(color) || readsVote(layout)) return null
+  return { scrutin, color, layout }
+}
+
+export function viewWithScrutin(color: ColorChoice, layout: LayoutChoice, scrutin: VoteId): View {
   if (readsVote(color)) return { scrutin, color, layout }
   if (readsVote(layout)) return { scrutin, color, layout }
   return { scrutin: null, color, layout }
+}
+
+export function withoutScrutin(view: View, fallback: Plain<ColorChoice>): View {
+  const { color, layout } = view
+  return { scrutin: null, color: readsVote(color) ? fallback : color, layout: readsVote(layout) ? HEMICYCLE : layout }
 }
 
 export function colorFor(feature: ColorableFeature): Plain<ColorChoice> | null {

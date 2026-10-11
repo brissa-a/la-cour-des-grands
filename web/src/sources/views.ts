@@ -13,6 +13,15 @@ export const PREVIEW_HEADER_FEATURES: ReadonlySet<string> = new Set<string>([
   "deputies/init.csv:department_number",
 ])
 
+const PART_NOUNS: Partial<Record<FeatureKey, string>> = {
+  "deputies/init.csv:group": "groupes",
+  "deputies/init.csv:region": "régions",
+}
+
+export function partNoun(key: FeatureKey): string {
+  return PART_NOUNS[key] ?? "valeurs"
+}
+
 export const NEUTRAL = "#5f6368"
 
 export const PALETTE = [

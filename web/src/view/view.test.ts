@@ -5,7 +5,7 @@ import { SEAT, VOTE } from "../sources/shapes.ts"
 import { voteId } from "../votes/voteId.ts"
 import { colorId, colorOptions, layoutId, layoutOptions } from "./options.ts"
 import { withParams } from "../url.ts"
-import { HEMICYCLE, mainOf, parseView, viewOf, viewParams, VOTE_COLOR, type View } from "./view.ts"
+import { HEMICYCLE, mainOf, parseView, viewOf, viewParams, VOTE_COLOR, withoutScrutin, type View } from "./view.ts"
 
 const GROUP: CategoryFeature = { kind: "category", key: "deputies/init.csv:group", file: "deputies/init.csv", column: "group", title: "Groupe politique", values: "g" }
 const CIVILITY: CategoryFeature = { kind: "category", key: "deputies/init.csv:civility", file: "deputies/init.csv", column: "civility", title: "Civilité", values: "c" }
@@ -93,6 +93,13 @@ test("a view drops a scrutin that no channel shows and refuses a vote without on
   assert.equal(viewOf({ paint: "palette", of: GROUP }, HEMICYCLE, SCRUTIN)?.scrutin, null)
   assert.equal(viewOf(VOTE_COLOR, HEMICYCLE, null), null)
   assert.equal(viewOf({ paint: "palette", of: GROUP }, { form: "columns", picks: { main: VOTE } }, null), null)
+})
+
+test("leaving the scrutin out keeps the channels that do not read it and puts back the fallback colour and the hemicycle", () => {
+  const age = { paint: "gradient", of: AGE } as const
+  const columns = { form: "columns", picks: { main: CIVILITY } } as const
+  assert.deepEqual(withoutScrutin({ scrutin: SCRUTIN, color: VOTE_COLOR, layout: columns }, age), { scrutin: null, color: age, layout: columns })
+  assert.deepEqual(withoutScrutin({ scrutin: SCRUTIN, color: age, layout: { form: "halfRings", picks: { main: VOTE } } }, { paint: "palette", of: GROUP }), { scrutin: null, color: age, layout: HEMICYCLE })
 })
 
 test("the pickers offer the room first, each feature in catalog order, then the scrutin once one is chosen, its half-rings right after its columns", () => {

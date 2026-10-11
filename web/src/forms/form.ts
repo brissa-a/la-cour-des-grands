@@ -1,4 +1,5 @@
 import type { DeputyId } from "../data/deputyId.ts"
+import type { Glyph } from "../glyph/glyph.ts"
 import type { Rect } from "../preview/placement.ts"
 import type { Data, Part, Point, Room, Seat, Shape } from "../sources/shapes.ts"
 
@@ -60,6 +61,7 @@ export type Inputs<X extends Slots> = { readonly [K in keyof X]: Data[ShapeIn<X[
 
 export type FormSpec<X extends Slots> = {
   readonly label: string
+  readonly glyph: Glyph
   readonly slots: X
   readonly place: (inputs: Inputs<X>, target: Target) => Scene
 }

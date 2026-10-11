@@ -1,4 +1,5 @@
 import type { DeputyId } from "../data/deputyId.ts"
+import { dots, type Glyph } from "../glyph/glyph.ts"
 import type { Point, Seats } from "../sources/shapes.ts"
 import { DOT_RADIUS, NO_HOLLOW, type FormSpec, type Scene } from "./form.ts"
 
@@ -21,7 +22,13 @@ export function placeHemicycle({ main: seats }: { readonly main: Seats }): Scene
   }
 }
 
-export const hemicycle: FormSpec<{ readonly main: readonly ["seats"] }> = { label: "Hémicycle", slots: { main: ["seats"] }, place: placeHemicycle }
+const GLYPH: Glyph = [
+  { kind: "stroke", d: "M1.4 19.5A10.6 10.6 0 0 1 22.6 19.5", width: 1, opacity: 0.6 },
+  ...dots(1.4, [[7.6, 19.5], [9.8, 15.69], [14.2, 15.69], [16.4, 19.5], [4.1, 19.5], [5.16, 15.55], [8.05, 12.66], [12, 11.6], [15.95, 12.66], [18.84, 15.55], [19.9, 19.5]]),
+  { kind: "block", x: 10.6, y: 17.4, width: 2.8, height: 2.1, round: 0.4, opacity: 1 },
+]
+
+export const hemicycle: FormSpec<{ readonly main: readonly ["seats"] }> = { label: "Hémicycle", glyph: GLYPH, slots: { main: ["seats"] }, place: placeHemicycle }
 
 function rows(seatOf: ReadonlyMap<DeputyId, Point>): DeputyId[][] {
   const polar = Array.from(seatOf, ([id, { x, y }]) => ({ id, radius: Math.hypot(x, y), along: -Math.atan2(Math.abs(y), x) }))
