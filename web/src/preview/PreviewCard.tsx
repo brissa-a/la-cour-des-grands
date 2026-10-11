@@ -14,6 +14,13 @@ const MARGIN = 8
 
 const PLACERS: Readonly<Record<CardPolicy, (input: PlacementInput) => Placement>> = { beside: placeBeside, above: placeAbove }
 
+export type Opens = "panel" | "site"
+
+const OPEN_TEXTS: Readonly<Record<Opens, { readonly hint: string; readonly button: string }>> = {
+  panel: { hint: "Cliquer pour ouvrir la fiche", button: "Voir la fiche ›" },
+  site: { hint: "Cliquer pour voir sa fiche sur le site ↗", button: "Voir sa fiche sur le site ↗" },
+}
+
 export type CardLines = { readonly color: ColorLine | null; readonly layout: Line | null }
 
 type Props = {
@@ -24,10 +31,11 @@ type Props = {
   selected: DeputyId | null
   hint: boolean
   touch: boolean
+  opens: Opens
   onOpen: (id: DeputyId) => void
 }
 
-export function PreviewCard({ store, people, lines, layoutGlyph, selected, hint, touch, onOpen }: Props) {
+export function PreviewCard({ store, people, lines, layoutGlyph, selected, hint, touch, opens, onOpen }: Props) {
   const { card } = usePreview(store)
   const ref = useRef<HTMLDivElement>(null)
   const side = useRef<Side | null>(null)
@@ -100,12 +108,12 @@ export function PreviewCard({ store, people, lines, layoutGlyph, selected, hint,
               </span>
             </span>
           )}
-          {hint && !touch && <span className="preview-hint">Cliquer pour ouvrir la fiche</span>}
+          {hint && !touch && <span className="preview-hint">{OPEN_TEXTS[opens].hint}</span>}
         </div>
       </div>
       {touch && (
         <button className="preview-open" onClick={() => onOpen(deputy.id)}>
-          Voir la fiche ›
+          {OPEN_TEXTS[opens].button}
         </button>
       )}
     </div>

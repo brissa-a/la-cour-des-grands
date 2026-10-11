@@ -5,7 +5,8 @@ import type { Point } from "../preview/placement.ts"
 import { usePreview, type Hit, type PreviewStore } from "../preview/previewStore.ts"
 import { Marks } from "./Marks.tsx"
 import { motionOf, type Motion } from "./staging.ts"
-import { PanZoomSvg } from "./PanZoomSvg.tsx"
+import { FixedSvg } from "./FixedSvg.tsx"
+import { PanZoomSvg, type PointerHandlers } from "./PanZoomSvg.tsx"
 
 // Chrome skips repainting SVG elements whose CSS transform transitions use coordinates around ±1.
 const DOT_SCALE = 100
@@ -33,10 +34,11 @@ type Props = {
   colorOf: (id: DeputyId) => string
   store: PreviewStore
   selected: DeputyId | null
+  zoomable: boolean
   onTap: (hit: Hit | null, pointerType: string) => void
 }
 
-export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlighted, showPhotos, colorOf, store, selected, onTap }: Props) {
+export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlighted, showPhotos, colorOf, store, selected, zoomable, onTap }: Props) {
   const { radius, snap } = scene
   const dotsRef = useRef<SVGGElement>(null)
   const hovered = useRef<DeputyId | null>(null)
@@ -129,29 +131,29 @@ export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlight
     dotsRef.current?.ownerSVGElement?.classList.toggle("targeting", hit !== null)
   }
 
-  return (
-    <PanZoomSvg
-      svgRef={svgRef}
-      viewBox={viewBox}
-      onDown={e => {
-        pointerType.current = e.pointerType
-      }}
-      onHover={e => {
-        if (e.pointerType === "touch") return
-        const hit = hitAt(e.clientX, e.clientY)
-        setHovered(hit)
-        store.hover({ x: e.clientX, y: e.clientY }, hit)
-      }}
-      onLeave={() => {
-        setHovered(null)
-        store.leave()
-      }}
-      onTap={e => onTap(hitAt(e.clientX, e.clientY), pointerType.current)}
-      onGesture={active => {
-        if (active) setHovered(null)
-        store.gesture(active)
-      }}
-    >
+  const handlers: PointerHandlers = {
+    onDown: e => {
+      pointerType.current = e.pointerType
+    },
+    onHover: e => {
+      if (e.pointerType === "touch") return
+      const hit = hitAt(e.clientX, e.clientY)
+      setHovered(hit)
+      store.hover({ x: e.clientX, y: e.clientY }, hit)
+    },
+    onLeave: () => {
+      setHovered(null)
+      store.leave()
+    },
+    onTap: e => onTap(hitAt(e.clientX, e.clientY), pointerType.current),
+    onGesture: active => {
+      if (active) setHovered(null)
+      store.gesture(active)
+    },
+  }
+
+  const content = (
+    <>
       <defs>
         <clipPath id="seat-clip" clipPathUnits="objectBoundingBox">
           <circle cx={0.5} cy={0.5} r={0.5} />
@@ -178,7 +180,17 @@ export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlight
         })}
         <Rings store={store} selected={selected} placedById={placedById} colorOf={colorOf} radius={radius} showPhotos={showPhotos} />
       </g>
+    </>
+  )
+
+  return zoomable ? (
+    <PanZoomSvg svgRef={svgRef} viewBox={viewBox} {...handlers}>
+      {content}
     </PanZoomSvg>
+  ) : (
+    <FixedSvg svgRef={svgRef} viewBox={viewBox} {...handlers}>
+      {content}
+    </FixedSvg>
   )
 }
 

@@ -3,11 +3,15 @@ import { createRoot } from "react-dom/client"
 import { App } from "./App.tsx"
 import { loadAssembly } from "./data/assembly.ts"
 import { colorableFeatures, createFeatureStore } from "./data/features.ts"
+import { parseChrome } from "./embed/chrome.ts"
 import { createFeatureCache } from "./sources/values.ts"
 import { DEFAULT_COLOR_FEATURE, HIDDEN_FEATURES } from "./sources/views.ts"
 import { readParam } from "./url.ts"
 import { parseView } from "./view/view.ts"
 import "./styles.css"
+
+const chrome = parseChrome(readParam)
+document.documentElement.dataset.chrome = chrome.kind
 
 const loaded = loadAssembly().then(async assembly => {
   const features = colorableFeatures(assembly, HIDDEN_FEATURES)
@@ -19,7 +23,7 @@ const loaded = loadAssembly().then(async assembly => {
 })
 
 function Loaded({ app }: { app: typeof loaded }) {
-  return <App {...use(app)} />
+  return <App {...use(app)} chrome={chrome} />
 }
 
 class LoadError extends Component<{ children: ReactNode }, { error: Error | null }> {

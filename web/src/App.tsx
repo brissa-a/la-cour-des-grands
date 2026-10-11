@@ -5,11 +5,13 @@ import { createLookupSources } from "./address/sources.ts"
 import { rowCount } from "./data/catalog.ts"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId, type Person, type Sitting } from "./data/assembly.ts"
 import type { ColorableFeature } from "./data/features.ts"
-import type { Order } from "./forms/form.ts"
+import { fullSiteUrl, legendShown, type Chrome } from "./embed/chrome.ts"
+import type { Order, Screen } from "./forms/form.ts"
 import { arrange, FORMS, picksOf } from "./forms/registry.ts"
 import { Stage } from "./layout/Stage.tsx"
 import { Legend } from "./layout/Legend.tsx"
 import { VoteHeader } from "./layout/VoteHeader.tsx"
+import { VoteLine } from "./layout/VoteLine.tsx"
 import { useStageFrame } from "./layout/useStageFrame.ts"
 import { useStaging } from "./layout/useStaging.ts"
 import { useMediaQuery } from "./layout/useMediaQuery.ts"
@@ -40,7 +42,7 @@ import { seatsOf } from "./sources/seats.ts"
 import { featuresOf, useFeatureValues } from "./sources/useFeatureValues.ts"
 import type { FeatureCache } from "./sources/values.ts"
 import { DEFAULT_COLOR_FEATURE, PANEL_ORDER } from "./sources/views.ts"
-import { pushParam, readParam, writeParam, writeParams } from "./url.ts"
+import { pushParam, readParam, writeParam, writeParams, type Param } from "./url.ts"
 import { HEMICYCLE, readsVote, viewParams, type ParsedView, type View } from "./view/view.ts"
 import type { VotePosition } from "./votes/positions.ts"
 import { sittingOn } from "./votes/sitting.ts"
@@ -50,15 +52,16 @@ import { shownVote, useVoteView } from "./votes/useVoteView.ts"
 import { VOTES_FILE, type Vote } from "./votes/votes.ts"
 
 const NO_IDS: ReadonlySet<DeputyId> = new Set()
+const NO_FEATURES: readonly ColorableFeature[] = []
 const PANEL_HISTORY_STATE = { panel: true }
 const PHONE = "(max-width: 759px)"
 // Below this width the side panel and the deputy sheet together would leave the drawing under 480 px.
 const CROWDED = "(max-width: 1159px)"
 const TOUCH_ONLY = "(hover: none)"
 
-type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache: FeatureCache; initial: ParsedView }
+type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache: FeatureCache; initial: ParsedView; chrome: Chrome }
 
-export function App({ assembly, features, cache, initial }: Props) {
+export function App({ assembly, features, cache, initial, chrome }: Props) {
   const votes = useMemo(() => createVoteSource(assembly.catalog, assembly.people), [assembly])
   const finder = useMemo(() => voteFinder(votes.index), [votes])
   const voteCount = rowCount(assembly.catalog, VOTES_FILE)
@@ -78,7 +81,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const colorValues = useFeatureValues(cache, featuresOf([view.color.of]))
   const fallbackValues = useFeatureValues(cache, featuresOf([fallbackColor.of]))
   const layoutValues = useFeatureValues(cache, featuresOf(picksOf(view.layout)))
-  const panelValues = useFeatureValues(cache, features)
+  const panelValues = useFeatureValues(cache, chrome.kind === "full" ? features : NO_FEATURES)
   const chosenColored = useMemo(
     () => colorWith(view.color, source => readingOf(source, { drawn, values: colorValues, vote, seats })),
     [view.color, drawn, colorValues, vote, seats],
@@ -96,7 +99,9 @@ export function App({ assembly, features, cache, initial }: Props) {
 
   const previewOptions = useConfig(config => config.preview)
   const [preview] = useState(() => createPreviewStore(previewOptions))
-  const [selected, setSelected] = useState<DeputyId | null>(() => deputyInUrl(assembly))
+  const [selected, setSelected] = useState<DeputyId | null>(() => (chrome.kind === "full" ? deputyInUrl(assembly) : null))
+  const [pinned] = useState(() => (chrome.kind === "clean" ? deputyInUrl(assembly) : null))
+  const ringed = selected ?? pinned
   const [panelId, setPanelId] = useState<DeputyId | null>(selected)
   const [hint, setHint] = useState(() => !hasOpenedPanel())
   const [searchResults, setSearchResults] = useState(NO_IDS)
@@ -106,7 +111,9 @@ export function App({ assembly, features, cache, initial }: Props) {
   const [configOpen, setConfigOpen] = useState(false)
   const lookupSources = useMemo(() => createLookupSources(assembly.catalog), [assembly])
   const [addressContext, setAddressContext] = useState<Located | null>(null)
-  const phone = useMediaQuery(PHONE)
+  const narrow = useMediaQuery(PHONE)
+  const screen: Screen = narrow ? "phone" : "desktop"
+  const phone = chrome.kind === "full" && narrow
   const touchOnly = useMediaQuery(TOUCH_ONLY)
   const crowded = useMediaQuery(CROWDED)
   const sheetOpen = selected !== null
@@ -114,7 +121,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const [viewSheet, onViewSheet] = useSheet()
   const svgRef = useRef<SVGSVGElement>(null)
   const searchInput = useRef<HTMLInputElement>(null)
-  const frame = useStageFrame(svgRef, phone ? "phone" : "desktop")
+  const frame = useStageFrame(svgRef, screen)
 
   const order = useMemo(() => (settled && chosenColored ? rankThenName(chosenColored.paint, sitting) : null), [settled, chosenColored, sitting])
   const arrangement = useMemo(
@@ -124,14 +131,16 @@ export function App({ assembly, features, cache, initial }: Props) {
   const staged = useStaging(arrangement, frame, seats, drawn)
 
   useEffect(() => {
-    loadOfficialPages().then(setOfficialPages, (error: unknown) => console.error(error))
-  }, [])
+    if (chrome.kind === "full") loadOfficialPages().then(setOfficialPages, (error: unknown) => console.error(error))
+  }, [chrome])
 
   useEffect(() => preview.configure(previewOptions), [preview, previewOptions])
 
   useEffect(() => {
-    if (isPanelHistoryEntry(history.state)) history.replaceState(null, "")
-    if (readParam("deputy") !== null && selected === null) writeParam("deputy", null)
+    if (chrome.kind === "full") {
+      if (isPanelHistoryEntry(history.state)) history.replaceState(null, "")
+      if (readParam("deputy") !== null && selected === null) writeParam("deputy", null)
+    }
     writeUrl(initial.view)
   }, [])
 
@@ -160,6 +169,12 @@ export function App({ assembly, features, cache, initial }: Props) {
     setAddressContext(located)
     show(id)
   }
+
+  const openSite = (id: DeputyId) => {
+    window.open(fullSiteUrl(location.href, urlParams(view, showPhotos), id), "_blank", "noopener")
+  }
+
+  const openDeputy = chrome.kind === "clean" ? openSite : open
 
   const show = (id: DeputyId) => {
     if (id === selected) return
@@ -193,16 +208,17 @@ export function App({ assembly, features, cache, initial }: Props) {
   }
 
   useEffect(() => {
+    if (chrome.kind === "clean") return
     const onPopState = () => {
       const id = deputyInUrl(assembly)
       setSelected(id)
       if (id) setPanelId(id)
       else setAddressContext(null)
-      writeParams([...viewParams(view, DEFAULT_COLOR_FEATURE), ["showPic", showPhotos ? "true" : null]])
+      writeParams(urlParams(view, showPhotos))
     }
     addEventListener("popstate", onPopState)
     return () => removeEventListener("popstate", onPopState)
-  }, [assembly, view, showPhotos])
+  }, [chrome, assembly, view, showPhotos])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -226,10 +242,10 @@ export function App({ assembly, features, cache, initial }: Props) {
         if (selected !== null) open(hit.id)
       }
     } else if (pointerType !== "touch") {
-      if (hit) open(hit.id)
+      if (hit) openDeputy(hit.id)
       else close()
     } else if (hit) {
-      if (shown && preview.get().card?.id === hit.id) open(hit.id)
+      if (shown && preview.get().card?.id === hit.id) openDeputy(hit.id)
       else preview.show(hit.id, hit.geometry)
     } else if (shown) preview.dismiss()
     else close()
@@ -323,6 +339,55 @@ export function App({ assembly, features, cache, initial }: Props) {
       inert={searchingVote}
     />
   )
+  const stage = (
+    <Stage
+      svgRef={svgRef}
+      viewBox={assembly.background.viewBox}
+      deputies={sitting.deputies}
+      scene={staged.scene}
+      arrangement={staged.arrangement ?? staged.reading}
+      highlighted={highlighted}
+      showPhotos={showPhotos}
+      colorOf={colored.paint.colorOf}
+      store={preview}
+      selected={ringed}
+      zoomable={chrome.kind === "full"}
+      onTap={onTap}
+    />
+  )
+  const legend = legendShown(chrome, colored.reading.source, view.layout) && (
+    <Legend paint={colored.paint} store={preview} selected={ringed} onHover={setHovered} />
+  )
+  const card = (
+    <PreviewCard
+      store={preview}
+      people={sitting.byId}
+      lines={cardLines}
+      layoutGlyph={layoutGlyph}
+      selected={selected}
+      hint={chrome.kind === "clean" || hint}
+      touch={touchOnly}
+      opens={chrome.kind === "clean" ? "site" : "panel"}
+      onOpen={openDeputy}
+    />
+  )
+
+  if (chrome.kind === "clean")
+    return (
+      <div className="app">
+        <main className="stage">
+          {chrome.title && voteInView && voteView.status !== "none" && <VoteLine view={voteView} />}
+          {stage}
+          <div className="stage-bottom">
+            {legend}
+            <a className="site-link" href={fullSiteUrl(location.href, urlParams(view, showPhotos), null)} target="_blank" rel="noopener">
+              La cour des grands ↗
+            </a>
+          </div>
+        </main>
+        {card}
+      </div>
+    )
 
   return (
     <div className={classes}>
@@ -348,23 +413,11 @@ export function App({ assembly, features, cache, initial }: Props) {
         />
       )}
       <main className="stage" inert={searchingVote}>
-        <Stage
-          svgRef={svgRef}
-          viewBox={assembly.background.viewBox}
-          deputies={sitting.deputies}
-          scene={staged.scene}
-          arrangement={staged.arrangement ?? staged.reading}
-          highlighted={highlighted}
-          showPhotos={showPhotos}
-          colorOf={colored.paint.colorOf}
-          store={preview}
-          selected={selected}
-          onTap={onTap}
-        />
+        {stage}
         <div className="stage-bottom" data-overlay="">
           {hint && selected === null && !phone && <RestHint store={preview} touch={touchOnly} />}
           {(phone || folded) && voteHeader(false)}
-          {!colorsVote && <Legend paint={colored.paint} store={preview} selected={selected} onHover={setHovered} />}
+          {legend}
         </div>
       </main>
       {phone ? (
@@ -390,18 +443,7 @@ export function App({ assembly, features, cache, initial }: Props) {
           onOpenDeputy={open}
           onStep={stepFrom}
         />
-      ) : (
-        <PreviewCard
-          store={preview}
-          people={sitting.byId}
-          lines={cardLines}
-          layoutGlyph={layoutGlyph}
-          selected={selected}
-          hint={hint}
-          touch={touchOnly}
-          onOpen={open}
-        />
-      )}
+      ) : card}
       {configOpen && <ConfigPanel onClose={closeConfig} />}
       {panelDeputy && (
         <DeputyPanel
@@ -445,6 +487,10 @@ function rankThenName({ rank }: Paint, sitting: Sitting): Order {
 
 function writeUrl(view: View): void {
   writeParams(viewParams(view, DEFAULT_COLOR_FEATURE))
+}
+
+function urlParams(view: View, showPhotos: boolean): readonly Param[] {
+  return [...viewParams(view, DEFAULT_COLOR_FEATURE), ["showPic", showPhotos ? "true" : null]]
 }
 
 function outOfView(person: Person, sitting: Sitting, vote: ReadVote | null): string | null {
