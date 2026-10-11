@@ -60,7 +60,7 @@ export function panelRows({ features, first, reading, chosen }: RowInputs): Row[
   return [...featureRows, voteRow]
 }
 
-export function nameOf(source: Source): string {
+function nameOf(source: Source): string {
   switch (source.kind) {
     case "category":
     case "number":

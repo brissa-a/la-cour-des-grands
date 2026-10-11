@@ -21,43 +21,52 @@ const STOPPED: Press = { kind: "wait", waiting: false }
 const pressed = (pressedOffer: Offer, result: Press): SheetEvent => ({ kind: "pressed", offer: pressedOffer, press: result })
 const run = (from: Sheet, ...events: readonly SheetEvent[]) => events.reduce(sheetAfter, from)
 const OPEN = run(CLOSED, { kind: "open" })
+const kind = (sheet: Sheet) => sheet.kind
 
 test("a tap on a form without controls collapses the sheet when its wait ends, and a second tap within the wait starts it again", () => {
   const tapped = run(OPEN, pressed(AGE_IN_COLOUR, VIEWED))
-  assert.deepEqual(tapped, { kind: "collapsing", tap: 1 })
-  assert.deepEqual(run(tapped, { kind: "elapsed", tap: 1 }), CLOSED)
+  assert.deepEqual(tapped, { kind: "collapsing", collapses: 1 })
+  assert.equal(kind(run(tapped, { kind: "elapsed", collapse: 1 })), "closed")
   const again = run(tapped, pressed(offer("Groupe politique", "layout"), VIEWED))
-  assert.deepEqual(again, { kind: "collapsing", tap: 2 })
-  assert.deepEqual(run(again, { kind: "elapsed", tap: 1 }), again)
-  assert.deepEqual(run(again, { kind: "elapsed", tap: 2 }), CLOSED)
-  assert.deepEqual(run(OPEN, { kind: "elapsed", tap: 1 }), OPEN)
+  assert.deepEqual(again, { kind: "collapsing", collapses: 2 })
+  assert.equal(run(again, { kind: "elapsed", collapse: 1 }), again)
+  assert.equal(kind(run(again, { kind: "elapsed", collapse: 2 })), "closed")
+  assert.equal(run(OPEN, { kind: "elapsed", collapse: 0 }), OPEN)
+})
+
+test("the wait left over from a collapse that the reader cut short never closes the sheet opened since", () => {
+  const reopened = run(OPEN, pressed(AGE_IN_COLOUR, VIEWED), { kind: "close" }, { kind: "open" }, pressed(AGE_IN_COLOUR, VIEWED))
+  assert.deepEqual(reopened, { kind: "collapsing", collapses: 2 })
+  assert.equal(run(reopened, { kind: "elapsed", collapse: 1 }), reopened)
+  assert.equal(kind(run(OPEN, pressed(AGE_IN_COLOUR, VIEWED), { kind: "close" }, { kind: "open" }, { kind: "elapsed", collapse: 1 })), "open")
 })
 
 test("a tap on a form of the vote keeps the sheet open for its scrutin control, even from a wait that had started", () => {
-  assert.deepEqual(run(OPEN, pressed(VOTE_IN_RINGS, VIEWED)), OPEN)
-  assert.deepEqual(run(OPEN, pressed(AGE_IN_COLOUR, VIEWED), pressed(offer("Vote sur un scrutin", "color"), VIEWED)), OPEN)
+  assert.equal(kind(run(OPEN, pressed(VOTE_IN_RINGS, VIEWED))), "open")
+  assert.equal(kind(run(OPEN, pressed(AGE_IN_COLOUR, VIEWED), pressed(offer("Vote sur un scrutin", "color"), VIEWED))), "open")
 })
 
 test("a greyed vote glyph opens the vote search, tapping it again to stop waiting keeps the sheet open, and leaving the search comes back to the sheet", () => {
   const searching = run(OPEN, pressed(VOTE_IN_RINGS, WAITING))
-  assert.deepEqual(searching, { kind: "searching" })
-  assert.deepEqual(run(searching, { kind: "searched" }), OPEN)
-  assert.deepEqual(run(OPEN, pressed(VOTE_IN_RINGS, STOPPED)), OPEN)
-  assert.deepEqual(run(OPEN, { kind: "search" }), searching)
-  assert.deepEqual(run(searching, pressed(AGE_IN_COLOUR, VIEWED)), searching)
+  assert.equal(kind(searching), "searching")
+  assert.equal(kind(run(searching, { kind: "searched" })), "open")
+  assert.equal(kind(run(OPEN, pressed(VOTE_IN_RINGS, STOPPED))), "open")
+  assert.equal(kind(run(OPEN, { kind: "search" })), "searching")
+  assert.equal(run(searching, pressed(AGE_IN_COLOUR, VIEWED)), searching)
 })
 
 test("the bar's tabs change the form without opening the sheet, the search needs the sheet, and closing wins in every state", () => {
-  assert.deepEqual(run(CLOSED, pressed(VOTE_IN_RINGS, VIEWED)), CLOSED)
-  assert.deepEqual(run(CLOSED, { kind: "search" }), CLOSED)
-  assert.deepEqual(run(CLOSED, { kind: "searched" }), CLOSED)
-  assert.deepEqual(run(OPEN, { kind: "searched" }), OPEN)
+  assert.equal(run(CLOSED, pressed(VOTE_IN_RINGS, VIEWED)), CLOSED)
+  assert.equal(run(CLOSED, { kind: "search" }), CLOSED)
+  assert.equal(run(CLOSED, { kind: "searched" }), CLOSED)
+  assert.equal(run(OPEN, { kind: "searched" }), OPEN)
   const collapsing = run(OPEN, pressed(AGE_IN_COLOUR, VIEWED))
-  assert.deepEqual(run(collapsing, { kind: "open" }), collapsing)
-  for (const state of [OPEN, collapsing, run(OPEN, { kind: "search" }), CLOSED]) assert.deepEqual(run(state, { kind: "close" }), CLOSED)
+  assert.equal(run(collapsing, { kind: "open" }), collapsing)
+  for (const state of [OPEN, collapsing, run(OPEN, { kind: "search" })]) assert.equal(kind(run(state, { kind: "close" })), "closed")
+  assert.equal(run(CLOSED, { kind: "close" }), CLOSED)
 })
 
-test("a collapsing sheet asks for the end of its wait after 400 ms and cancels it when it leaves that state, and other states wait for nothing", () => {
+test("a collapsing sheet asks for the end of its wait after 400 ms and hands back the way to cancel it, and other states wait for nothing", () => {
   const timers: { ms: number; run: () => void; cancelled: boolean }[] = []
   const after = (ms: number, then: () => void) => {
     const timer = { ms, run: then, cancelled: false }
@@ -67,15 +76,14 @@ test("a collapsing sheet asks for the end of its wait after 400 ms and cancels i
     }
   }
   const events: SheetEvent[] = []
-  const searching: Sheet = { kind: "searching" }
-  for (const state of [CLOSED, OPEN, searching]) assert.equal(scheduleCollapse(state, event => events.push(event), after), undefined)
+  for (const state of ["closed", "open", "searching"] as const) assert.equal(scheduleCollapse({ kind: state, collapses: 3 }, event => events.push(event), after), undefined)
   assert.equal(timers.length, 0)
-  const cancel = scheduleCollapse({ kind: "collapsing", tap: 3 }, event => events.push(event), after)
+  const cancel = scheduleCollapse({ kind: "collapsing", collapses: 3 }, event => events.push(event), after)
   const [timer, ...others] = timers
   assert.ok(timer && others.length === 0)
   assert.equal(timer.ms, 400)
   timer.run()
-  assert.deepEqual(events, [{ kind: "elapsed", tap: 3 }])
+  assert.deepEqual(events, [{ kind: "elapsed", collapse: 3 }])
   cancel?.()
   assert.equal(timer.cancelled, true)
 })

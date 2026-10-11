@@ -1,59 +1,49 @@
 import { readsVote } from "../view/view.ts"
-import type { Press } from "./viewState.ts"
 import type { Offer } from "./rows.ts"
+import type { Press } from "./viewState.ts"
 
-export const COLLAPSE_MS = 400
+const COLLAPSE_MS = 400
 
-export type Sheet =
-  | { readonly kind: "closed" }
-  | { readonly kind: "open" }
-  | { readonly kind: "collapsing"; readonly tap: number }
-  | { readonly kind: "searching" }
+export type Sheet = { readonly kind: "closed" | "open" | "collapsing" | "searching"; readonly collapses: number }
 
 export type SheetEvent =
   | { readonly kind: "open" }
   | { readonly kind: "close" }
   | { readonly kind: "pressed"; readonly offer: Offer; readonly press: Press }
-  | { readonly kind: "elapsed"; readonly tap: number }
+  | { readonly kind: "elapsed"; readonly collapse: number }
   | { readonly kind: "search" }
   | { readonly kind: "searched" }
 
-export const CLOSED: Sheet = { kind: "closed" }
-
-const OPEN: Sheet = { kind: "open" }
+export const CLOSED: Sheet = { kind: "closed", collapses: 0 }
 
 export function sheetAfter(sheet: Sheet, event: SheetEvent): Sheet {
   switch (event.kind) {
     case "open":
-      return sheet.kind === "closed" ? OPEN : sheet
+      return sheet.kind === "closed" ? { ...sheet, kind: "open" } : sheet
     case "close":
-      return CLOSED
+      return sheet.kind === "closed" ? sheet : { ...sheet, kind: "closed" }
     case "pressed":
       return sheet.kind === "open" || sheet.kind === "collapsing" ? afterPress(sheet, event.offer, event.press) : sheet
     case "elapsed":
-      return sheet.kind === "collapsing" && sheet.tap === event.tap ? CLOSED : sheet
+      return sheet.kind === "collapsing" && sheet.collapses === event.collapse ? { ...sheet, kind: "closed" } : sheet
     case "search":
-      return sheet.kind === "closed" ? sheet : { kind: "searching" }
+      return sheet.kind === "closed" ? sheet : { ...sheet, kind: "searching" }
     case "searched":
-      return sheet.kind === "searching" ? OPEN : sheet
+      return sheet.kind === "searching" ? { ...sheet, kind: "open" } : sheet
   }
-}
-
-export function hasControls(offer: Offer): boolean {
-  return readsVote(offer.choice)
 }
 
 export function scheduleCollapse(sheet: Sheet, dispatch: (event: SheetEvent) => void, after: (ms: number, run: () => void) => () => void): (() => void) | undefined {
   if (sheet.kind !== "collapsing") return undefined
-  const { tap } = sheet
-  return after(COLLAPSE_MS, () => dispatch({ kind: "elapsed", tap }))
+  const collapse = sheet.collapses
+  return after(COLLAPSE_MS, () => dispatch({ kind: "elapsed", collapse }))
 }
 
-function afterPress(sheet: Extract<Sheet, { kind: "open" | "collapsing" }>, offer: Offer, press: Press): Sheet {
+function afterPress(sheet: Sheet, offer: Offer, press: Press): Sheet {
   switch (press.kind) {
     case "wait":
-      return press.waiting ? { kind: "searching" } : OPEN
+      return { ...sheet, kind: press.waiting ? "searching" : "open" }
     case "view":
-      return hasControls(offer) ? OPEN : { kind: "collapsing", tap: sheet.kind === "collapsing" ? sheet.tap + 1 : 1 }
+      return readsVote(offer.choice) ? { ...sheet, kind: "open" } : { kind: "collapsing", collapses: sheet.collapses + 1 }
   }
 }
