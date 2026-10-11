@@ -152,13 +152,14 @@ function TouchHint() {
 }
 
 function ViewSheet(props: Props) {
-  const { view, rows, chosen, sheet, composition, bottom, onSheet, onPress } = props
+  const { view, rows, chosen, sheet, composition, bottom, onSheet, onPress, onClearVote } = props
   const self = useRef<HTMLElement>(null)
   const list = useRef<HTMLUListElement>(null)
   const active = useRef<HTMLLIElement>(null)
   const voteHead = useRef<HTMLButtonElement>(null)
   const searching = sheet.kind === "searching"
   const wasSearching = useRef(searching)
+  const refocusHead = useRef(false)
   const activeKey = unfoldedRow(view)
   const [color, layout] = summary(view, chosen)
 
@@ -175,6 +176,17 @@ function ViewSheet(props: Props) {
     if (wasSearching.current && !searching) voteHead.current?.focus()
     wasSearching.current = searching
   }, [searching])
+
+  useEffect(() => {
+    if (!refocusHead.current) return
+    refocusHead.current = false
+    voteHead.current?.focus()
+  })
+
+  const clearVote = () => {
+    refocusHead.current = true
+    onClearVote()
+  }
 
   const press = (offer: Offer) => onSheet({ kind: "pressed", offer, press: onPress(offer) })
 
@@ -197,7 +209,7 @@ function ViewSheet(props: Props) {
       </div>
       <ul ref={list} className="feature-rows sheet-rows" aria-label="Caractéristiques">
         {rows.map(row => (
-          <SheetRow key={row.key} {...props} row={row} active={row.key === activeKey ? active : null} voteHead={voteHead} onPress={press} />
+          <SheetRow key={row.key} {...props} row={row} active={row.key === activeKey ? active : null} voteHead={voteHead} onPress={press} onClearVote={clearVote} />
         ))}
       </ul>
       <div className="sheet-bottom">{bottom}</div>
