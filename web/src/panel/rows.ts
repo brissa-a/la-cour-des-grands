@@ -3,7 +3,7 @@ import { FORMS, layoutsOf, picksOf, type FormName, type LayoutChoice } from "../
 import type { Glyph } from "../glyph/glyph.ts"
 import { coloringsOf, PAINTS, type ColorChoice } from "../paint/registry.ts"
 import { numberFormat } from "../profile/format.ts"
-import { MISSING, SEAT, sourceKey, VOTE, type Data, type Numbers, type Part, type Reading, type Shape, type Source } from "../sources/shapes.ts"
+import { MISSING, SEAT, sourceKey, VOTE, type Data, type Numbers, type Part, type Reading, type Shape, type Source, type VoteSource } from "../sources/shapes.ts"
 import { partNoun } from "../sources/views.ts"
 import { mainOf, type View } from "../view/view.ts"
 
@@ -103,21 +103,12 @@ export function offerLabel(row: Row, offer: Offer): string {
   }
 }
 
-export function sameColor(a: ColorChoice, b: ColorChoice): boolean {
-  return a.paint === b.paint && sourceKey(a.of) === sourceKey(b.of)
-}
-
-export function sameLayout(a: LayoutChoice, b: LayoutChoice): boolean {
-  return a.form === b.form && picksOf(a).map(sourceKey).join("\n") === picksOf(b).map(sourceKey).join("\n")
+export function choiceKey(choice: ColorChoice | LayoutChoice): string {
+  return "of" in choice ? JSON.stringify([choice.paint, sourceKey(choice.of)]) : JSON.stringify([choice.form, ...picksOf(choice).map(sourceKey)])
 }
 
 export function pressed(view: View, offer: Offer): boolean {
-  switch (offer.channel) {
-    case "color":
-      return sameColor(offer.choice, view.color)
-    case "layout":
-      return sameLayout(offer.choice, view.layout)
-  }
+  return choiceKey(offer.choice) === choiceKey(view[offer.channel])
 }
 
 export function holds(view: View, row: Row): Channel[] {
@@ -159,11 +150,10 @@ function hintOf<S extends Shape>(shape: S, data: Partial<Pick<Data, S>>): string
 }
 
 function fromTo(parts: readonly Part[]): string | null {
-  const given = parts.filter(part => part.key !== MISSING)
-  const first = given[0]
-  const last = given.at(-1)
-  if (first === undefined || last === undefined) return null
-  return first === last ? first.label : `de ${first.label} à ${last.label}`
+  const [first, ...rest] = parts.filter(part => part.key !== MISSING)
+  if (first === undefined) return null
+  const last = rest.at(-1)
+  return last === undefined ? first.label : `de ${first.label} à ${last.label}`
 }
 
 function colorOffers(source: Source, greyed: Greyed | null): ColorOffer[] {
@@ -174,9 +164,8 @@ function layoutOffers(source: Source, greyed: Greyed | null): LayoutOffer[] {
   return layoutsOf(source).map(choice => ({ channel: "layout", choice, label: FORMS[choice.form].label, glyph: FORMS[choice.form].glyph, greyed }))
 }
 
-function figuresOf(source: Source, reading: Reading | null): Figure[] {
-  if (reading === null) return []
-  const data: Partial<Data> = reading.data
+function figuresOf(source: Exclude<Source, VoteSource>, reading: Reading | null): Figure[] {
+  const data: Partial<Data> = reading?.data ?? {}
   switch (source.kind) {
     case "category":
       return data.nominal ? partFigures(data.nominal.parts, partNoun(source.key)) : []
@@ -184,8 +173,6 @@ function figuresOf(source: Source, reading: Reading | null): Figure[] {
       return data.numbers ? rangeFigures(data.numbers) : []
     case "seat":
       return data.seats ? [measure(data.seats.seatOf.size + data.seats.empty.length, "sièges")] : []
-    case "vote":
-      return []
   }
 }
 

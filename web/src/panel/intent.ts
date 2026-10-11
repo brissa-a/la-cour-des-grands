@@ -2,7 +2,7 @@ import type { LayoutChoice } from "../forms/registry.ts"
 import type { ColorChoice } from "../paint/registry.ts"
 import { readsVote, viewWithScrutin, VOTE_COLOR, type ReadsVote, type View } from "../view/view.ts"
 import type { VoteId } from "../votes/voteId.ts"
-import { sameColor, sameLayout, type Offer } from "./rows.ts"
+import { choiceKey, type Offer } from "./rows.ts"
 
 export type Intent =
   | { readonly channel: "color"; readonly choice: ReadsVote<ColorChoice> }
@@ -37,14 +37,7 @@ export function pick(view: View, pending: Pending | null, scrutin: VoteId): View
 }
 
 export function waitsFor(pending: Pending | null, offer: Offer): boolean {
-  if (pending === null) return false
-  const { intent } = pending
-  switch (offer.channel) {
-    case "color":
-      return intent.channel === "color" && sameColor(intent.choice, offer.choice)
-    case "layout":
-      return intent.channel === "layout" && sameLayout(intent.choice, offer.choice)
-  }
+  return pending !== null && choiceKey(pending.intent.choice) === choiceKey(offer.choice)
 }
 
 function applied(offer: Offer, view: View, scrutin: VoteId): Press {

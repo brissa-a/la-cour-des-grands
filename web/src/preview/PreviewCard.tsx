@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef } from "react"
 import type { DeputyId, Person } from "../data/assembly.ts"
 import type { CardPolicy } from "../forms/form.ts"
+import type { Glyph } from "../glyph/glyph.ts"
+import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
 import { constituencyShort } from "../profile/format.ts"
 import { Portrait } from "../profile/Portrait.tsx"
 import type { Line } from "../sources/shapes.ts"
@@ -18,13 +20,14 @@ type Props = {
   store: PreviewStore
   people: ReadonlyMap<DeputyId, Person>
   lines: (id: DeputyId) => CardLines
+  layoutGlyph: Glyph
   selected: DeputyId | null
   hint: boolean
   touch: boolean
   onOpen: (id: DeputyId) => void
 }
 
-export function PreviewCard({ store, people, lines, selected, hint, touch, onOpen }: Props) {
+export function PreviewCard({ store, people, lines, layoutGlyph, selected, hint, touch, onOpen }: Props) {
   const { card } = usePreview(store)
   const ref = useRef<HTMLDivElement>(null)
   const side = useRef<Side | null>(null)
@@ -90,7 +93,7 @@ export function PreviewCard({ store, people, lines, selected, hint, touch, onOpe
           )}
           {layoutLine && (
             <span className={`preview-value${layoutLine.missing ? " missing" : ""}`}>
-              <span className="column-glyph" />
+              <GlyphIcon glyph={layoutGlyph} size={14} className="line-glyph" />
               <span>
                 {layoutLine.label}
                 {layoutLine.caption && <span className="value-caption"> · {layoutLine.caption}</span>}

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import type { Person, Seat } from "../data/assembly.ts"
 import type { Where } from "../forms/form.ts"
+import type { Glyph } from "../glyph/glyph.ts"
+import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
 import type { Colored } from "../paint/registry.ts"
 import { birth, constituencyLong, numberFormat } from "./format.ts"
 
@@ -12,6 +14,7 @@ type Props = {
   open: boolean
   colored: Colored
   place: Extract<Where, { kind: "part" }> | null
+  layoutGlyph: Glyph
   total: number
   outOfView: string | null
   officialPage: string | undefined
@@ -19,7 +22,7 @@ type Props = {
   onClose: () => void
 }
 
-export function DeputyPanel({ deputy, seat, open, colored, place, total, outOfView, officialPage, address, onClose }: Props) {
+export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, total, outOfView, officialPage, address, onClose }: Props) {
   const scroller = useRef<HTMLElement>(null)
   const color = deputy.politicalGroup.color
 
@@ -73,7 +76,7 @@ export function DeputyPanel({ deputy, seat, open, colored, place, total, outOfVi
         {outOfView === null ? (
           <>
             <CurrentValue colored={colored} deputy={deputy} total={total} />
-            {place && <LayoutValue place={place} />}
+            {place && <LayoutValue place={place} glyph={layoutGlyph} />}
           </>
         ) : (
           <p className="panel-value muted">{outOfView}</p>
@@ -163,11 +166,11 @@ function CurrentValue({ colored: { reading, paint }, deputy, total }: { colored:
   }
 }
 
-function LayoutValue({ place: { part, within } }: { place: Extract<Where, { kind: "part" }> }) {
+function LayoutValue({ place: { part, within }, glyph }: { place: Extract<Where, { kind: "part" }>; glyph: Glyph }) {
   const count = part.members.length
   return (
     <p className="panel-value">
-      <span className="column-glyph" />
+      <GlyphIcon glyph={glyph} size={16} className="line-glyph" />
       <span className="panel-value-label">{part.label}</span>
       <span className="muted">
         {part.caption && `· ${part.caption} `}· {count} député{count > 1 ? "s" : ""} dans {within}

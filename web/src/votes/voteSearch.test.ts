@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { createVoteSearch, findVotes, searchVotes } from "./voteSearch.ts"
+import { createVoteSearch, findVotes, searchVotes, voteFinder } from "./voteSearch.ts"
 import { parseVotes } from "./votes.ts"
 
 function votes(...rows: { number: number; date: string; title: string; major: boolean }[]) {
@@ -73,4 +73,23 @@ test("typing a vote's number, with or without n°, puts that vote first and keep
   assert.deepEqual(numbers(findVotes(finder, "2025")), [2025, 30])
   assert.deepEqual(numbers(findVotes(finder, "finances")), [30])
   assert.deepEqual(findVotes(finder, "30")[0]?.matches, [])
+  assert.deepEqual(numbers(findVotes(finder, " n ° 30 ")), [30])
+  assert.deepEqual(numbers(findVotes(finder, "budget 30")), [2025])
+  assert.deepEqual(numbers(findVotes(finder, "30 budget")), [2025])
+  assert.deepEqual(numbers(findVotes(finder, "30x")), [])
+})
+
+test("the vote finder reads the vote index once, however often it is asked, and searches the titles of its votes", async () => {
+  const all = votes({ number: 30, date: "2025-03-01", title: "la loi de finances pour 2025.", major: true })
+  const labels = { kind: { ordinary: "o", solemn: "s", censure_motion: "c" }, result: { adopted: "a", rejected: "r" } }
+  let reads = 0
+  const find = voteFinder(() => {
+    reads++
+    return Promise.resolve({ votes: all, byId: new Map(all.map(vote => [vote.id, vote])), labels })
+  })
+  const [first, second] = await Promise.all([find(), find()])
+  assert.equal(first, second)
+  assert.equal(reads, 1)
+  assert.deepEqual([first.votes, first.labels], [all, labels])
+  assert.deepEqual(numbers(searchVotes(first.search, "finances")), [30])
 })

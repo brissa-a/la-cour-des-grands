@@ -107,8 +107,8 @@ test("a number head shows one value when all are equal and nothing when none is 
   }
   assert.deepEqual(head([52, 52, null, null, null, 52]), [{ value: "52", unit: "ans" }])
   assert.deepEqual(head([null, null, null, null, null, null]), [])
-  const unloaded = rowsWith(null)[0]
-  assert.deepEqual(unloaded?.kind === "feature" && unloaded.figures, [])
+  const unloaded = panelRows({ features: FEATURES, first: GROUP.key, reading: () => null, chosen: null })
+  assert.deepEqual(unloaded.map(row => (row.kind === "feature" ? row.figures : null)), [[], [], [], [], null])
 })
 
 test("a glyph of another row says which feature it takes the channel from, and one of the holding row says nothing", () => {

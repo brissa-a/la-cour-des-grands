@@ -6,12 +6,13 @@ import { lookup, type Located, type LookupOutcome, type LookupSources } from "..
 import { useAddressSuggestions } from "../address/useAddressSuggestions.ts"
 import { useConfig } from "../config/useConfig.ts"
 import type { Assembly, DeputyId } from "../data/assembly.ts"
-import { constituencyLong, shortDate } from "../profile/format.ts"
-import { createVoteSearch, searchVotes, type VoteMatch, type VoteSearch } from "../votes/voteSearch.ts"
-import { voteTitle, type Vote, type VoteIndex, type VoteLabels } from "../votes/votes.ts"
+import { constituencyLong } from "../profile/format.ts"
+import { searchVotes, type VoteFinder, type VoteMatch } from "../votes/voteSearch.ts"
+import type { Vote } from "../votes/votes.ts"
 import { addCommunes, createDeputySearch, type DeputyMatch, type DeputyResult } from "./deputySearch.ts"
 import { Highlight } from "./Highlight.tsx"
 import { votesFirst } from "./sections.ts"
+import { VoteResult } from "./VoteResult.tsx"
 
 const MAX_RESULTS = 10
 const MAX_VOTES = 8
@@ -21,7 +22,7 @@ const DEBOUNCE_MS = 200
 type Props = {
   assembly: Assembly
   loadCommunes: () => Promise<ReadonlyMap<DeputyId, string>>
-  loadVotes: () => Promise<VoteIndex>
+  findVotes: () => Promise<VoteFinder>
   lookupSources: LookupSources | null
   onHalo: (id: DeputyId | null) => void
   onSelect: (id: DeputyId) => void
@@ -30,11 +31,9 @@ type Props = {
   onResults: (ids: ReadonlySet<DeputyId>) => void
 }
 
-type VotesState =
-  | { status: "idle" | "loading" | "failed" }
-  | { status: "ready"; search: VoteSearch; labels: VoteLabels }
+type VotesState = { status: "idle" | "loading" | "failed" } | { status: "ready"; finder: VoteFinder }
 
-export function Search({ assembly, loadCommunes, loadVotes, lookupSources, onHalo, onSelect, onAddress, onVote, onResults }: Props) {
+export function Search({ assembly, loadCommunes, findVotes, lookupSources, onHalo, onSelect, onAddress, onVote, onResults }: Props) {
   const index = useMemo(() => createDeputySearch(assembly.deputies), [assembly])
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<DeputyResult[]>([])
@@ -61,10 +60,10 @@ export function Search({ assembly, loadCommunes, loadVotes, lookupSources, onHal
     const timeout = setTimeout(() => {
       const searched = query.trim() !== ""
       const deputies = searched ? index.search(query).slice(0, MAX_RESULTS) : []
-      const found = searched && votes.status === "ready" ? searchVotes(votes.search, query).slice(0, MAX_VOTES) : []
+      const found = searched && votes.status === "ready" ? searchVotes(votes.finder.search, query).slice(0, MAX_VOTES) : []
       setResults(deputies)
       setVoteResults(found)
-      setVotesOnTop(votes.status === "ready" && votesFirst(query, index, deputies[0], votes.search, found))
+      setVotesOnTop(votes.status === "ready" && votesFirst(query, index, deputies[0], votes.finder.search, found))
     }, DEBOUNCE_MS)
     return () => clearTimeout(timeout)
   }, [query, index, communesState, votes])
@@ -91,12 +90,13 @@ export function Search({ assembly, loadCommunes, loadVotes, lookupSources, onHal
     setOpen(true)
     if (votes.status === "idle") {
       setVotes({ status: "loading" })
-      loadVotes()
-        .then(async loaded => setVotes({ status: "ready", search: await createVoteSearch(loaded.votes), labels: loaded.labels }))
-        .catch((error: unknown) => {
+      findVotes().then(
+        finder => setVotes({ status: "ready", finder }),
+        (error: unknown) => {
           console.error(error)
           setVotes({ status: "failed" })
-        })
+        },
+      )
     }
     if (communesState !== "idle") return
     setCommunesState("loading")
@@ -180,7 +180,7 @@ export function Search({ assembly, loadCommunes, loadVotes, lookupSources, onHal
     <section className="search-section" aria-label="Scrutins">
       <h3 className="search-section-title">Scrutins</h3>
       {voteResults.map(result => (
-        <VoteRow key={result.ref.id} result={result} labels={votes.labels} onSelect={selectVote} />
+        <VoteResult key={result.ref.id} result={result} labels={votes.finder.labels} onSelect={selectVote} />
       ))}
     </section>
   )
@@ -191,7 +191,8 @@ export function Search({ assembly, loadCommunes, loadVotes, lookupSources, onHal
         data-overlay=""
         type="search"
         autoComplete="off"
-        placeholder={lookupSources ? "Rechercher un député, une adresse, un scrutin…" : "Rechercher un député, une commune, un scrutin…"}
+        placeholder={lookupSources ? "Député, adresse ou scrutin…" : "Député, commune ou scrutin…"}
+        aria-label={lookupSources ? "Rechercher un député, une adresse ou un scrutin" : "Rechercher un député, une commune ou un scrutin"}
         value={query}
         onChange={e => setQuery(e.target.value)}
         onFocus={onFocus}
@@ -266,24 +267,6 @@ function ResultRow({ assembly, result, onHalo, onSelect }: RowProps) {
             {communes.length > MAX_COMMUNES && <span>et {communes.length - MAX_COMMUNES} autres…</span>}
           </span>
         )}
-      </span>
-    </button>
-  )
-}
-
-type VoteRowProps = { result: VoteMatch; labels: VoteLabels; onSelect: (vote: Vote) => void }
-
-function VoteRow({ result, labels, onSelect }: VoteRowProps) {
-  const vote = result.ref
-  return (
-    <button className="result vote-result" onClick={() => onSelect(vote)}>
-      <span className="vote-result-title">
-        <Highlight value={voteTitle(vote)} matches={result.matches} />
-      </span>
-      <span className="vote-result-meta">
-        {shortDate(vote.date)} · {labels.result[vote.result]}
-        {vote.kind !== "ordinary" && ` · ${labels.kind[vote.kind]}`}
-        {vote.major && " · vote majeur"} · n° {vote.number}
       </span>
     </button>
   )

@@ -51,6 +51,11 @@ test("a plain glyph changes its own channel only, and drops a scrutin no channel
   assert.deepEqual(press(offer("Groupe politique", "layout"), voted, SCRUTIN, null), { kind: "view", view: { scrutin: SCRUTIN, color: VOTE_COLOR, layout: GROUP_COLUMNS } })
 })
 
+test("a glyph keeps the scrutin the view shows, even when none is remembered", () => {
+  const voted: View = { scrutin: SCRUTIN, color: VOTE_COLOR, layout: HEMICYCLE }
+  assert.deepEqual(press(offer("Groupe politique", "layout"), voted, null, null), { kind: "view", view: { scrutin: SCRUTIN, color: VOTE_COLOR, layout: GROUP_COLUMNS } })
+})
+
 test("a vote glyph brings back a remembered scrutin that had left the view", () => {
   const chosen = { number: 8427 }
   assert.deepEqual(press(offer(VOTE_ROW, "color", 0, chosen), DEFAULT_VIEW, SCRUTIN, null), { kind: "view", view: { scrutin: SCRUTIN, color: VOTE_COLOR, layout: HEMICYCLE } })

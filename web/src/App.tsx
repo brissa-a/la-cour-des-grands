@@ -5,7 +5,7 @@ import { createLookupSources } from "./address/sources.ts"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId, type Person, type Sitting } from "./data/assembly.ts"
 import type { ColorableFeature } from "./data/features.ts"
 import type { Order } from "./forms/form.ts"
-import { arrange, picksOf } from "./forms/registry.ts"
+import { arrange, FORMS, picksOf, type LayoutChoice } from "./forms/registry.ts"
 import { Stage } from "./layout/Stage.tsx"
 import { Legend } from "./layout/Legend.tsx"
 import { VoteHeader } from "./layout/VoteHeader.tsx"
@@ -16,6 +16,11 @@ import type { Paint } from "./paint/paint.ts"
 import { colorWith, type Colored } from "./paint/registry.ts"
 import { ConfigButton, ConfigPanel } from "./config/ConfigPanel.tsx"
 import { useConfig } from "./config/useConfig.ts"
+import { FeaturePanel } from "./panel/FeaturePanel.tsx"
+import { pick, press, type Pending } from "./panel/intent.ts"
+import { layoutHint, panelRows, type ChosenVote, type Offer } from "./panel/rows.ts"
+import { besideSheet, toggled, type Side } from "./panel/side.ts"
+import { composition } from "./panel/summary.ts"
 import { hasOpenedPanel, rememberPanelOpened } from "./preview/firstUse.ts"
 import { colorLine, layoutLine, layoutPlace } from "./preview/lines.ts"
 import { step, type Direction } from "./preview/neighbours.ts"
@@ -28,6 +33,7 @@ import { Search } from "./search/Search.tsx"
 import { Footer } from "./Footer.tsx"
 import { voteParts } from "./sources/parts.ts"
 import { readingOf } from "./sources/read.ts"
+import type { Source } from "./sources/shapes.ts"
 import { seatsOf } from "./sources/seats.ts"
 import { featuresOf, useFeatureValues } from "./sources/useFeatureValues.ts"
 import type { FeatureCache } from "./sources/values.ts"
@@ -35,9 +41,10 @@ import { DEFAULT_COLOR_FEATURE } from "./sources/views.ts"
 import { pushParam, readParam, writeParam, writeParams } from "./url.ts"
 import { colorId, colorOptions, layoutId, layoutOptions } from "./view/options.ts"
 import { Picker } from "./view/Picker.tsx"
-import { HEMICYCLE, readsVote, viewOf, viewParams, VOTE_COLOR, type ParsedView, type View } from "./view/view.ts"
+import { HEMICYCLE, readsVote, viewOf, viewParams, withoutScrutin, type ParsedView, type View } from "./view/view.ts"
 import type { VotePosition } from "./votes/positions.ts"
 import { sittingOn } from "./votes/sitting.ts"
+import { voteFinder } from "./votes/voteSearch.ts"
 import { createVoteSource, type ReadVote } from "./votes/sources.ts"
 import { shownVote, useVoteView } from "./votes/useVoteView.ts"
 import type { Vote } from "./votes/votes.ts"
@@ -45,15 +52,19 @@ import type { Vote } from "./votes/votes.ts"
 const NO_IDS: ReadonlySet<DeputyId> = new Set()
 const PANEL_HISTORY_STATE = { panel: true }
 const PHONE = "(max-width: 759px)"
+// Below this width the side panel and the deputy sheet together would leave the drawing under 480 px.
+const CROWDED = "(max-width: 1159px)"
 const TOUCH_ONLY = "(hover: none)"
 
 type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache: FeatureCache; initial: ParsedView }
 
 export function App({ assembly, features, cache, initial }: Props) {
   const votes = useMemo(() => createVoteSource(assembly.catalog, assembly.people), [assembly])
+  const finder = useMemo(() => voteFinder(votes.index), [votes])
   const [view, setView] = useState(initial.view)
   const [fallbackColor, setFallbackColor] = useState(initial.fallback)
   const [remembered, setRemembered] = useState(initial.view.scrutin)
+  const [pending, setPending] = useState<Pending | null>(null)
   const voteView = useVoteView(votes, remembered)
   const voteInView = view.scrutin !== null
   const { read: readVote, settled } = shownVote(voteView)
@@ -66,6 +77,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const colorValues = useFeatureValues(cache, featuresOf([view.color.of]))
   const fallbackValues = useFeatureValues(cache, featuresOf([fallbackColor.of]))
   const layoutValues = useFeatureValues(cache, featuresOf(picksOf(view.layout)))
+  const panelValues = useFeatureValues(cache, features)
   const chosenColored = useMemo(
     () => colorWith(view.color, source => readingOf(source, { drawn, values: colorValues, vote, seats })),
     [view.color, drawn, colorValues, vote, seats],
@@ -95,6 +107,9 @@ export function App({ assembly, features, cache, initial }: Props) {
   const [addressContext, setAddressContext] = useState<Located | null>(null)
   const phone = useMediaQuery(PHONE)
   const touchOnly = useMediaQuery(TOUCH_ONLY)
+  const crowded = useMediaQuery(CROWDED)
+  const sheetOpen = selected !== null
+  const [side, setSide] = useState<Side>(() => besideSheet("open", sheetOpen, crowded))
   const svgRef = useRef<SVGSVGElement>(null)
   const frame = useStageFrame(svgRef)
 
@@ -119,12 +134,16 @@ export function App({ assembly, features, cache, initial }: Props) {
 
   useEffect(() => {
     if (voteView.status !== "missing") return
-    const next = viewOf(readsVote(view.color) ? fallbackColor : view.color, readsVote(view.layout) ? HEMICYCLE : view.layout, null)
-    if (next) change(next)
+    change(withoutScrutin(view, fallbackColor))
     setRemembered(null)
+    setPending(null)
   }, [voteView.status])
 
+  useEffect(() => setSide(current => besideSheet(current, sheetOpen, crowded)), [sheetOpen, crowded])
+
   const change = (next: View) => {
+    const { color } = next
+    if (!readsVote(color)) setFallbackColor(color)
     setView(next)
     writeUrl(next)
   }
@@ -163,9 +182,7 @@ export function App({ assembly, features, cache, initial }: Props) {
 
   const selectColor = (choice: View["color"]) => {
     const next = viewOf(choice, view.layout, remembered)
-    if (next === null) return
-    if (!readsVote(choice)) setFallbackColor(choice)
-    change(next)
+    if (next) change(next)
   }
 
   const selectLayout = (choice: View["layout"]) => {
@@ -175,8 +192,26 @@ export function App({ assembly, features, cache, initial }: Props) {
 
   const pickVote = (picked: Vote) => {
     setRemembered(picked.id)
-    const next = viewOf(VOTE_COLOR, view.layout, picked.id)
-    if (next) change(next)
+    setPending(null)
+    change(pick(view, pending, picked.id))
+  }
+
+  const clearVote = () => {
+    setRemembered(null)
+    setPending(null)
+    change(withoutScrutin(view, fallbackColor))
+  }
+
+  const pressOffer = (offer: Offer): Pending | null => {
+    const pressed = press(offer, view, remembered, pending)
+    switch (pressed.kind) {
+      case "view":
+        change(pressed.view)
+        return null
+      case "wait":
+        setPending(pressed.pending)
+        return pressed.pending
+    }
   }
 
   useEffect(() => {
@@ -252,15 +287,83 @@ export function App({ assembly, features, cache, initial }: Props) {
     writeParam("showPic", showPhotos ? null : "true")
   }
 
+  const chosenNumber = readVote !== null && readVote.vote.id === remembered ? readVote.vote.number : null
+  const chosen = useMemo((): ChosenVote | null => (remembered === null ? null : { number: chosenNumber }), [remembered, chosenNumber])
+  const panelRead = useCallback(
+    (source: Source) => readingOf(source, { drawn, values: panelValues, vote, seats }),
+    [drawn, panelValues, vote, seats],
+  )
+  const rows = useMemo(
+    () => panelRows({ features, first: DEFAULT_COLOR_FEATURE, reading: panelRead, chosen }),
+    [features, panelRead, chosen],
+  )
+  const hintFor = useCallback((choice: LayoutChoice) => layoutHint(choice, panelRead(choice.picks.main)), [panelRead])
+
   if (colored === null) return null
 
   const panelDeputy = panelId === null ? undefined : (sitting.byId.get(panelId) ?? assembly.people.get(panelId))
   const panelOutOfView = panelDeputy === undefined ? null : outOfView(panelDeputy, sitting, vote)
   const voteOption = remembered === null ? null : readVote?.vote.id === remembered ? `Scrutin n° ${readVote.vote.number}` : "Scrutin"
   const colorsVote = colored.reading.source.kind === "vote"
+  const layoutGlyph = FORMS[staged.arrangement?.form ?? HEMICYCLE.form].glyph
+  const folded = side !== "open"
+  const classes = ["app", selected && "panel-open", !phone && folded && "side-folded"].filter(Boolean).join(" ")
+  const voteHeader = (docked: boolean) =>
+    voteInView &&
+    voteView.status !== "none" && (
+      <VoteHeader
+        view={voteView}
+        unplaced={pastSitting?.unplaced ?? 0}
+        legend={colorsVote}
+        docked={docked}
+        store={preview}
+        selected={selected}
+        onHover={hoverPosition}
+      />
+    )
+  const photosAndConfig = (
+    <div className="control-row">
+      <label className="control">
+        <input type="checkbox" checked={showPhotos} onChange={togglePhotos} /> Afficher les photos
+      </label>
+      <ConfigButton open={configOpen} onToggle={toggleConfig} />
+    </div>
+  )
+  const search = (
+    <Search
+      assembly={assembly}
+      loadCommunes={loadCommunes}
+      findVotes={finder}
+      lookupSources={lookupSources}
+      onHalo={preview.halo}
+      onSelect={open}
+      onAddress={openFromAddress}
+      onVote={pickVote}
+      onResults={setSearchResults}
+    />
+  )
 
   return (
-    <div className={selected ? "app panel-open" : "app"}>
+    <div className={classes}>
+      {!phone && (
+        <FeaturePanel
+          view={view}
+          rows={rows}
+          chosen={chosen}
+          pending={pending}
+          folded={folded}
+          composition={vote && pastSitting ? composition(vote.vote.date, pastSitting.emptySeats.length) : null}
+          hint={hintFor}
+          search={search}
+          voteDetails={voteHeader(true)}
+          bottom={photosAndConfig}
+          finder={finder}
+          onPress={pressOffer}
+          onPickVote={pickVote}
+          onClearVote={clearVote}
+          onFold={() => setSide(toggled)}
+        />
+      )}
       <main className="stage">
         <Stage
           svgRef={svgRef}
@@ -277,28 +380,16 @@ export function App({ assembly, features, cache, initial }: Props) {
         />
         <div className="stage-bottom" data-overlay="">
           {hint && selected === null && !phone && <RestHint store={preview} touch={touchOnly} />}
-          {voteInView && voteView.status !== "none" && (
-            <VoteHeader
-              view={voteView}
-              unplaced={pastSitting?.unplaced ?? 0}
-              legend={colorsVote}
-              store={preview}
-              selected={selected}
-              onHover={hoverPosition}
-            />
-          )}
-          {!colorsVote && <Legend paint={colored.paint} store={preview} selected={selected} onHover={setHovered} />}
+          {phone && voteHeader(false)}
+          {!(phone && colorsVote) && <Legend paint={colored.paint} store={preview} selected={selected} onHover={setHovered} />}
         </div>
-        <div className="controls panel" data-obstacle="" data-overlay="">
-          <Picker label="Disposition" options={layoutOptions(features, voteOption)} selected={layoutId(view.layout)} onSelect={selectLayout} />
-          <Picker label="Colorier par" options={colorOptions(features, voteOption)} selected={colorId(view.color)} onSelect={selectColor} />
-          <div className="control-row">
-            <label className="control">
-              <input type="checkbox" checked={showPhotos} onChange={togglePhotos} /> Afficher les photos
-            </label>
-            <ConfigButton open={configOpen} onToggle={toggleConfig} />
+        {phone && (
+          <div className="controls panel" data-obstacle="" data-overlay="">
+            <Picker label="Disposition" options={layoutOptions(features, voteOption)} selected={layoutId(view.layout)} onSelect={selectLayout} />
+            <Picker label="Colorier par" options={colorOptions(features, voteOption)} selected={colorId(view.color)} onSelect={selectColor} />
+            {photosAndConfig}
           </div>
-        </div>
+        )}
       </main>
       {configOpen && <ConfigPanel onClose={closeConfig} />}
       {phone ? (
@@ -308,6 +399,7 @@ export function App({ assembly, features, cache, initial }: Props) {
           store={preview}
           people={sitting.byId}
           lines={cardLines}
+          layoutGlyph={layoutGlyph}
           selected={selected}
           hint={hint}
           touch={touchOnly}
@@ -321,6 +413,7 @@ export function App({ assembly, features, cache, initial }: Props) {
           open={selected !== null}
           colored={colored}
           place={layoutPlace(staged.reading, colored, staged.scene.where(panelDeputy.id))}
+          layoutGlyph={layoutGlyph}
           total={sitting.deputies.length}
           outOfView={panelOutOfView}
           officialPage={officialPages.get(panelDeputy.id)}
@@ -330,17 +423,7 @@ export function App({ assembly, features, cache, initial }: Props) {
           onClose={close}
         />
       )}
-      <Search
-        assembly={assembly}
-        loadCommunes={loadCommunes}
-        loadVotes={votes.index}
-        lookupSources={lookupSources}
-        onHalo={preview.halo}
-        onSelect={open}
-        onAddress={openFromAddress}
-        onVote={pickVote}
-        onResults={setSearchResults}
-      />
+      {phone && search}
       <Footer />
     </div>
   )
