@@ -3,7 +3,7 @@ import { test } from "node:test"
 import type { CategoryFeature, NumberFeature } from "../data/features.ts"
 import { SEAT, VOTE } from "../sources/shapes.ts"
 import { voteId } from "../votes/voteId.ts"
-import { colorId, colorOptions, layoutId, layoutOptions } from "./options.ts"
+import { choiceKey, panelRows, pressed } from "../panel/rows.ts"
 import { withParams } from "../url.ts"
 import { HEMICYCLE, mainOf, parseView, viewOf, viewParams, VOTE_COLOR, withoutScrutin, type View } from "./view.ts"
 
@@ -73,12 +73,16 @@ test("a view is written with the scrutin first, the default colour and the defau
   assert.equal(written({ scrutin: null, color: { paint: "palette", of: CIVILITY }, layout: HEMICYCLE }, old), "color=deputies%2Finit.csv%3Acivility&deputy=PA1")
 })
 
-test("every view the pickers offer survives a round trip through the link", () => {
-  for (const color of colorOptions(FEATURES, "Scrutin n° 8427"))
-    for (const layout of layoutOptions(FEATURES, "Scrutin n° 8427")) {
+const OFFERS = panelRows({ features: FEATURES, first: GROUP.key, reading: () => null, chosen: { number: 8427 } })
+const COLOR_OFFERS = OFFERS.flatMap(row => row.color)
+const LAYOUT_OFFERS = OFFERS.flatMap(row => row.layout)
+
+test("every view the panel's glyphs give survives a round trip through the link", () => {
+  for (const color of COLOR_OFFERS)
+    for (const layout of LAYOUT_OFFERS) {
       const view = viewOf(color.choice, layout.choice, SCRUTIN)
       assert.ok(view)
-      assert.deepEqual(parse(`?${written(view)}`).view, view, `${color.id} × ${layout.id}`)
+      assert.deepEqual(parse(`?${written(view)}`).view, view, `${choiceKey(color.choice)} × ${choiceKey(layout.choice)}`)
     }
 })
 
@@ -102,36 +106,15 @@ test("leaving the scrutin out keeps the channels that do not read it and puts ba
   assert.deepEqual(withoutScrutin({ scrutin: SCRUTIN, color: age, layout: { form: "halfRings", picks: { main: VOTE } } }, { paint: "palette", of: GROUP }), { scrutin: null, color: age, layout: HEMICYCLE })
 })
 
-test("the pickers offer the room first, each feature in catalog order, then the scrutin once one is chosen, its half-rings right after its columns", () => {
-  assert.deepEqual(layoutOptions(FEATURES, null).map(o => [o.label, o.group]), [
-    ["Hémicycle", null],
-    ["Civilité", "deputies/init.csv"],
-    ["Âge", "deputies/init.csv"],
-    ["Groupe politique", "deputies/init.csv"],
-  ])
-  assert.deepEqual(layoutOptions(FEATURES, "Scrutin n° 1").slice(-2).map(o => [o.label, o.group, o.choice.form]), [
-    ["Scrutin n° 1", "Scrutin", "columns"],
-    ["Scrutin n° 1 · Demi-anneaux", "Scrutin", "halfRings"],
-  ])
-  assert.deepEqual(colorOptions(FEATURES, "Scrutin n° 1").map(o => [o.label, o.group]), [
-    ["Civilité", "deputies/init.csv"],
-    ["Âge", "deputies/init.csv"],
-    ["Groupe politique", "deputies/init.csv"],
-    ["Scrutin n° 1", "Scrutin"],
-  ])
-})
-
-test("each option of a picker has its own id, and the view it gives selects that option again", () => {
-  const colors = colorOptions(FEATURES, "Scrutin n° 8427")
-  const layouts = layoutOptions(FEATURES, "Scrutin n° 8427")
-  assert.equal(new Set(colors.map(o => o.id)).size, colors.length)
-  assert.equal(new Set(layouts.map(o => o.id)).size, layouts.length)
-  for (const color of colors)
-    for (const layout of layouts) {
+test("each glyph of the panel stands for its own choice, and the view it gives presses that glyph again and no other", () => {
+  const keys = [...COLOR_OFFERS, ...LAYOUT_OFFERS].map(offer => choiceKey(offer.choice))
+  assert.equal(new Set(keys).size, keys.length)
+  for (const color of COLOR_OFFERS)
+    for (const layout of LAYOUT_OFFERS) {
       const view = viewOf(color.choice, layout.choice, SCRUTIN)
       assert.ok(view)
-      assert.equal(colors.find(o => o.id === colorId(view.color)), color)
-      assert.equal(layouts.find(o => o.id === layoutId(view.layout)), layout)
+      assert.deepEqual(COLOR_OFFERS.filter(offer => pressed(view, offer)), [color])
+      assert.deepEqual(LAYOUT_OFFERS.filter(offer => pressed(view, offer)), [layout])
     }
 })
 

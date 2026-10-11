@@ -4,9 +4,10 @@ import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
 import type { View } from "../view/view.ts"
 import type { VoteFinder } from "../votes/voteSearch.ts"
 import type { Vote } from "../votes/votes.ts"
-import { waitsFor, type Pending } from "./intent.ts"
+import { waitsFor, type Pending, type Press } from "./intent.ts"
+import { Chevron, GlyphButton, RowHead, SummaryLine } from "./PanelParts.tsx"
 import { choiceKey, holds, offerLabel, pressed, replaces, rowSubject, unfoldedRow, type ChosenVote, type Offer, type Row } from "./rows.ts"
-import { sentenceText, summary, type Sentence } from "./summary.ts"
+import { sentenceText, summary } from "./summary.ts"
 import { VotePicker } from "./VotePicker.tsx"
 
 const CONTENT_ID = "side-panel-content"
@@ -23,7 +24,7 @@ type Props = {
   voteDetails: ReactNode
   bottom: ReactNode
   finder: () => Promise<VoteFinder>
-  onPress: (offer: Offer) => Pending | null
+  onPress: (offer: Offer) => Press
   onPickVote: (vote: Vote) => void
   onClearVote: () => void
   onFold: () => void
@@ -77,17 +78,6 @@ export function FeaturePanel(props: Props) {
   )
 }
 
-function SummaryLine({ sentence }: { sentence: Sentence }) {
-  return (
-    <span className="summary-line">
-      <GlyphIcon glyph={sentence.glyph} size={20} className="summary-glyph" />
-      <span>
-        <span className="summary-subject">{sentence.subject}</span> <span className="summary-phrase">{sentence.phrase}</span>
-      </span>
-    </span>
-  )
-}
-
 type RowProps = Props & { row: Row; voteInput: RefObject<HTMLInputElement | null> }
 
 function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, voteInput, onPress, onPickVote, onClearVote }: RowProps) {
@@ -99,7 +89,8 @@ function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, vot
   const unfoldedLayout = unfolded ? row.layout.find(offer => pressed(view, offer)) : undefined
   const hintText = unfoldedLayout && hint(unfoldedLayout.choice)
   const press = (offer: Offer) => {
-    if (onPress(offer) !== null) voteInput.current?.focus()
+    const result = onPress(offer)
+    if (result.kind === "wait" && result.pending !== null) voteInput.current?.focus()
   }
   const glyph = (offer: Offer, labelled: boolean) => (
     <GlyphButton
@@ -109,6 +100,7 @@ function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, vot
       pressed={pressed(view, offer)}
       waiting={waitsFor(pending, offer)}
       labelled={labelled}
+      size={20}
       onPress={press}
       onHint={shown => setHovered(shown ? choiceKey(offer.choice) : null)}
     />
@@ -119,16 +111,7 @@ function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, vot
       {row.kind === "vote" ? (
         <VotePicker name={row.name} chosen={row.chosen} finder={finder} inputRef={voteInput} onPick={onPickVote} onClear={onClearVote} />
       ) : (
-        <span className="row-head">
-          {row.figures.map(({ value, unit }, i) => (
-            <span key={i} className="row-figure">
-              {i > 0 && <span className="row-dot">· </span>}
-              <span className="figure-value">{value}</span> <span className="figure-unit">{unit}</span>
-            </span>
-          ))}
-          {row.figures.length > 0 && <span className="row-dot">·</span>}
-          <span className="row-name">{row.name}</span>
-        </span>
+        <RowHead row={row} />
       )}
       <span className="row-cells">
         <span className="cell cell-color" role="group" aria-label={`${rowSubject(row)} · couleur`}>
@@ -146,45 +129,5 @@ function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, vot
       {hintText && <p className="row-hint">{hintText}</p>}
       {row.kind === "vote" && held.length > 0 && voteDetails}
     </li>
-  )
-}
-
-type GlyphProps = {
-  offer: Offer
-  label: string
-  pressed: boolean
-  waiting: boolean
-  labelled: boolean
-  onPress: (offer: Offer) => void
-  onHint: (shown: boolean) => void
-}
-
-function GlyphButton({ offer, label, pressed, waiting, labelled, onPress, onHint }: GlyphProps) {
-  const classes = ["glyph-button", labelled && "labelled", offer.greyed && "greyed", waiting && "waiting"].filter(Boolean).join(" ")
-  const title = offer.greyed ? `${label} · ${offer.greyed.reason}` : label
-  return (
-    <button
-      type="button"
-      className={classes}
-      aria-pressed={pressed}
-      aria-label={waiting ? `${title} · en attente d'un scrutin` : title}
-      title={title}
-      onClick={() => onPress(offer)}
-      onPointerEnter={() => onHint(true)}
-      onPointerLeave={() => onHint(false)}
-      onFocus={() => onHint(true)}
-      onBlur={() => onHint(false)}
-    >
-      <GlyphIcon glyph={offer.glyph} size={20} />
-      {labelled && <span className="glyph-label">{offer.label}</span>}
-    </button>
-  )
-}
-
-function Chevron({ towards }: { towards: "left" | "right" }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path d={towards === "left" ? "M14.5 6l-6 6 6 6" : "M9.5 6l6 6-6 6"} />
-    </svg>
   )
 }

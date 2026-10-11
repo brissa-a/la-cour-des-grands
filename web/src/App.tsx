@@ -17,16 +17,17 @@ import { colorWith, type Colored } from "./paint/registry.ts"
 import { ConfigButton, ConfigPanel } from "./config/ConfigPanel.tsx"
 import { useConfig } from "./config/useConfig.ts"
 import { FeaturePanel } from "./panel/FeaturePanel.tsx"
-import { pick, press, type Pending } from "./panel/intent.ts"
+import { pick, press, type Pending, type Press } from "./panel/intent.ts"
+import { PhoneDock } from "./panel/PhoneDock.tsx"
 import { layoutHint, panelRows, type ChosenVote, type Offer } from "./panel/rows.ts"
 import { besideSheet, toggled, type Side } from "./panel/side.ts"
+import { useSheet } from "./panel/useSheet.ts"
 import { composition } from "./panel/summary.ts"
 import { hasOpenedPanel, rememberPanelOpened } from "./preview/firstUse.ts"
 import { colorLine, layoutLine, layoutPlace } from "./preview/lines.ts"
 import { step, type Direction } from "./preview/neighbours.ts"
 import { PreviewCard } from "./preview/PreviewCard.tsx"
 import { cardShown, createPreviewStore, usePreview, type Hit, type PreviewStore } from "./preview/previewStore.ts"
-import { Reader } from "./preview/Reader.tsx"
 import { DeputyPanel } from "./profile/DeputyPanel.tsx"
 import { longDate } from "./profile/format.ts"
 import { Search } from "./search/Search.tsx"
@@ -39,9 +40,7 @@ import { featuresOf, useFeatureValues } from "./sources/useFeatureValues.ts"
 import type { FeatureCache } from "./sources/values.ts"
 import { DEFAULT_COLOR_FEATURE } from "./sources/views.ts"
 import { pushParam, readParam, writeParam, writeParams } from "./url.ts"
-import { colorId, colorOptions, layoutId, layoutOptions } from "./view/options.ts"
-import { Picker } from "./view/Picker.tsx"
-import { HEMICYCLE, readsVote, viewOf, viewParams, withoutScrutin, type ParsedView, type View } from "./view/view.ts"
+import { HEMICYCLE, readsVote, viewParams, withoutScrutin, type ParsedView, type View } from "./view/view.ts"
 import type { VotePosition } from "./votes/positions.ts"
 import { sittingOn } from "./votes/sitting.ts"
 import { voteFinder } from "./votes/voteSearch.ts"
@@ -110,6 +109,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const crowded = useMediaQuery(CROWDED)
   const sheetOpen = selected !== null
   const [side, setSide] = useState<Side>(() => besideSheet("open", sheetOpen, crowded))
+  const [viewSheet, onViewSheet] = useSheet()
   const svgRef = useRef<SVGSVGElement>(null)
   const frame = useStageFrame(svgRef)
 
@@ -140,6 +140,10 @@ export function App({ assembly, features, cache, initial }: Props) {
   }, [voteView.status])
 
   useEffect(() => setSide(current => besideSheet(current, sheetOpen, crowded)), [sheetOpen, crowded])
+
+  useEffect(() => {
+    if (sheetOpen || !phone) onViewSheet({ kind: "close" })
+  }, [sheetOpen, phone, onViewSheet])
 
   const change = (next: View) => {
     const { color } = next
@@ -180,16 +184,6 @@ export function App({ assembly, features, cache, initial }: Props) {
     setSelected(null)
   }
 
-  const selectColor = (choice: View["color"]) => {
-    const next = viewOf(choice, view.layout, remembered)
-    if (next) change(next)
-  }
-
-  const selectLayout = (choice: View["layout"]) => {
-    const next = viewOf(view.color, choice, remembered)
-    if (next) change(next)
-  }
-
   const pickVote = (picked: Vote) => {
     setRemembered(picked.id)
     setPending(null)
@@ -202,16 +196,17 @@ export function App({ assembly, features, cache, initial }: Props) {
     change(withoutScrutin(view, fallbackColor))
   }
 
-  const pressOffer = (offer: Offer): Pending | null => {
+  const pressOffer = (offer: Offer): Press => {
     const pressed = press(offer, view, remembered, pending)
     switch (pressed.kind) {
       case "view":
         change(pressed.view)
-        return null
+        break
       case "wait":
         setPending(pressed.pending)
-        return pressed.pending
+        break
     }
+    return pressed
   }
 
   useEffect(() => {
@@ -230,7 +225,8 @@ export function App({ assembly, features, cache, initial }: Props) {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return
       if (e.target instanceof HTMLInputElement && e.target.type === "search") return
-      if (!phone && cardShown(preview.get().card, selected)) preview.dismiss()
+      if (viewSheet.kind !== "closed") onViewSheet({ kind: "close" })
+      else if (!phone && cardShown(preview.get().card, selected)) preview.dismiss()
       else close()
     }
     addEventListener("keydown", onKeyDown)
@@ -239,15 +235,16 @@ export function App({ assembly, features, cache, initial }: Props) {
 
   const onTap = (hit: Hit | null, pointerType: string) => {
     const shown = cardShown(preview.get().card, selected)
-    if (pointerType !== "touch") {
-      if (hit) open(hit.id)
-      else close()
-    } else if (phone) {
+    if (phone) {
+      onViewSheet({ kind: "close" })
       if (!hit) close()
       else {
         preview.show(hit.id, null)
         if (selected !== null) open(hit.id)
       }
+    } else if (pointerType !== "touch") {
+      if (hit) open(hit.id)
+      else close()
     } else if (hit) {
       if (shown && preview.get().card?.id === hit.id) open(hit.id)
       else preview.show(hit.id, hit.geometry)
@@ -303,11 +300,11 @@ export function App({ assembly, features, cache, initial }: Props) {
 
   const panelDeputy = panelId === null ? undefined : (sitting.byId.get(panelId) ?? assembly.people.get(panelId))
   const panelOutOfView = panelDeputy === undefined ? null : outOfView(panelDeputy, sitting, vote)
-  const voteOption = remembered === null ? null : readVote?.vote.id === remembered ? `Scrutin n° ${readVote.vote.number}` : "Scrutin"
   const colorsVote = colored.reading.source.kind === "vote"
   const layoutGlyph = FORMS[staged.arrangement?.form ?? HEMICYCLE.form].glyph
   const folded = side !== "open"
-  const classes = ["app", selected && "panel-open", !phone && folded && "side-folded"].filter(Boolean).join(" ")
+  const classes = ["app", selected && "panel-open", !phone && folded && "side-folded", phone && viewSheet.kind !== "closed" && "sheet-open"].filter(Boolean).join(" ")
+  const pastComposition = vote && pastSitting ? composition(vote.vote.date, pastSitting.emptySeats.length) : null
   const voteHeader = (docked: boolean) =>
     voteInView &&
     voteView.status !== "none" && (
@@ -352,7 +349,7 @@ export function App({ assembly, features, cache, initial }: Props) {
           chosen={chosen}
           pending={pending}
           folded={folded}
-          composition={vote && pastSitting ? composition(vote.vote.date, pastSitting.emptySeats.length) : null}
+          composition={pastComposition}
           hint={hintFor}
           search={search}
           voteDetails={voteHeader(true)}
@@ -383,17 +380,29 @@ export function App({ assembly, features, cache, initial }: Props) {
           {phone && voteHeader(false)}
           {!(phone && colorsVote) && <Legend paint={colored.paint} store={preview} selected={selected} onHover={setHovered} />}
         </div>
-        {phone && (
-          <div className="controls panel" data-obstacle="" data-overlay="">
-            <Picker label="Disposition" options={layoutOptions(features, voteOption)} selected={layoutId(view.layout)} onSelect={selectLayout} />
-            <Picker label="Colorier par" options={colorOptions(features, voteOption)} selected={colorId(view.color)} onSelect={selectColor} />
-            {photosAndConfig}
-          </div>
-        )}
       </main>
-      {configOpen && <ConfigPanel onClose={closeConfig} />}
       {phone ? (
-        <Reader store={preview} people={sitting.byId} colorLine={readerLine} onOpen={open} onStep={stepFrom} />
+        <PhoneDock
+          view={view}
+          rows={rows}
+          chosen={chosen}
+          pending={pending}
+          sheet={viewSheet}
+          composition={pastComposition}
+          hint={hintFor}
+          voteDetails={voteHeader(true)}
+          bottom={photosAndConfig}
+          finder={finder}
+          store={preview}
+          people={sitting.byId}
+          readerLine={readerLine}
+          onSheet={onViewSheet}
+          onPress={pressOffer}
+          onPickVote={pickVote}
+          onClearVote={clearVote}
+          onOpenDeputy={open}
+          onStep={stepFrom}
+        />
       ) : (
         <PreviewCard
           store={preview}
@@ -406,6 +415,7 @@ export function App({ assembly, features, cache, initial }: Props) {
           onOpen={open}
         />
       )}
+      {configOpen && <ConfigPanel onClose={closeConfig} />}
       {panelDeputy && (
         <DeputyPanel
           deputy={panelDeputy}
