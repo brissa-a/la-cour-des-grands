@@ -18,15 +18,18 @@ export type PastSitting<P> = {
   readonly unplaced: number
 }
 
-export function sittingOn<P extends { readonly id: DeputyId }>(today: Today<P>, roster: Roster): PastSitting<P> {
+export function sittingOn<P extends { readonly id: DeputyId }>(today: Today<P>, roster: Roster): PastSitting<P> | null {
   const holders = new Map(Array.from(roster, ([constituency, id]) => [constituency, today.people.get(id)]))
   const deputies: Seated<P>[] = []
   const freedSeats: Seat[] = []
+  let replaced = 0
   for (const [constituency, current] of today.byConstituency) {
     const past = holders.get(constituency)
     if (past?.id === current.id) deputies.push(current)
-    else if (past) deputies.push({ ...past, seat: current.seat })
-    else freedSeats.push(current.seat)
+    else if (past) {
+      replaced++
+      deputies.push({ ...past, seat: current.seat })
+    } else freedSeats.push(current.seat)
   }
   const vacantSeats = new Map(today.emptySeats.map(seat => [seat.constituency, seat]))
   const takenSeats = new Set<Seat>()
@@ -40,6 +43,7 @@ export function sittingOn<P extends { readonly id: DeputyId }>(today: Today<P>, 
       deputies.push({ ...past, seat })
     }
   }
+  if (replaced === 0 && freedSeats.length === 0 && takenSeats.size === 0 && unplaced === 0) return null
   const emptySeats = [...today.emptySeats.filter(seat => !takenSeats.has(seat)), ...freedSeats]
   return { deputies, byId: new Map(deputies.map(d => [d.id, d])), emptySeats, unplaced }
 }
