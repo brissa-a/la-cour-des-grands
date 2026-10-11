@@ -11,11 +11,9 @@ export type Channel = "color" | "layout"
 
 export const CHANNELS: readonly Channel[] = ["color", "layout"]
 
-export type Greyed = { readonly needs: "scrutin"; readonly reason: string }
+const WAITS_FOR_SCRUTIN = "Choisissez d'abord un scrutin"
 
-const WAITS_FOR_SCRUTIN: Greyed = { needs: "scrutin", reason: "Choisissez d'abord un scrutin" }
-
-type OfferBase = { readonly label: string; readonly glyph: Glyph; readonly greyed: Greyed | null }
+type OfferBase = { readonly label: string; readonly glyph: Glyph }
 
 export type ColorOffer = OfferBase & { readonly channel: "color"; readonly choice: ColorChoice }
 
@@ -54,19 +52,11 @@ export function panelRows({ features, first, reading, chosen }: RowInputs): Row[
       key: sourceKey(source),
       name: nameOf(source),
       figures: figuresOf(source, reading(source)),
-      color: colorOffers(source, null),
-      layout: layoutOffers(source, null),
+      color: colorOffers(source),
+      layout: layoutOffers(source),
     }),
   )
-  const greyed = chosen === null ? WAITS_FOR_SCRUTIN : null
-  const voteRow: VoteRow = {
-    kind: "vote",
-    key: sourceKey(VOTE),
-    name: nameOf(VOTE),
-    chosen,
-    color: colorOffers(VOTE, greyed),
-    layout: layoutOffers(VOTE, greyed),
-  }
+  const voteRow: VoteRow = { kind: "vote", key: sourceKey(VOTE), name: nameOf(VOTE), chosen, color: colorOffers(VOTE), layout: layoutOffers(VOTE) }
   return [...featureRows, voteRow]
 }
 
@@ -84,6 +74,15 @@ export function nameOf(source: Source): string {
 
 export function subjectOf(source: Source, chosen: ChosenVote | null): string {
   return source.kind === "vote" && chosen !== null && chosen.number !== null ? `Vote n° ${chosen.number}` : nameOf(source)
+}
+
+export function greyedReason(row: Row): string | null {
+  switch (row.kind) {
+    case "feature":
+      return null
+    case "vote":
+      return row.chosen === null ? WAITS_FOR_SCRUTIN : null
+  }
 }
 
 export function rowSubject(row: Row): string {
@@ -156,12 +155,12 @@ function fromTo(parts: readonly Part[]): string | null {
   return last === undefined ? first.label : `de ${first.label} à ${last.label}`
 }
 
-function colorOffers(source: Source, greyed: Greyed | null): ColorOffer[] {
-  return coloringsOf(source).map(choice => ({ channel: "color", choice, label: PAINTS[choice.paint].label, glyph: PAINTS[choice.paint].glyph, greyed }))
+function colorOffers(source: Source): ColorOffer[] {
+  return coloringsOf(source).map(choice => ({ channel: "color", choice, label: PAINTS[choice.paint].label, glyph: PAINTS[choice.paint].glyph }))
 }
 
-function layoutOffers(source: Source, greyed: Greyed | null): LayoutOffer[] {
-  return layoutsOf(source).map(choice => ({ channel: "layout", choice, label: FORMS[choice.form].label, glyph: FORMS[choice.form].glyph, greyed }))
+function layoutOffers(source: Source): LayoutOffer[] {
+  return layoutsOf(source).map(choice => ({ channel: "layout", choice, label: FORMS[choice.form].label, glyph: FORMS[choice.form].glyph }))
 }
 
 function figuresOf(source: Exclude<Source, VoteSource>, reading: Reading | null): Figure[] {

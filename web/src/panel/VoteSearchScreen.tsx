@@ -1,12 +1,12 @@
 import { useEffect, useState, type KeyboardEvent } from "react"
 import type { VoteFinder } from "../votes/voteSearch.ts"
 import type { Vote } from "../votes/votes.ts"
-import type { Pending } from "./intent.ts"
 import { Chevron, SearchIcon } from "./PanelParts.tsx"
 import { afterPick } from "./summary.ts"
 import { useVoteFinder, useVoteResults, votePlaceholder, VotePicks } from "./VotePicker.tsx"
+import type { Intent } from "./viewState.ts"
 
-type Props = { finder: () => Promise<VoteFinder>; pending: Pending | null; onPick: (vote: Vote) => void; onBack: () => void }
+type Props = { finder: () => Promise<VoteFinder>; pending: Intent | null; onPick: (vote: Vote) => void; onBack: () => void }
 
 export function VoteSearchScreen({ finder, pending, onPick, onBack }: Props) {
   const [query, setQuery] = useState("")

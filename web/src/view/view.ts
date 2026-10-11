@@ -16,6 +16,8 @@ export type View =
   | { readonly scrutin: VoteId; readonly color: ReadsVote<ColorChoice>; readonly layout: LayoutChoice }
   | { readonly scrutin: VoteId; readonly color: Plain<ColorChoice>; readonly layout: ReadsVote<LayoutChoice> }
 
+export type PlainView = Extract<View, { readonly scrutin: null }>
+
 export type ParsedView = { readonly view: View; readonly fallback: Plain<ColorChoice> }
 
 export const HEMICYCLE: Plain<LayoutChoice> = { form: "hemicycle", picks: { main: SEAT } }
@@ -42,7 +44,7 @@ export function viewWithScrutin(color: ColorChoice, layout: LayoutChoice, scruti
   return { scrutin: null, color, layout }
 }
 
-export function withoutScrutin(view: View, fallback: Plain<ColorChoice>): View {
+export function withoutScrutin(view: View, fallback: Plain<ColorChoice>): PlainView {
   const { color, layout } = view
   return { scrutin: null, color: readsVote(color) ? fallback : color, layout: readsVote(layout) ? HEMICYCLE : layout }
 }

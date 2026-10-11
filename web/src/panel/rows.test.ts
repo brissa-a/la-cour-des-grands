@@ -21,7 +21,7 @@ import {
   VOTE_COLUMNS,
   VOTE_RINGS,
 } from "./fixtures.test.ts"
-import { CHANNELS, holds, layoutHint, offerLabel, panelRows, pressed, replaces, unfoldedRow, type ChosenVote, type Row } from "./rows.ts"
+import { CHANNELS, greyedReason, holds, layoutHint, offerLabel, panelRows, pressed, replaces, unfoldedRow, type ChosenVote, type Row } from "./rows.ts"
 
 const rowsWith = (chosen: ChosenVote | null, reading = readerOf([])) => panelRows({ features: FEATURES, first: GROUP.key, reading, chosen })
 
@@ -60,18 +60,16 @@ test("each row knows the channels it holds, and the row holding the layout is th
   assert.equal(unfoldedRow({ scrutin: SCRUTIN, color: GROUP_COLOR, layout: VOTE_RINGS }), named(rows, "Vote sur un scrutin").key)
 })
 
-test("before a vote is chosen only the vote row's glyphs are greyed, saying why, and a chosen vote, even one out of the view, enables them", () => {
-  const greyed = (chosen: ChosenVote | null) =>
-    rowsWith(chosen).map((row): [string, (string | null)[]] => [row.name, [...row.color, ...row.layout].map(offer => offer.greyed?.reason ?? null)])
+test("before a vote is chosen only the vote row is greyed, saying why, and a chosen vote, even one out of the view, enables it", () => {
+  const greyed = (chosen: ChosenVote | null) => rowsWith(chosen).map(row => [row.name, greyedReason(row)])
   assert.deepEqual(greyed(null), [
-    ["Groupe politique", [null, null]],
-    ["Civilité", [null, null]],
-    ["Âge", [null, null]],
-    ["Siège", [null]],
-    ["Vote sur un scrutin", ["Choisissez d'abord un scrutin", "Choisissez d'abord un scrutin", "Choisissez d'abord un scrutin"]],
+    ["Groupe politique", null],
+    ["Civilité", null],
+    ["Âge", null],
+    ["Siège", null],
+    ["Vote sur un scrutin", "Choisissez d'abord un scrutin"],
   ])
-  assert.ok(greyed({ number: null }).every(([, reasons]) => reasons.every(reason => reason === null)))
-  assert.equal(named(rowsWith(null), "Vote sur un scrutin").layout[0]?.greyed?.needs, "scrutin")
+  assert.ok(greyed({ number: null }).every(([, reason]) => reason === null))
 })
 
 test("a row head puts each value before its unit: the count of each of a few values, the number of many, the range of numbers, the seats of the room", () => {

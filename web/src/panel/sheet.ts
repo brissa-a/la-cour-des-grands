@@ -1,5 +1,5 @@
 import { readsVote } from "../view/view.ts"
-import type { Press } from "./intent.ts"
+import type { Press } from "./viewState.ts"
 import type { Offer } from "./rows.ts"
 
 export const COLLAPSE_MS = 400
@@ -52,7 +52,7 @@ export function scheduleCollapse(sheet: Sheet, dispatch: (event: SheetEvent) => 
 function afterPress(sheet: Extract<Sheet, { kind: "open" | "collapsing" }>, offer: Offer, press: Press): Sheet {
   switch (press.kind) {
     case "wait":
-      return press.pending === null ? OPEN : { kind: "searching" }
+      return press.waiting ? { kind: "searching" } : OPEN
     case "view":
       return hasControls(offer) ? OPEN : { kind: "collapsing", tap: sheet.kind === "collapsing" ? sheet.tap + 1 : 1 }
   }

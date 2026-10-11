@@ -17,11 +17,11 @@ import { colorWith, type Colored } from "./paint/registry.ts"
 import { ConfigButton, ConfigPanel } from "./config/ConfigPanel.tsx"
 import { useConfig } from "./config/useConfig.ts"
 import { FeaturePanel } from "./panel/FeaturePanel.tsx"
-import { pick, press, type Pending, type Press } from "./panel/intent.ts"
 import { PhoneDock } from "./panel/PhoneDock.tsx"
 import { layoutHint, panelRows, type ChosenVote, type Offer } from "./panel/rows.ts"
 import { besideSheet, toggled, type Side } from "./panel/side.ts"
 import { useSheet } from "./panel/useSheet.ts"
+import { chosenVote, cleared, initialState, pendingIntent, picked, pressed, type Press, type ViewState } from "./panel/viewState.ts"
 import { composition } from "./panel/summary.ts"
 import { hasOpenedPanel, rememberPanelOpened } from "./preview/firstUse.ts"
 import { colorLine, layoutLine, layoutPlace } from "./preview/lines.ts"
@@ -40,7 +40,7 @@ import { featuresOf, useFeatureValues } from "./sources/useFeatureValues.ts"
 import type { FeatureCache } from "./sources/values.ts"
 import { DEFAULT_COLOR_FEATURE } from "./sources/views.ts"
 import { pushParam, readParam, writeParam, writeParams } from "./url.ts"
-import { HEMICYCLE, readsVote, viewParams, withoutScrutin, type ParsedView, type View } from "./view/view.ts"
+import { HEMICYCLE, readsVote, viewParams, type ParsedView, type View } from "./view/view.ts"
 import type { VotePosition } from "./votes/positions.ts"
 import { sittingOn } from "./votes/sitting.ts"
 import { voteFinder } from "./votes/voteSearch.ts"
@@ -60,10 +60,10 @@ type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache:
 export function App({ assembly, features, cache, initial }: Props) {
   const votes = useMemo(() => createVoteSource(assembly.catalog, assembly.people), [assembly])
   const finder = useMemo(() => voteFinder(votes.index), [votes])
-  const [view, setView] = useState(initial.view)
-  const [fallbackColor, setFallbackColor] = useState(initial.fallback)
-  const [remembered, setRemembered] = useState(initial.view.scrutin)
-  const [pending, setPending] = useState<Pending | null>(null)
+  const [panel, setPanel] = useState(() => initialState(initial))
+  const { view, fallback: fallbackColor } = panel
+  const remembered = chosenVote(panel)
+  const pending = pendingIntent(panel)
   const voteView = useVoteView(votes, remembered)
   const voteInView = view.scrutin !== null
   const { read: readVote, settled } = shownVote(voteView)
@@ -133,10 +133,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   }, [])
 
   useEffect(() => {
-    if (voteView.status !== "missing") return
-    change(withoutScrutin(view, fallbackColor))
-    setRemembered(null)
-    setPending(null)
+    if (voteView.status === "missing") update(cleared(panel))
   }, [voteView.status])
 
   useEffect(() => setSide(current => besideSheet(current, sheetOpen, crowded)), [sheetOpen, crowded])
@@ -145,11 +142,9 @@ export function App({ assembly, features, cache, initial }: Props) {
     if (sheetOpen || !phone) onViewSheet({ kind: "close" })
   }, [sheetOpen, phone, onViewSheet])
 
-  const change = (next: View) => {
-    const { color } = next
-    if (!readsVote(color)) setFallbackColor(color)
-    setView(next)
-    writeUrl(next)
+  const update = (next: ViewState) => {
+    setPanel(next)
+    writeUrl(next.view)
   }
 
   const open = (id: DeputyId) => {
@@ -184,29 +179,14 @@ export function App({ assembly, features, cache, initial }: Props) {
     setSelected(null)
   }
 
-  const pickVote = (picked: Vote) => {
-    setRemembered(picked.id)
-    setPending(null)
-    change(pick(view, pending, picked.id))
-  }
+  const pickVote = (vote: Vote) => update(picked(panel, vote.id))
 
-  const clearVote = () => {
-    setRemembered(null)
-    setPending(null)
-    change(withoutScrutin(view, fallbackColor))
-  }
+  const clearVote = () => update(cleared(panel))
 
   const pressOffer = (offer: Offer): Press => {
-    const pressed = press(offer, view, remembered, pending)
-    switch (pressed.kind) {
-      case "view":
-        change(pressed.view)
-        break
-      case "wait":
-        setPending(pressed.pending)
-        break
-    }
-    return pressed
+    const { state, press } = pressed(panel, offer)
+    update(state)
+    return press
   }
 
   useEffect(() => {

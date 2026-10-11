@@ -10,19 +10,19 @@ import type { View } from "../view/view.ts"
 import type { VoteFinder } from "../votes/voteSearch.ts"
 import type { Vote } from "../votes/votes.ts"
 import { activeRowScroll, tabsOf, type Tabs } from "./bar.ts"
-import { waitsFor, type Pending, type Press } from "./intent.ts"
 import { Chevron, CloseIcon, GlyphButton, RowHead, SearchIcon, SummaryLine } from "./PanelParts.tsx"
-import { choiceKey, holds, offerLabel, pressed, rowSubject, unfoldedRow, type ChosenVote, type Offer, type Row, type VoteRow } from "./rows.ts"
+import { choiceKey, greyedReason, holds, offerLabel, pressed, rowSubject, unfoldedRow, type ChosenVote, type Offer, type Row, type VoteRow } from "./rows.ts"
 import type { Sheet, SheetEvent } from "./sheet.ts"
 import { sentenceText, summary, type Sentence } from "./summary.ts"
 import { VoteChosen } from "./VotePicker.tsx"
 import { VoteSearchScreen } from "./VoteSearchScreen.tsx"
+import { waitsFor, type Intent, type Press } from "./viewState.ts"
 
 type Props = {
   view: View
   rows: readonly Row[]
   chosen: ChosenVote | null
-  pending: Pending | null
+  pending: Intent | null
   sheet: Sheet
   composition: string | null
   hint: (choice: LayoutChoice) => string | null
@@ -209,6 +209,7 @@ function SheetRow({ row, view, pending, active, hint, voteDetails, onPress, onSh
       offer={offer}
       label={offerLabel(row, offer)}
       pressed={pressed(view, offer)}
+      greyed={greyedReason(row)}
       waiting={waitsFor(pending, offer)}
       labelled={labelled}
       size={labelled ? 20 : 24}

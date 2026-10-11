@@ -25,7 +25,7 @@ test("a past composition gives its date, then its empty seats when there are som
 
 test("the vote search says what the chosen vote will show: the form waiting for it, or the colour when nothing waits", () => {
   assert.equal(afterPick(null), "Une fois choisi, le vote sera en couleur")
-  assert.equal(afterPick({ needs: "scrutin", intent: { channel: "layout", choice: VOTE_RINGS } }), "Une fois choisi, le vote sera en demi-anneaux")
-  assert.equal(afterPick({ needs: "scrutin", intent: { channel: "layout", choice: VOTE_COLUMNS } }), "Une fois choisi, le vote sera en colonnes")
-  assert.equal(afterPick({ needs: "scrutin", intent: { channel: "color", choice: VOTE_COLOR } }), "Une fois choisi, le vote sera en couleur")
+  assert.equal(afterPick({ channel: "layout", choice: VOTE_RINGS }), "Une fois choisi, le vote sera en demi-anneaux")
+  assert.equal(afterPick({ channel: "layout", choice: VOTE_COLUMNS }), "Une fois choisi, le vote sera en colonnes")
+  assert.equal(afterPick({ channel: "color", choice: VOTE_COLOR }), "Une fois choisi, le vote sera en couleur")
 })

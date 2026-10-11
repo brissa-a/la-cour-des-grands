@@ -4,11 +4,11 @@ import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
 import type { View } from "../view/view.ts"
 import type { VoteFinder } from "../votes/voteSearch.ts"
 import type { Vote } from "../votes/votes.ts"
-import { waitsFor, type Pending, type Press } from "./intent.ts"
 import { Chevron, GlyphButton, RowHead, SummaryLine } from "./PanelParts.tsx"
-import { choiceKey, holds, offerLabel, pressed, replaces, rowSubject, unfoldedRow, type ChosenVote, type Offer, type Row } from "./rows.ts"
+import { choiceKey, greyedReason, holds, offerLabel, pressed, replaces, rowSubject, unfoldedRow, type ChosenVote, type Offer, type Row } from "./rows.ts"
 import { sentenceText, summary } from "./summary.ts"
 import { VotePicker } from "./VotePicker.tsx"
+import { waitsFor, type Intent, type Press } from "./viewState.ts"
 
 const CONTENT_ID = "side-panel-content"
 
@@ -16,7 +16,7 @@ type Props = {
   view: View
   rows: readonly Row[]
   chosen: ChosenVote | null
-  pending: Pending | null
+  pending: Intent | null
   folded: boolean
   composition: string | null
   hint: (choice: LayoutChoice) => string | null
@@ -83,14 +83,15 @@ type RowProps = Props & { row: Row; voteInput: RefObject<HTMLInputElement | null
 function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, voteInput, onPress, onPickVote, onClearVote }: RowProps) {
   const [hovered, setHovered] = useState<string | null>(null)
   const hoveredOffer = [...row.color, ...row.layout].find(offer => choiceKey(offer.choice) === hovered)
-  const tip = hoveredOffer && (hoveredOffer.greyed?.reason ?? replaces(view, hoveredOffer, chosen))
+  const greyed = greyedReason(row)
+  const tip = hoveredOffer && (greyed ?? replaces(view, hoveredOffer, chosen))
   const held = holds(view, row)
   const unfolded = unfoldedRow(view) === row.key
   const unfoldedLayout = unfolded ? row.layout.find(offer => pressed(view, offer)) : undefined
   const hintText = unfoldedLayout && hint(unfoldedLayout.choice)
   const press = (offer: Offer) => {
     const result = onPress(offer)
-    if (result.kind === "wait" && result.pending !== null) voteInput.current?.focus()
+    if (result.kind === "wait" && result.waiting) voteInput.current?.focus()
   }
   const glyph = (offer: Offer, labelled: boolean) => (
     <GlyphButton
@@ -98,6 +99,7 @@ function FeatureRow({ row, view, chosen, pending, hint, voteDetails, finder, vot
       offer={offer}
       label={offerLabel(row, offer)}
       pressed={pressed(view, offer)}
+      greyed={greyed}
       waiting={waitsFor(pending, offer)}
       labelled={labelled}
       size={20}

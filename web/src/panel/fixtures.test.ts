@@ -11,7 +11,7 @@ import type { VotePosition } from "../votes/positions.ts"
 import type { ReadVote } from "../votes/sources.ts"
 import { voteId } from "../votes/voteId.ts"
 import type { Vote } from "../votes/votes.ts"
-import type { Plain, ReadsVote, View } from "../view/view.ts"
+import type { Plain, PlainView, ReadsVote } from "../view/view.ts"
 import type { ColorChoice } from "../paint/registry.ts"
 
 export const GROUP: CategoryFeature = { kind: "category", key: "deputies/init.csv:group", file: "deputies/init.csv", column: "group", title: "Groupe politique", values: "g" }
@@ -33,7 +33,7 @@ export const GROUP_COLUMNS: Plain<LayoutChoice> = { form: "columns", picks: { ma
 export const VOTE_COLUMNS: ReadsVote<LayoutChoice> = { form: "columns", picks: { main: VOTE } }
 export const VOTE_RINGS: ReadsVote<LayoutChoice> = { form: "halfRings", picks: { main: VOTE } }
 export const HEMICYCLE: Plain<LayoutChoice> = { form: "hemicycle", picks: { main: SEAT } }
-export const DEFAULT_VIEW: View = { scrutin: null, color: GROUP_COLOR, layout: HEMICYCLE }
+export const DEFAULT_VIEW: PlainView = { scrutin: null, color: GROUP_COLOR, layout: HEMICYCLE }
 
 export function table(...values: readonly string[]): ValueRow[] {
   return values.map(value => ({ value, label: value, short: undefined, color: undefined }))

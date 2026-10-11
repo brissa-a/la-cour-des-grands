@@ -2,10 +2,15 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import { VOTE_COLOR, type View } from "../view/view.ts"
 import { AGE_COLOR, DEFAULT_VIEW, FEATURES, GROUP, GROUP_COLOR, GROUP_COLUMNS, readerOf, SCRUTIN, VOTE_COLUMNS, VOTE_RINGS } from "./fixtures.test.ts"
-import { activeRowScroll, tabsOf } from "./bar.ts"
-import { panelRows } from "./rows.ts"
+import { activeRowScroll, tabsOf, type Tabs } from "./bar.ts"
+import { panelRows, type LayoutOffer, type Row } from "./rows.ts"
 
 const ROWS = panelRows({ features: FEATURES, first: GROUP.key, reading: readerOf([]), chosen: { number: 8427 } })
+
+export function singleTab(row: Row, offer: LayoutOffer): Tabs {
+  // @ts-expect-error tabs offer at least two forms
+  return { row, offers: [offer] }
+}
 
 const tabbed = (view: View) => {
   const tabs = tabsOf(ROWS, view)
