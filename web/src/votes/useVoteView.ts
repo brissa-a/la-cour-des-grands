@@ -11,6 +11,22 @@ export type VoteView =
   | { status: "missing" | "failed" }
   | ReadyVote
 
+export type ShownVote = { readonly read: ReadVote | null; readonly settled: boolean }
+
+// While a picked vote loads, the previous one stays drawn, but nothing new may be read from it: the dots would move twice.
+export function shownVote(view: VoteView): ShownVote {
+  switch (view.status) {
+    case "loading":
+      return { read: view.previous?.read ?? null, settled: false }
+    case "ready":
+      return { read: view.read, settled: true }
+    case "none":
+    case "missing":
+    case "failed":
+      return { read: null, settled: true }
+  }
+}
+
 type Settled = { id: VoteId; view: Exclude<VoteView, { status: "none" | "loading" }> }
 
 export function useVoteView(source: VoteSource, id: VoteId | null): VoteView {

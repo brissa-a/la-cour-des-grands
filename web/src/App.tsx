@@ -39,7 +39,7 @@ import { HEMICYCLE, readsVote, viewOf, viewParams, VOTE_COLOR, type ParsedView, 
 import type { VotePosition } from "./votes/positions.ts"
 import { sittingOn } from "./votes/sitting.ts"
 import { createVoteSource, type ReadVote } from "./votes/sources.ts"
-import { useVoteView } from "./votes/useVoteView.ts"
+import { shownVote, useVoteView } from "./votes/useVoteView.ts"
 import type { Vote } from "./votes/votes.ts"
 
 const NO_IDS: ReadonlySet<DeputyId> = new Set()
@@ -56,7 +56,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const [remembered, setRemembered] = useState(initial.view.scrutin)
   const voteView = useVoteView(votes, remembered)
   const voteInView = view.scrutin !== null
-  const readVote = (voteView.status === "loading" ? voteView.previous : voteView.status === "ready" ? voteView : null)?.read ?? null
+  const { read: readVote, settled } = shownVote(voteView)
   const pastSitting = useMemo(() => readVote && sittingOn(assembly, readVote.reading.roster), [assembly, readVote])
   const sitting: Sitting = voteInView && pastSitting ? pastSitting : assembly
   const drawn = useMemo(() => sitting.deputies.map(deputy => deputy.id), [sitting])
@@ -75,7 +75,10 @@ export function App({ assembly, features, cache, initial }: Props) {
     [fallbackColor, drawn, fallbackValues, vote, seats],
   )
   const lastPlainColored = useRef<Colored | null>(null)
-  const colored = chosenColored ?? fallbackColored ?? lastPlainColored.current
+  const lastColored = useRef<Colored | null>(null)
+  const held = settled || !readsVote(view.color) ? null : lastColored.current
+  const colored = held ?? chosenColored ?? fallbackColored ?? lastPlainColored.current
+  lastColored.current = colored
   if (colored && colored.reading.source.kind !== "vote") lastPlainColored.current = colored
 
   const previewOptions = useConfig(config => config.preview)
@@ -95,7 +98,7 @@ export function App({ assembly, features, cache, initial }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const frame = useStageFrame(svgRef)
 
-  const order = useMemo(() => chosenColored && rankThenName(chosenColored.paint, sitting), [chosenColored, sitting])
+  const order = useMemo(() => (settled && chosenColored ? rankThenName(chosenColored.paint, sitting) : null), [settled, chosenColored, sitting])
   const arrangement = useMemo(
     () => order && arrange(view.layout, source => readingOf(source, { drawn, values: layoutValues, vote, seats }), order),
     [view.layout, order, drawn, layoutValues, vote, seats],
