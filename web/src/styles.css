@@ -76,6 +76,8 @@ a { color: var(--accent); }
 
 .room.hidden { opacity: 0; pointer-events: none; }
 
+.room-fit { transition-property: transform; }
+
 .chart-axes { fill: var(--muted); }
 
 .chart-axes line { stroke: var(--line); stroke-width: 0.002; }

@@ -4,7 +4,7 @@ import type { Scene } from "../forms/form.ts"
 import type { Point } from "../preview/placement.ts"
 import { usePreview, type Hit, type PreviewStore } from "../preview/previewStore.ts"
 import { Marks } from "./Marks.tsx"
-import { motionOf, type Motion } from "./staging.ts"
+import { motionOf, transitionOf, type Motion } from "./staging.ts"
 import { FixedSvg } from "./FixedSvg.tsx"
 import { PanZoomSvg, type PointerHandlers } from "./PanZoomSvg.tsx"
 
@@ -46,12 +46,15 @@ export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlight
   const arranged = useRef({ arrangement, at: -Infinity })
   if (arranged.current.arrangement !== arrangement) arranged.current = { arrangement, at: performance.now() }
 
-  const placed = useMemo(() => {
+  const { placed, roomMotion } = useMemo(() => {
     const since = performance.now() - arranged.current.at
-    return deputies.flatMap((deputy, index): Placed[] => {
-      const point = scene.dots.get(deputy.id)
-      return point ? [{ id: deputy.id, point, motion: motionOf(index, since) }] : []
-    })
+    return {
+      placed: deputies.flatMap((deputy, index): Placed[] => {
+        const point = scene.dots.get(deputy.id)
+        return point ? [{ id: deputy.id, point, motion: motionOf(index, since) }] : []
+      }),
+      roomMotion: motionOf(0, since),
+    }
   }, [deputies, scene])
   const placedById = useMemo(() => new Map(placed.map(p => [p.id, p])), [placed])
 
@@ -159,7 +162,7 @@ export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlight
           <circle cx={0.5} cy={0.5} r={0.5} />
         </clipPath>
       </defs>
-      <Marks marks={scene.marks} scale={DOT_SCALE} />
+      <Marks marks={scene.marks} scale={DOT_SCALE} motion={roomMotion} />
       <g ref={dotsRef} transform={`scale(${1 / DOT_SCALE})`}>
         {deputies.map(deputy => {
           const p = placedById.get(deputy.id)
@@ -218,7 +221,7 @@ function Rings({
       <g
         key={`${kind}-${id}`}
         className={`ring ${kind}`}
-        style={{ transform: `translate(${p.point.x * DOT_SCALE}px, ${p.point.y * DOT_SCALE}px)`, ...transition(p.motion) }}
+        style={{ transform: `translate(${p.point.x * DOT_SCALE}px, ${p.point.y * DOT_SCALE}px)`, ...transitionOf(p.motion) }}
       >
         {kind === "selected" && <circle className="ring-outer" r={r + 0.75} />}
         {kind === "selected" && <circle className="ring-gap" r={r + 0.4} />}
@@ -251,7 +254,7 @@ const DeputyDot = memo(function DeputyDot({ deputy, position, radius: unscaledRa
   return (
     <g
       className={highlighted ? "seat highlighted" : "seat"}
-      style={{ transform: `translate(${position.x * DOT_SCALE}px, ${position.y * DOT_SCALE}px)`, ...transition(motion) }}
+      style={{ transform: `translate(${position.x * DOT_SCALE}px, ${position.y * DOT_SCALE}px)`, ...transitionOf(motion) }}
     >
       <circle
         className="seat-dot"
@@ -272,7 +275,3 @@ const DeputyDot = memo(function DeputyDot({ deputy, position, radius: unscaledRa
     </g>
   )
 })
-
-function transition({ delay, duration, easing }: Motion) {
-  return { transitionDelay: `${delay}s`, transitionDuration: `${duration}s`, transitionTimingFunction: easing }
-}

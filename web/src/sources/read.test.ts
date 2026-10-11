@@ -13,7 +13,7 @@ import { MISSING, VOTE } from "./shapes.ts"
 
 const PA0 = deputyId("PA0")
 const PA1 = deputyId("PA1")
-const seats = seatsOf({ deputies: [], emptySeats: [] }, { viewBox: "0 0 1 1", markup: "" })
+const seats = seatsOf({ deputies: [], emptySeats: [] }, { box: { x: 0, y: 0, width: 1, height: 1 }, markup: "" })
 const number = (key: `${string}:${string}`): NumberFeature => ({ kind: "number", key, file: "f", column: "c", title: "Titre" })
 const CATEGORY: CategoryFeature = { kind: "category", key: "f:c", file: "f", column: "c", title: "Titre", values: "v" }
 

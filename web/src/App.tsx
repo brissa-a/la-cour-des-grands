@@ -5,6 +5,7 @@ import { createLookupSources } from "./address/sources.ts"
 import { rowCount } from "./data/catalog.ts"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId, type Person, type Sitting } from "./data/assembly.ts"
 import type { ColorableFeature } from "./data/features.ts"
+import { viewBoxAttribute } from "./data/viewBox.ts"
 import { fullSiteUrl, legendShown, type Chrome } from "./embed/chrome.ts"
 import type { Order, Screen } from "./forms/form.ts"
 import { arrange, FORMS, picksOf } from "./forms/registry.ts"
@@ -342,7 +343,7 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
   const stage = (
     <Stage
       svgRef={svgRef}
-      viewBox={assembly.background.viewBox}
+      viewBox={viewBoxAttribute(assembly.background.box)}
       deputies={sitting.deputies}
       scene={staged.scene}
       arrangement={staged.arrangement ?? staged.reading}

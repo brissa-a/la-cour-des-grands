@@ -1,5 +1,6 @@
 import type { CategoryFeature, NumberFeature } from "../data/features.ts"
 import type { DeputyId } from "../data/deputyId.ts"
+import type { ViewBox } from "../data/viewBox.ts"
 
 export const MISSING = ""
 
@@ -44,6 +45,7 @@ export type Seats = {
   readonly seatOf: ReadonlyMap<DeputyId, Seat>
   readonly empty: readonly Seat[]
   readonly room: Room
+  readonly box: ViewBox
 }
 
 export type Data = {

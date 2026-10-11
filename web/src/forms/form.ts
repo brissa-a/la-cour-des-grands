@@ -21,13 +21,15 @@ export type Anchor = "start" | "end"
 
 export type Tone = "grid" | "base" | "leader"
 
+export type Fit = { readonly scale: number; readonly offset: Point }
+
 export type Lay =
   | { readonly kind: "flat"; readonly lineHeight: number }
   | { readonly kind: "slanted"; readonly degrees: number }
   | { readonly kind: "inline"; readonly anchor: Anchor; readonly gap: number; readonly textSize: number }
 
 export type Mark =
-  | { readonly kind: "room"; readonly room: Room; readonly empty: readonly Seat[]; readonly radius: number }
+  | { readonly kind: "room"; readonly room: Room; readonly empty: readonly Seat[]; readonly radius: number; readonly fit: Fit }
   | { readonly kind: "rule"; readonly from: Point; readonly to: Point; readonly tone: Tone }
   | { readonly kind: "tick"; readonly at: Point; readonly text: string; readonly size: number }
   | {

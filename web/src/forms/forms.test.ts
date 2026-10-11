@@ -65,7 +65,7 @@ function room(): Sample {
       else deputies.push({ id: fresh(), seat })
     }
   }
-  const seats = seatsOf({ deputies, emptySeats }, { viewBox: "-1.1 -1.1 2.2 1.5", markup: "" })
+  const seats = seatsOf({ deputies, emptySeats }, { box: { x: -1.1, y: -1.1, width: 2.2, height: 1.5 }, markup: "" })
   return { name: "room", reading: readSeats(seats), deputies: deputies.map(d => d.id) }
 }
 
@@ -79,11 +79,6 @@ const SAMPLES: readonly Sample[] = [
   ages([3, 0, 0, 45, 120, 200, 150, 50, 0, 2, 9]),
   room(),
 ]
-
-const computed = (form: FormName) => {
-  const shapes: readonly Shape[] = FORMS[form].slots.main
-  return !shapes.includes("seats")
-}
 
 const NAMES = Object.keys(FORMS).filter((name): name is FormName => name in FORMS)
 
@@ -161,8 +156,8 @@ test("no two dots of a registered form overlap", () => {
   }
 })
 
-test("a form computed from values keeps every dot inside the free area of its frame, radius included", () => {
-  for (const { label, form, frame, scene } of cases().filter(c => computed(c.form))) {
+test("every registered form keeps every dot inside the free area of its frame, radius included", () => {
+  for (const { label, form, frame, scene } of cases()) {
     const { area } = frame
     for (const { x, y } of scene.dots.values())
       assert.ok(x - scene.radius >= area.left && x + scene.radius <= area.right && y - scene.radius >= area.top && y + scene.radius <= area.bottom, `${label} (${form}): ${x}, ${y}`)
@@ -203,7 +198,7 @@ export const probes = [
   // @ts-expect-error a form computed from values whose place reads seats
   defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, place: ({ main }: { main: Seats }) => placed(main) }),
   // @ts-expect-error a form computed from values drawing the room from a plain string
-  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, place: () => ({ ...placed(null), marks: [{ kind: "room", room: "<g/>", empty: [], radius: 1 }] }) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, place: () => ({ ...placed(null), marks: [{ kind: "room", room: "<g/>", empty: [], radius: 1, fit: { scale: 1, offset: { x: 0, y: 0 } } }] }) }),
   // @ts-expect-error a form computed from values that also takes the seats, to draw the room
   defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal", "seats"] }, place: () => placed(null) }),
   // @ts-expect-error a scene without reading lines

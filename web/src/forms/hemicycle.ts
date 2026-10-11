@@ -1,19 +1,23 @@
 import type { DeputyId } from "../data/deputyId.ts"
+import type { ViewBox } from "../data/viewBox.ts"
 import { dots, type Glyph } from "../glyph/glyph.ts"
+import type { Rect } from "../preview/placement.ts"
 import type { Point, Seats } from "../sources/shapes.ts"
-import { DOT_RADIUS, NO_HOLLOW, type FormSpec, type Scene } from "./form.ts"
+import { DOT_RADIUS, NO_HOLLOW, type Fit, type FormSpec, type Frame, type Scene } from "./form.ts"
 
 const SNAP = 0.6 * 2.75 * DOT_RADIUS
 const ROW_TOLERANCE = 0.025
 
-export function placeHemicycle({ main: seats }: { readonly main: Seats }): Scene {
+export function placeHemicycle({ main: seats }: { readonly main: Seats }, { frame }: { readonly frame: Frame }): Scene {
+  const fit = fitted(seats.box, frame.area)
+  const { scale, offset } = fit
   return {
     card: "beside",
-    radius: DOT_RADIUS,
-    snap: SNAP,
-    dots: seats.seatOf,
+    radius: DOT_RADIUS * scale,
+    snap: SNAP * scale,
+    dots: new Map(Array.from(seats.seatOf, ([id, { x, y }]) => [id, { x: offset.x + scale * x, y: offset.y + scale * y }])),
     hollow: NO_HOLLOW,
-    marks: [{ kind: "room", room: seats.room, empty: seats.empty, radius: DOT_RADIUS }],
+    marks: [{ kind: "room", room: seats.room, empty: seats.empty, radius: DOT_RADIUS, fit }],
     lines: rows(seats.seatOf),
     where: id => {
       const seat = seats.seatOf.get(id)
@@ -29,6 +33,12 @@ const GLYPH: Glyph = [
 ]
 
 export const hemicycle: FormSpec<{ readonly main: readonly ["seats"] }> = { label: "Hémicycle", glyph: GLYPH, slots: { main: ["seats"] }, place: placeHemicycle }
+
+function fitted(box: ViewBox, area: Rect): Fit {
+  const scale = Math.min((area.right - area.left) / box.width, (area.bottom - area.top) / box.height)
+  const offset = { x: (area.left + area.right - scale * (2 * box.x + box.width)) / 2, y: (area.top + area.bottom - scale * (2 * box.y + box.height)) / 2 }
+  return { scale, offset }
+}
 
 function rows(seatOf: ReadonlyMap<DeputyId, Point>): DeputyId[][] {
   const polar = Array.from(seatOf, ([id, { x, y }]) => ({ id, radius: Math.hypot(x, y), along: -Math.atan2(Math.abs(y), x) }))

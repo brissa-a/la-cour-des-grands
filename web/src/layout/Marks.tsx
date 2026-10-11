@@ -1,12 +1,13 @@
 import { useRef } from "react"
-import type { Mark } from "../forms/form.ts"
+import type { Fit, Mark } from "../forms/form.ts"
 import { RULE_CLASS, labelAttributes, nameAttributes } from "./markAttributes.ts"
+import { transitionOf, type Motion } from "./staging.ts"
 
 type RoomMark = Extract<Mark, { kind: "room" }>
 
-type Props = { marks: readonly Mark[]; scale: number }
+type Props = { marks: readonly Mark[]; scale: number; motion: Motion }
 
-export function Marks({ marks, scale }: Props) {
+export function Marks({ marks, scale, motion }: Props) {
   const room = marks.find((mark): mark is RoomMark => mark.kind === "room") ?? null
   const lastRoom = useRef(room)
   if (room) lastRoom.current = room
@@ -15,9 +16,9 @@ export function Marks({ marks, scale }: Props) {
   return (
     <>
       {drawnRoom && (
-        <g className={room ? "room" : "room hidden"}>
-          <g className="hemicycle-background" dangerouslySetInnerHTML={{ __html: drawnRoom.room }} />
-          <g transform={`scale(${1 / scale})`}>
+        <g className={room ? "room" : "room hidden"} transform={`scale(${1 / scale})`}>
+          <g className="room-fit" style={{ transform: fitTransform(drawnRoom.fit, scale), ...transitionOf(motion) }}>
+            <g className="hemicycle-background" transform={`scale(${scale})`} dangerouslySetInnerHTML={{ __html: drawnRoom.room }} />
             {drawnRoom.empty.map(seat => (
               <circle key={seat.number} className="empty-seat" cx={seat.x * scale} cy={seat.y * scale} r={drawnRoom.radius * scale} />
             ))}
@@ -27,6 +28,10 @@ export function Marks({ marks, scale }: Props) {
       {axes.length > 0 && <g className="chart-axes">{axes.map(MarkShape)}</g>}
     </>
   )
+}
+
+function fitTransform({ scale: fitScale, offset }: Fit, scale: number): string {
+  return `translate(${offset.x * scale}px, ${offset.y * scale}px) scale(${fitScale})`
 }
 
 function MarkShape(mark: Mark, index: number) {

@@ -4,6 +4,7 @@ import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
 import { parseSeatRows, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS, SEATS_FILE, seatProblemWarning, type EmptySeat, type Seat } from "./seats.ts"
 import { fetchText } from "./source.ts"
+import { parseViewBox, type ViewBox } from "./viewBox.ts"
 
 export type { DeputyId, Seat }
 
@@ -26,7 +27,7 @@ export type ConstituencyLabel = Pick<InitRow, "department" | "department_number"
 
 export type Group = { name: string; short: string; color: string; seatCount: number }
 
-export type Background = { viewBox: string; markup: string }
+export type Background = { box: ViewBox; markup: string }
 
 export type Sitting = {
   deputies: readonly Deputy[]
@@ -122,9 +123,9 @@ function constituencyLabels(rows: readonly InitRow[]): ReadonlyMap<ConstituencyC
 
 function parseBackground(svg: string): Background {
   const root = new DOMParser().parseFromString(svg, "image/svg+xml").documentElement
-  const viewBox = root.getAttribute("viewBox")
-  if (root.nodeName !== "svg" || !viewBox) throw new Error("hemicycle.svg: not an svg with a viewBox")
-  return { viewBox, markup: root.innerHTML }
+  const box = parseViewBox(root.getAttribute("viewBox") ?? "")
+  if (root.nodeName !== "svg" || !box) throw new Error("hemicycle.svg: not an svg with a valid viewBox")
+  return { box, markup: root.innerHTML }
 }
 
 export async function loadOfficialPages(): Promise<ReadonlyMap<DeputyId, string>> {

@@ -49,7 +49,7 @@ export function numberValues(feature: NumberFeature, held: readonly (number | nu
 
 export const SEATS = seatsOf(
   { deputies: DRAWN.map((id, i) => ({ id, seat: { number: String(i + 1), x: i, y: 0 } })), emptySeats: [{ number: "7", x: 6, y: 0 }, { number: "8", x: 7, y: 0 }] },
-  { viewBox: "0 0 1 1", markup: "" },
+  { box: { x: 0, y: 0, width: 1, height: 1 }, markup: "" },
 )
 
 export function readVoteOf(positions: readonly VotePosition[]): ReadVote {

@@ -5,7 +5,12 @@ import type { Room, Seat, Seats } from "./shapes.ts"
 type Seated = { readonly deputies: readonly { readonly id: DeputyId; readonly seat: Seat }[]; readonly emptySeats: readonly Seat[] }
 
 export function seatsOf(sitting: Seated, background: Background): Seats {
-  return { seatOf: new Map(sitting.deputies.map(deputy => [deputy.id, deputy.seat])), empty: sitting.emptySeats, room: room(background.markup) }
+  return {
+    seatOf: new Map(sitting.deputies.map(deputy => [deputy.id, deputy.seat])),
+    empty: sitting.emptySeats,
+    room: room(background.markup),
+    box: background.box,
+  }
 }
 
 function room(markup: string): Room {
