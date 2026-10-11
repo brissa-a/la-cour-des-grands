@@ -173,8 +173,9 @@ test("each sector is headed by its count then its label, in the parts' order, cl
     }
 })
 
-test("each label sits on its own sector's ray, give or take half a line when a neighbour nudges it, half a line outside the arc, and runs away from it", () => {
-  for (const [present, absent] of [[VOTE, VOTE_ABSENT], [CENSURE, CENSURE_ABSENT]] as const)
+test("each label sits on its own sector's ray, give or take half a line when a neighbour on its side nudges it, half a line outside the arc, and runs away from it", () => {
+  const levelAcross = { Pour: 161, Contre: 116, Abstention: 1, "Non-votant": 4 }
+  for (const [present, absent] of [[VOTE, VOTE_ABSENT], [CENSURE, CENSURE_ABSENT], [levelAcross, 292]] as const)
     for (const frame of [DESKTOP, PHONE]) {
       const turnout = turnoutOf(present, absent)
       const scene = place(turnout, frame)
