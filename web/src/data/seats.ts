@@ -14,16 +14,33 @@ export type EmptySeat = Seat & { readonly constituency: ConstituencyCode | null 
 
 export type SeatPlan = { readonly seatOf: ReadonlyMap<DeputyId, Seat>; readonly emptySeats: readonly EmptySeat[] }
 
-export function readSeats(rows: readonly SeatRow[]): SeatPlan {
+export function parseSeatRows(rows: readonly SeatRow[]): SeatPlan {
   const seatOf = new Map<DeputyId, Seat>()
   const emptySeats: EmptySeat[] = []
+  const constituencySeat = new Map<ConstituencyCode, string>()
   for (const row of rows) {
-    const seat = { number: row.seat, x: Number(row.x), y: Number(row.y) }
+    const seat = { number: row.seat, x: coordinate(row, "x"), y: coordinate(row, "y") }
     const constituency = seatConstituency(row)
-    if (row.deputy) seatOf.set(deputyId(row.deputy), seat)
-    else emptySeats.push({ ...seat, constituency })
+    if (constituency) {
+      const other = constituencySeat.get(constituency)
+      if (other !== undefined) throw new Error(`${SEATS_FILE}: constituency ${constituency} is on seats ${other} and ${row.seat}`)
+      constituencySeat.set(constituency, row.seat)
+    }
+    if (row.deputy) {
+      const id = deputyId(row.deputy)
+      const other = seatOf.get(id)
+      if (other) throw new Error(`${SEATS_FILE}: deputy ${row.deputy} is on seats ${other.number} and ${row.seat}`)
+      seatOf.set(id, seat)
+    } else emptySeats.push({ ...seat, constituency })
   }
   return { seatOf, emptySeats }
+}
+
+function coordinate(row: SeatRow, axis: "x" | "y"): number {
+  const cell = row[axis]
+  const value = cell.trim() === "" ? NaN : Number(cell)
+  if (!Number.isFinite(value)) throw new Error(`${SEATS_FILE}: seat ${row.seat} has ${axis} "${cell}"`)
+  return value
 }
 
 function seatConstituency({ seat, constituency }: SeatRow): ConstituencyCode | null {

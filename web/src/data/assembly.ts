@@ -2,7 +2,7 @@ import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
 import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
-import { readSeats, SEAT_COLUMNS, SEATS_FILE, type EmptySeat, type Seat } from "./seats.ts"
+import { parseSeatRows, SEAT_COLUMNS, SEATS_FILE, type EmptySeat, type Seat } from "./seats.ts"
 import { fetchText } from "./source.ts"
 
 export type { DeputyId, Seat }
@@ -57,7 +57,7 @@ export async function loadAssembly(): Promise<Assembly> {
     fetchText("seats/hemicycle.svg"),
   ])
 
-  const { seatOf, emptySeats } = readSeats(seatRows)
+  const { seatOf, emptySeats } = parseSeatRows(seatRows)
   const groups = groupRows.map((r): Group => ({ name: r.value, short: r.short_fr, color: r.color, seatCount: 0 }))
   const groupByName = new Map(groups.map(g => [g.name, g]))
   const people = rows.map((row): Person => {
