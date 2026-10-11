@@ -14,8 +14,9 @@ const HOLE_RATIO = 0.45
 const MAX_LOOSENESS = 1.15
 // Rings sit one pitch apart, so dots on rings farther apart than this can never crowd each other.
 const CROWDING_RINGS = Math.floor(2 * DOT_PITCHES + APART_LANE_PITCHES)
+const INNER_STEP = 0.02
+const LINK_PITCHES = 1.6
 const SEARCH_STEPS = 24
-const INNER_PRECISION = 0.01
 const SNAP_PITCHES = 0.6
 const FONT_PX = 12
 const LINE_EM = 1.25
@@ -34,11 +35,17 @@ type Ring = { readonly radius: number; readonly cap: number }
 
 type Filled = { readonly radius: number; readonly count: number }
 
+type Filling = { readonly sectors: Slot[][]; readonly short: number }
+
+type Cursor = { readonly ring: number; readonly radius: number; readonly count: number; next: number }
+
+type Front = { readonly cursor: Cursor; at: number; readonly lean: number; first: Slot | null; latest: Slot | null }
+
 type Fit = { readonly inner: number; readonly looseness: number; readonly sectors: readonly (readonly Slot[])[] }
 
 type Member = { readonly part: Part; readonly apart: boolean; readonly members: readonly DeputyId[] }
 
-type Head = { readonly part: Part; readonly count: number; readonly angle: number }
+type Head = { readonly part: Part; readonly count: number; readonly angle: number; readonly ring: number }
 
 type Box = { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number }
 
@@ -50,9 +57,9 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
   const outer = grid.inner + grid.rings - 1
   const heads = sectors.flatMap(({ part }, i): Head[] => {
     const slots = grid.sectors[i] ?? []
-    const first = slots[0]
-    const last = slots.at(-1)
-    return first && last ? [{ part, count: slots.length, angle: (first.angle + last.angle) / 2 }] : []
+    const ring = Math.max(...slots.map(slot => slot.ring))
+    const angles = slots.flatMap(slot => (slot.ring === ring ? [slot.angle] : []))
+    return angles.length > 0 ? [{ part, count: slots.length, angle: (Math.max(...angles) + Math.min(...angles)) / 2, ring }] : []
   })
   const reach = grid.sectors.flat().reduce<Box>(
     (box, { radius, angle }) => {
@@ -93,7 +100,7 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
 
   const dots = new Map<DeputyId, Point>()
   const partOf = new Map<DeputyId, Part>()
-  // Slots are taken in angle order, so each ring collects its deputies already read from left to right.
+  // Rays part the sectors and each sector's slots run by angle, so each ring collects its deputies already read from left to right.
   const rings = Array.from({ length: grid.rings }, (): DeputyId[] => [])
   sectors.forEach(({ part, members }, i) => {
     const slots = grid.sectors[i] ?? []
@@ -110,8 +117,8 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
     const { head, anchor, x, y, ideal } = label
     const at = { x: cx + x, y: cy + y }
     const text: Mark = { kind: "label", at, count: head.count, text: head.part.label, title: `${head.count} · ${head.part.title}`, size: font, lay: { kind: "inline", anchor } }
-    if (Math.hypot(x - ideal.x, y - ideal.y) <= LEADER_EM * font) return [text]
-    const edge = (outer + DOT_PITCHES) * pitch + LEADER_INSET_EM * font
+    if (head.ring === grid.rings - 1 && Math.hypot(x - ideal.x, y - ideal.y) <= LEADER_EM * font) return [text]
+    const edge = (grid.inner + head.ring + DOT_PITCHES) * pitch + LEADER_INSET_EM * font
     const from = { x: cx + edge * Math.cos(head.angle), y: cy - edge * Math.sin(head.angle) }
     const to = { x: at.x + (anchor === "start" ? -1 : 1) * LEADER_INSET_EM * font, y: at.y }
     return [{ kind: "rule", from, to, tone: "grid" }, text]
@@ -134,7 +141,7 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
 export const halfRings = defineForm({ label: "Demi-anneaux", slots: { main: ["turnout"] }, place: placeHalfRings })
 
 export function halfRingGrid(sectors: readonly Sector[]): Grid {
-  const dots = sectors.reduce((sum, { count }) => sum + count, 0)
+  const dots = total(sectors.map(({ count }) => count))
   let best: (Grid & { readonly loose: boolean; readonly score: number }) | null = null
   for (let rings = 1; ; rings++) {
     const low = Math.max(MIN_INNER_PITCHES, LEAST_INNER_PER_RING * (rings - 1))
@@ -164,32 +171,48 @@ function sectorOf(part: Part, apart: boolean, order: Order): Member {
 }
 
 function tightest(sectors: readonly Sector[], dots: number, rings: number, low: number, high: number): Fit | null {
-  const boundaries = Math.max(0, sectors.filter(({ count }) => count > 0).length - 1)
-  const ringsAt = (inner: number): Ring[] => Array.from({ length: rings }, (_, k) => ({ radius: inner + k, cap: capacity(inner + k) }))
-  const holds = (inner: number) => {
-    const at = ringsAt(inner)
-    return total(at.map(ring => ring.cap)) >= dots + boundaries && fill(sectors, at.map(({ radius, cap }) => ({ radius, count: cap }))) !== null
+  const ringsAt = (step: number): Ring[] =>
+    Array.from({ length: rings }, (_, k) => {
+      const radius = low + step * INNER_STEP + k
+      return { radius, cap: capacity(radius) }
+    })
+  const roomAt = (step: number) => total(ringsAt(step).map(ring => ring.cap))
+  const steps = Math.floor((high - low) / INNER_STEP + 1e-9)
+  if (roomAt(steps) < dots) return null
+  let roomy = steps
+  let crowded = -1
+  while (roomy - crowded > 1) {
+    const middle = Math.floor((roomy + crowded) / 2)
+    if (roomAt(middle) >= dots) roomy = middle
+    else crowded = middle
   }
-  if (!holds(high)) return null
-  let inner = high
-  if (holds(low)) inner = low
-  else
-    for (let crowded = low; inner - crowded > INNER_PRECISION; ) {
-      const middle = (crowded + inner) / 2
-      if (holds(middle)) inner = middle
-      else crowded = middle
-    }
-  const at = ringsAt(inner)
+  const fullAt = (step: number) => fill(sectors, ringsAt(step).map(({ radius, cap }) => ({ radius, count: cap }))).short
+  const step = firstFit(roomy, steps, fullAt, Math.PI * rings * INNER_STEP)
+  if (step === null) return null
+  const at = ringsAt(step)
   const room = total(at.map(ring => ring.cap))
-  let fitting = { slots: room, sectors: fill(sectors, distribute(room, at)) }
-  let short = dots + boundaries - 1
-  while (fitting.slots - short > 1) {
-    const middle = Math.floor((fitting.slots + short) / 2)
-    const filled = fill(sectors, distribute(middle, at))
-    if (filled) fitting = { slots: middle, sectors: filled }
-    else short = middle
+  const slots = firstFit(dots, room, count => fill(sectors, distribute(count, at)).short, 1) ?? room
+  return { inner: low + step * INNER_STEP, looseness: room / slots, sectors: fill(sectors, distribute(slots, at)).sectors }
+}
+
+// The lanes make the fit irregular in the radius and the slot total: the search jumps ahead by what was missing, twice as far
+// when that did not help, then steps back, twice as far each time the value behind still fits.
+function firstFit(from: number, to: number, shortAt: (value: number) => number, perStep: number): number | null {
+  let at = from
+  let jump = 0
+  let before = Infinity
+  for (let short = shortAt(at); short > 0; short = shortAt(at)) {
+    if (at >= to) return null
+    jump = short < before ? Math.max(1, Math.floor(short / perStep)) : 2 * jump
+    before = short
+    at = Math.min(to, at + jump)
   }
-  return fitting.sectors && { inner, looseness: room / fitting.slots, sectors: fitting.sectors }
+  for (let back = 1; back > 0; )
+    if (at - back >= from && shortAt(at - back) === 0) {
+      at -= back
+      back *= 2
+    } else back = Math.floor(back / 2)
+  return at
 }
 
 function capacity(radius: number): number {
@@ -213,39 +236,115 @@ function distribute(slots: number, rings: readonly Ring[]): Filled[] {
   return shares
 }
 
-function fill(sectors: readonly Sector[], rings: readonly Filled[]): Slot[][] | null {
-  const slots: Slot[] = []
-  rings.forEach(({ radius, count }, ring) => {
-    for (let j = 0; j < count; j++) slots.push({ ring, radius, angle: count > 1 ? Math.PI * (1 - j / (count - 1)) : Math.PI / 2 })
-  })
-  slots.sort((a, b) => b.angle - a.angle || a.ring - b.ring)
+// A slot joins a sector only to the right of every earlier sector's dots and a lane clear of them, so sectors read in the parts'
+// order along any ray. Each sector grows from its outer ring inwards, one dot at a time next to a dot it already has, so it stays
+// in one piece beside its label; the last sector grows from the base line on the right, so the half-turn ends there.
+function fill(sectors: readonly Sector[], rings: readonly Filled[]): Filling {
+  const cursors = rings.map(({ radius, count }, ring): Cursor => ({ ring, radius, count, next: 0 }))
   const earlier: { readonly apart: boolean; readonly last: readonly (Point | undefined)[] }[] = []
   const filled: Slot[][] = []
-  let next = 0
-  for (const { count, apart } of sectors) {
-    const taken: Slot[] = []
+  let rightmost = Infinity
+  for (const [i, { count, apart }] of sectors.entries()) {
+    const after = sectors.slice(i + 1).find(sector => sector.count > 0)
+    for (const cursor of cursors) {
+      const crowded = (angle: number) =>
+        angle > rightmost - 1e-9 || earlier.some(other => crowds(pointOf(cursor.radius, angle), cursor.ring, other.last, apart || other.apart))
+      while (cursor.next < cursor.count && crowded(angleOf(cursor, cursor.next))) cursor.next++
+    }
+    const taken = grow(cursors, count, after ? DOT_PITCHES + laneOf(apart || after.apart) / 2 : null)
+    if (taken.length < count) return { sectors: filled, short: total(sectors.slice(i).map(sector => sector.count)) - taken.length }
     const last: (Point | undefined)[] = []
-    while (taken.length < count) {
-      const slot = slots[next++]
-      if (!slot) return null
-      const at = { x: slot.radius * Math.cos(slot.angle), y: slot.radius * Math.sin(slot.angle) }
-      if (earlier.some(other => crowds(at, slot.ring, other.last, apart || other.apart))) continue
-      taken.push(slot)
-      last[slot.ring] = at
+    for (const { ring, radius, angle } of taken) {
+      last[ring] = pointOf(radius, angle)
+      rightmost = Math.min(rightmost, angle)
     }
     earlier.push({ apart, last })
     filled.push(taken)
   }
-  return filled
+  return { sectors: filled.map(slots => slots.toSorted((a, b) => b.angle - a.angle || a.ring - b.ring)), short: 0 }
+}
+
+// lean is the half lane on the sector's right: leaning on it keeps the sector's right edge parallel to a ray. Without one, the
+// sector is the last and grows leftwards from the base line.
+function grow(cursors: readonly Cursor[], count: number, lean: number | null): Slot[] {
+  const fromRight = lean === null
+  const step = fromRight ? -1 : 1
+  const fronts = cursors.map((cursor): Front => ({ cursor, at: fromRight ? cursor.count - 1 : cursor.next, lean: Math.asin((lean ?? 0) / cursor.radius), first: null, latest: null }))
+  const outermost = fronts.findLast(isOpen)
+  const outerFirst = fronts.toReversed()
+  const taken: Slot[] = []
+  while (taken.length < count) {
+    let best: Front | null = null
+    let bestKey = -Infinity
+    for (const front of outerFirst) {
+      const outer = fronts[front.cursor.ring + 1]
+      if (front.latest === null) {
+        passBehind(front, outer?.first ?? null, step)
+        if (taken.length === 0 ? front !== outermost : !outer || !touches(slotAt(front), outer)) continue
+      }
+      if (!isOpen(front)) continue
+      const angle = angleOf(front.cursor, front.at)
+      const key = fromRight ? -angle : angle - front.lean
+      if (key > bestKey) {
+        best = front
+        bestKey = key
+      }
+    }
+    if (!best) break
+    const slot = slotAt(best)
+    taken.push(slot)
+    best.first ??= slot
+    best.latest = slot
+    best.at += step
+  }
+  if (!fromRight) for (const { cursor, at } of fronts) cursor.next = at
+  return taken
+}
+
+// A ring the sector has not reached yet joins it next to the sector's first dot on the ring outside; a slot already past that dot,
+// on the side the sector grows away from, can never join it.
+function passBehind(front: Front, outerFirst: Slot | null, step: number): void {
+  while (outerFirst && isOpen(front) && step * (outerFirst.angle - angleOf(front.cursor, front.at)) < 0 && !near(slotAt(front), outerFirst)) front.at += step
+}
+
+function isOpen({ cursor, at }: Front): boolean {
+  return at >= cursor.next && at < cursor.count
+}
+
+function slotAt({ cursor, at }: Front): Slot {
+  return { ring: cursor.ring, radius: cursor.radius, angle: angleOf(cursor, at) }
+}
+
+function touches(slot: Slot, { first, latest }: Front): boolean {
+  if (!first || !latest) return false
+  return (slot.angle <= Math.max(first.angle, latest.angle) && slot.angle >= Math.min(first.angle, latest.angle)) || near(slot, first) || near(slot, latest)
+}
+
+function near(a: Slot, b: Slot): boolean {
+  const p = pointOf(a.radius, a.angle)
+  const q = pointOf(b.radius, b.angle)
+  return Math.hypot(p.x - q.x, p.y - q.y) <= LINK_PITCHES
+}
+
+function angleOf({ count }: { readonly count: number }, j: number): number {
+  return count > 1 ? Math.PI * (1 - j / (count - 1)) : Math.PI / 2
 }
 
 function crowds(at: Point, ring: number, last: readonly (Point | undefined)[], apart: boolean): boolean {
-  const reach = 2 * DOT_PITCHES + (apart ? APART_LANE_PITCHES : LANE_PITCHES)
+  const reach = 2 * DOT_PITCHES + laneOf(apart)
   for (let near = Math.max(0, ring - CROWDING_RINGS); near <= ring + CROWDING_RINGS; near++) {
     const other = last[near]
-    if (other && Math.hypot(at.x - other.x, at.y - other.y) < reach) return true
+    if (other && Math.hypot(at.x - other.x, at.y - other.y) < reach - 1e-9) return true
   }
   return false
+}
+
+function pointOf(radius: number, angle: number): Point {
+  return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) }
+}
+
+function laneOf(apart: boolean): number {
+  return apart ? APART_LANE_PITCHES : LANE_PITCHES
 }
 
 function placeLabels(heads: readonly Head[], edge: number, font: number): Label[] {

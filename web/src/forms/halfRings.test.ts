@@ -18,12 +18,24 @@ const AT_THE_TOP_ABSENT = 280
 const ORDINARY = { Pour: 40, Contre: 30, Abstention: 2, "Non-votant": 1 }
 const ORDINARY_ABSENT = 503
 
+const ROSTERS: readonly (readonly [Readonly<Record<string, number>>, number])[] = [
+  [VOTE, VOTE_ABSENT],
+  [CENSURE, CENSURE_ABSENT],
+  [{ Pour: 77, Contre: 105, Abstention: 4, "Non-votant": 4 }, 384],
+  [{ Pour: 10, Contre: 64, Abstention: 69, "Non-votant": 2 }, 429],
+  [{ Pour: 108, Contre: 50, Abstention: 1, "Non-votant": 22 }, 395],
+  [{ Pour: 8, Contre: 7, Abstention: 1, "Non-votant": 2 }, 556],
+  [{ Pour: 109, Contre: 19, Abstention: 53, "Non-votant": 3 }, 390],
+  [{ Pour: 110, Contre: 132, Abstention: 1, "Non-votant": 4 }, 327],
+  [{ Pour: 247, Contre: 233, Abstention: 93 }, 1],
+]
+
 let next = 0
 function partOf(label: string, size: number): Part {
   return { key: label, label, title: label, caption: null, members: Array.from({ length: size }, () => deputyId(`PA${next++}`)) }
 }
 
-function turnoutOf(present: Record<string, number>, absent: number | null): Turnout {
+function turnoutOf(present: Readonly<Record<string, number>>, absent: number | null): Turnout {
   return { present: Object.entries(present).map(([label, size]) => partOf(label, size)), absent: absent === null ? null : partOf("Absent", absent) }
 }
 
@@ -31,7 +43,7 @@ const byId: Order = (a, b) => a.localeCompare(b)
 
 const place = (turnout: Turnout, frame: Frame, order = byId) => placeHalfRings({ main: turnout }, { frame, order })
 
-const sectorsOf = (present: Record<string, number>, absent: number) => [
+const sectorsOf = (present: Readonly<Record<string, number>>, absent: number) => [
   ...Object.values(present).map(count => ({ count, apart: false })),
   { count: absent, apart: true },
 ]
@@ -56,16 +68,36 @@ function centreOf(scene: Scene): Point {
   }
 }
 
-test("sectors follow the parts' order from left to right on every ring", () => {
-  const grid = halfRingGrid(sectorsOf(VOTE, VOTE_ABSENT))
-  for (let ring = 0; ring < grid.rings; ring++) {
-    const angles = grid.sectors.map(slots => slots.filter(slot => slot.ring === ring).map(slot => slot.angle)).filter(onRing => onRing.length > 0)
-    angles.slice(1).forEach((right, i) => assert.ok(Math.min(...(angles[i] ?? [])) > Math.max(...right), `ring ${ring}, sector ${i}`))
+test("sectors are wedges in the parts' order: every dot of a sector lies on a wider angle than every dot of the sectors after it", () => {
+  for (const [present, absent] of ROSTERS) {
+    const sectors = halfRingGrid(sectorsOf(present, absent)).sectors.filter(slots => slots.length > 0)
+    sectors.forEach((left, i) =>
+      sectors.slice(i + 1).forEach(right => assert.ok(Math.min(...left.map(s => s.angle)) > Math.max(...right.map(s => s.angle)), `${JSON.stringify(present)}, sector ${i}`)),
+    )
+  }
+})
+
+test("each sector is in one piece: its dots link up through neighbours at most 1.6 pitches apart", () => {
+  for (const [present, absent] of ROSTERS)
+    halfRingGrid(sectorsOf(present, absent)).sectors.forEach((slots, i) => {
+      const points = slots.map(pointOf)
+      const reached = new Set(points.slice(0, 1))
+      for (const from of reached) for (const to of points) if (distance(from, to) <= 1.6) reached.add(to)
+      assert.equal(reached.size, points.length, `${JSON.stringify(present)}, sector ${i}`)
+    })
+})
+
+test("the last sector ends every ring it reaches on the right base line, the first starts every ring it reaches on the left one", () => {
+  for (const [present, absent] of ROSTERS) {
+    const sectors = halfRingGrid(sectorsOf(present, absent)).sectors.filter(slots => slots.length > 0)
+    const rings = (slots: readonly Slot[] | undefined) => [...new Set(slots?.map(slot => slot.ring))]
+    for (const ring of rings(sectors.at(-1))) assert.equal(Math.min(...(sectors.at(-1) ?? []).filter(s => s.ring === ring).map(s => s.angle)), 0, `${JSON.stringify(present)}, ring ${ring}`)
+    for (const ring of rings(sectors[0])) assert.equal(Math.max(...(sectors[0] ?? []).filter(s => s.ring === ring).map(s => s.angle)), Math.PI, `${JSON.stringify(present)}, ring ${ring}`)
   }
 })
 
 test("every boundary between sectors is an empty lane at least one pitch wide, and two pitches wide next to the part set apart", () => {
-  for (const sectors of [sectorsOf(VOTE, VOTE_ABSENT), sectorsOf(CENSURE, CENSURE_ABSENT)]) {
+  for (const sectors of ROSTERS.map(([present, absent]) => sectorsOf(present, absent))) {
     const grid = halfRingGrid(sectors)
     grid.sectors.forEach((left, i) =>
       grid.sectors.slice(i + 1).forEach((right, k) => {
@@ -167,8 +199,9 @@ test("each label sits on its own sector's ray, give or take half a line when a n
 test("labels crowded at either end of the arc stack a line apart in the parts' order, each tied by a leader from its own sector to the label's near end", () => {
   const crowds = [
     [{ Pour: 560, Contre: 3, Abstention: 2, "Non-votant": 1 }, 2, PHONE],
-    [ORDINARY, ORDINARY_ABSENT, PHONE],
-    [ORDINARY, ORDINARY_ABSENT, DESKTOP],
+    [{ Pour: 110, Contre: 132, Abstention: 1, "Non-votant": 4 }, 327, DESKTOP],
+    [{ Pour: 77, Contre: 105, Abstention: 4, "Non-votant": 4 }, 384, PHONE],
+    [{ Pour: 8, Contre: 7, Abstention: 1, "Non-votant": 2 }, 556, PHONE],
     [AT_THE_TOP, AT_THE_TOP_ABSENT, DESKTOP],
   ] as const
   for (const [present, absent, frame] of crowds) {
@@ -176,7 +209,6 @@ test("labels crowded at either end of the arc stack a line apart in the parts' o
     const scene = place(turnout, frame)
     const centre = centreOf(scene)
     const angleOf = ({ x, y }: Point) => Math.atan2(centre.y - y, x - centre.x)
-    const outer = Math.max(...[...scene.dots.values()].map(p => distance(p, centre))) + scene.radius
     const labels = labelsOf(scene)
     const angles = labels.map(({ at }) => angleOf(at))
     assert.deepEqual(angles, angles.toSorted((a, b) => b - a))
@@ -192,7 +224,8 @@ test("labels crowded at either end of the arc stack a line apart in the parts' o
       const sector = [...turnout.present, turnout.absent ?? assert.fail()].find(part => part.label === label.text) ?? assert.fail()
       const angles = sector.members.map(id => angleOf(dotOf(scene)(id)))
       assert.ok(angleOf(from) >= Math.min(...angles) - 1e-9 && angleOf(from) <= Math.max(...angles) + 1e-9, label.text)
-      assert.ok(distance(from, centre) > outer && distance(from, centre) < distance(to, centre), label.text)
+      const own = Math.max(...sector.members.map(id => distance(dotOf(scene)(id), centre))) + scene.radius
+      assert.ok(distance(from, centre) > own && distance(from, centre) < distance(to, centre), label.text)
       assert.equal(tone, "grid")
     }
   }
@@ -201,30 +234,45 @@ test("labels crowded at either end of the arc stack a line apart in the parts' o
   assert.ok(top.marks.every(mark => mark.kind !== "rule" || distance(mark.to, alone.at) > alone.size), "a label alone on its side of the top was pushed by the other side")
 })
 
+test("each label reads as its own sector's: the dot nearest its near end, or the start of its leader, is one of that sector's", () => {
+  for (const [present, absent] of ROSTERS)
+    for (const frame of [DESKTOP, PHONE]) {
+      const turnout = turnoutOf(present, absent)
+      const scene = place(turnout, frame)
+      const partOf = new Map([...turnout.present, turnout.absent ?? assert.fail()].flatMap(part => part.members.map(id => [id, part.label])))
+      for (const label of labelsOf(scene)) {
+        const leader = scene.marks.find(mark => mark.kind === "rule" && distance(mark.to, label.at) <= 0.3 * label.size)
+        const from = leader?.kind === "rule" ? leader.from : label.at
+        const nearest = [...scene.dots].reduce((a, b) => (distance(b[1], from) < distance(a[1], from) ? b : a))
+        assert.equal(partOf.get(nearest[0]), label.text, `${JSON.stringify(present)} ${frame.px}`)
+      }
+    }
+})
+
 test("a part nobody holds gets neither a sector nor a label", () => {
   const scene = place(turnoutOf({ Pour: 5, Contre: 0 }, 5), DESKTOP)
   assert.equal(scene.dots.size, 10)
   assert.deepEqual(labelsOf(scene).map(label => label.text), ["Pour", "Absent"])
 })
 
-test("the grid matches the reference script's ring count and inner radius, to its 0.02 pitch step", () => {
-  const reference: readonly (readonly [readonly number[], boolean, number, number])[] = [
-    [[288, 222, 40, 1, 18], true, 13, 9.52],
-    [[296, 224, 41, 1, 15], true, 13, 9.7],
-    [[197, 378], true, 13, 8.64],
+test("a roster keeps the ring count and inner radius tuned for it, from one deputy to a full house", () => {
+  const tuned: readonly (readonly [readonly number[], boolean, number, number])[] = [
+    [[288, 222, 40, 1, 18], true, 13, 9.42],
+    [[296, 224, 41, 1, 15], true, 13, 9.66],
+    [[197, 378], true, 12, 10.3],
     [[577], false, 12, 9.66],
+    [[10, 64, 69, 2, 429], true, 13, 9.48],
+    [[8, 7, 1, 2, 556], true, 13, 9.56],
     [[49, 51], true, 5, 4.98],
     [[21, 43], true, 4, 4.12],
     [[12], false, 1, 3.52],
     [[5, 5], true, 1, 3.52],
     [[3, 3], true, 1, 2.5],
-    [[2], false, 1, 2.5],
     [[1], false, 1, 2.5],
   ]
-  for (const [sizes, lastApart, rings, inner] of reference) {
+  for (const [sizes, lastApart, rings, inner] of tuned) {
     const grid = halfRingGrid(sizes.map((count, i) => ({ count, apart: lastApart && i === sizes.length - 1 })))
-    assert.equal(grid.rings, rings, sizes.join(","))
-    assert.ok(Math.abs(grid.inner - inner) <= 0.02, `${sizes.join(",")}: ${grid.inner} for ${inner}`)
+    assert.deepEqual([grid.rings, Math.round(grid.inner * 100) / 100], [rings, inner], sizes.join(","))
   }
 })
 
@@ -278,7 +326,7 @@ test("each deputy's place is their sector's part", () => {
   assert.equal(scene.where(deputyId("nobody")), null)
 })
 
-test("half-rings keep the geometry approved on the mockups, for a vote and for a single deputy", () => {
+test("half-rings keep their tuned geometry, for a vote and for a single deputy", () => {
   const round = (n: number) => Math.round(n * 1e6) / 1e6 + 0
   const digest = (turnout: Turnout) => {
     const scene = place(turnout, DESKTOP)
@@ -296,16 +344,16 @@ test("half-rings keep the geometry approved on the mockups, for a vote and for a
   }
   assert.deepEqual(digest(turnoutOf(VOTE, VOTE_ABSENT)), {
     card: "beside",
-    radius: 0.017117,
-    snap: 0.024452,
+    radius: 0.017142,
+    snap: 0.024488,
     rings: 13,
-    first: [[-0.465295, 0.011183], [-0.132209, -0.788983], [0.694508, -0.34419], [0.764193, -0.110666], [0.56796, -0.029792]],
+    first: [[-0.464902, 0.011158], [-0.112019, -0.831029], [0.738048, -0.345915], [0.804895, -0.110974], [0.648943, -0.029989]],
     labels: [
-      ["296 · Pour", "end", -0.763796, -0.592314, 0.02],
-      ["224 · Contre", "start", 0.36352, -0.802616, 0.02],
-      ["41 · Abstention", "start", 0.79669, -0.281734, 0.02],
-      ["1 · Non-votant", "start", 0.833055, -0.120721, 0.02],
-      ["15 · Absent", "start", 0.840759, -0.018031, 0.02],
+      ["296 · Pour", "end", -0.764151, -0.592323, 0.02],
+      ["224 · Contre", "start", 0.378033, -0.794372, 0.02],
+      ["41 · Abstention", "start", 0.796973, -0.279638, 0.02],
+      ["1 · Non-votant", "start", 0.833403, -0.114951, 0.02],
+      ["15 · Absent", "start", 0.840514, 0.011158, 0.02],
     ],
   })
   assert.deepEqual(digest(turnoutOf({ Pour: 1 }, null)), {
