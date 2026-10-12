@@ -8,7 +8,7 @@ import { knownDeputy } from "./data/deputyId.ts"
 import type { ColorableFeature } from "./data/features.ts"
 import type { ReadText } from "./data/source.ts"
 import { viewBoxAttribute } from "./data/viewBox.ts"
-import { fullSiteUrl, legendShown, stageInput, type Chrome } from "./embed/chrome.ts"
+import { fullSiteUrl, legendShown, stageClearance, stageInput, type Chrome } from "./embed/chrome.ts"
 import { EmbedButton } from "./embed/EmbedButton.tsx"
 import { embedCode, embedTitle } from "./embed/snippet.ts"
 import type { Order, Screen } from "./forms/form.ts"
@@ -135,7 +135,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
   const [viewSheet, onViewSheet] = useSheet()
   const svgRef = useRef<SVGSVGElement>(null)
   const searchInput = useRef<HTMLInputElement>(null)
-  const framing = useStageFrame(svgRef, screen)
+  const framing = useStageFrame(svgRef, screen, stageClearance(chrome))
   const frame = framing.kind === "fitted" ? framing.frame : null
 
   const order = useMemo(() => (settled && chosenColored ? rankThenName(chosenColored.paint, sitting) : null), [settled, chosenColored, sitting])
@@ -412,7 +412,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
 
   if (chrome.kind === "capture")
     return (
-      <div className={view.layout.form === "hemicycle" ? "app legend-beside" : "app"}>
+      <div className="app">
         <main className="stage">
           {stage}
           {legend && <div className="stage-bottom">{legend}</div>}

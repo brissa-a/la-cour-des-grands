@@ -5,7 +5,7 @@ import { deputyId } from "../data/deputyId.ts"
 import { VOTE } from "../sources/shapes.ts"
 import { HEMICYCLE, viewParams, VOTE_COLOR } from "../view/view.ts"
 import { voteId } from "../votes/voteId.ts"
-import { chromeParams, embedUrl, fullSiteUrl, legendShown, parseChrome, stageInput, type Chrome } from "./chrome.ts"
+import { chromeParams, embedUrl, fullSiteUrl, legendShown, parseChrome, stageClearance, stageInput, type Chrome } from "./chrome.ts"
 
 const GROUP: CategoryFeature = { kind: "category", key: "deputies/init.csv:group", file: "deputies/init.csv", column: "group", title: "Groupe politique", values: "g" }
 const AGE: NumberFeature = { kind: "number", key: "deputies/init.csv:age", file: "deputies/init.csv", column: "age", title: "Âge" }
@@ -45,6 +45,13 @@ test("the parameters written for a chrome read back as that chrome, and the full
 
 test("only the full site pans and zooms, the embed takes taps, and the capture takes no input", () => {
   assert.deepEqual([FULL, CLEAN, CAPTURE].map(stageInput), ["panZoom", "tap", "none"])
+})
+
+test("the capture keeps the site's side clearance around the chart and lends part of the top and bottom one to its height", () => {
+  const site = stageClearance(FULL)
+  assert.deepEqual(stageClearance(CLEAN), site)
+  assert.equal(stageClearance(CAPTURE).x, site.x)
+  assert.ok(stageClearance(CAPTURE).y < site.y)
 })
 
 test("a link out of the embed opens the full site on the same view, without the embed parameters, on the deputy when one is given", () => {

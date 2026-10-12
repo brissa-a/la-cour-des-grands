@@ -29,14 +29,12 @@ const VIEWS = [
 
 type Box = { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number }
 
-type Layout = { readonly legend: Box | null; readonly room: Box; readonly clipped: readonly string[] }
-
-const apart = (a: Box, b: Box) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top
+type Layout = { readonly legend: Box | null; readonly lines: number; readonly room: Box; readonly clipped: readonly string[] }
 
 // X crops the image to 2:1 around its middle.
 const CROPPED = (CAPTURE_SETTINGS.height - CAPTURE_SETTINGS.width / 2) / 2
 
-test("every capture keeps its legend inside the part of the image X shows, beside or under the room without covering it, and no label cut", { timeout: 120_000 }, async t => {
+test("every capture keeps its legend inside the part of the image X shows, under the room without covering it, on two lines at most, and no label cut", { timeout: 120_000 }, async t => {
   const browser = await openBrowser(LOCAL)
   t.after(() => browser.close())
   for (const search of VIEWS) {
@@ -54,14 +52,16 @@ test("every capture keeps its legend inside the part of the image X shows, besid
         }
         const legend = document.querySelector(".legend")
         const clipped = [...document.querySelectorAll(".legend li, .legend-name")].filter(element => element.scrollWidth > element.clientWidth + 1).map(element => element.textContent)
-        return { legend: legend && boxOf(legend), room: boxOf(required(".stage svg")), clipped }
+        const lines = new Set([...document.querySelectorAll(".legend li")].map(item => item.getBoundingClientRect().top)).size
+        return { legend: legend && boxOf(legend), lines, room: boxOf(required(".stage svg")), clipped }
       }),
     )
     assert.deepEqual(layout.clipped, [], search)
     if (layout.legend === null) continue
     const { legend, room } = layout
     assert.ok(legend.left >= 0 && legend.top >= CROPPED && legend.right <= CAPTURE_SETTINGS.width && legend.bottom <= CAPTURE_SETTINGS.height - CROPPED, `${search}: legend ${JSON.stringify(legend)} out of the frame`)
-    assert.ok(apart(legend, room), `${search}: legend ${JSON.stringify(legend)} over the room ${JSON.stringify(room)}`)
+    assert.ok(legend.top >= room.bottom, `${search}: legend ${JSON.stringify(legend)} not under the room ${JSON.stringify(room)}`)
+    assert.ok(layout.lines <= 2, `${search}: legend on ${layout.lines} lines`)
   }
 })
 

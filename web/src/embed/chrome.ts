@@ -1,5 +1,6 @@
 import type { DeputyId } from "../data/deputyId.ts"
 import type { LayoutChoice } from "../forms/registry.ts"
+import type { Clearance } from "../layout/freeArea.ts"
 import { sourceKey, type Source } from "../sources/shapes.ts"
 import type { Param } from "../param.ts"
 import { readsVote } from "../view/view.ts"
@@ -7,6 +8,11 @@ import { readsVote } from "../view/view.ts"
 export type Chrome = { readonly kind: "full" } | { readonly kind: "clean"; readonly title: boolean } | { readonly kind: "capture" }
 
 export type StageInput = "panZoom" | "tap" | "none"
+
+const SITE_CLEARANCE: Clearance = { x: 12, y: 12 }
+
+// The preview image keeps the side margins, which some networks round off at the corners, and lends the rest to the chart's height.
+const CAPTURE_CLEARANCE: Clearance = { x: 12, y: 4 }
 
 export function parseChrome(read: (name: string) => string | null): Chrome {
   const clean = read("clean")
@@ -64,5 +70,15 @@ export function stageInput(chrome: Chrome): StageInput {
       return "tap"
     case "capture":
       return "none"
+  }
+}
+
+export function stageClearance(chrome: Chrome): Clearance {
+  switch (chrome.kind) {
+    case "full":
+    case "clean":
+      return SITE_CLEARANCE
+    case "capture":
+      return CAPTURE_CLEARANCE
   }
 }

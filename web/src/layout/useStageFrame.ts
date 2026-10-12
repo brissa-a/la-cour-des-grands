@@ -1,14 +1,13 @@
 import { useCallback, useLayoutEffect, useState, type RefObject } from "react"
 import type { Frame, Framing, Screen } from "../forms/form.ts"
-import { freeArea } from "./freeArea.ts"
+import { freeArea, type Clearance } from "./freeArea.ts"
 
-const CLEARANCE_PX = 12
 const UNMEASURED: Framing = { kind: "unmeasured" }
 const CRAMPED: Framing = { kind: "cramped" }
 
 // Measured after every render too, before paint, so an overlay that changes with the data (the vote header) refits the
 // scene in the same frame as the data, instead of a frame later when the resize observer reports it.
-export function useStageFrame(svgRef: RefObject<SVGSVGElement | null>, screen: Screen): Framing {
+export function useStageFrame(svgRef: RefObject<SVGSVGElement | null>, screen: Screen, clearance: Clearance): Framing {
   const [framing, setFraming] = useState(UNMEASURED)
   const [svg, setSvg] = useState<SVGSVGElement | null>(null)
 
@@ -16,10 +15,10 @@ export function useStageFrame(svgRef: RefObject<SVGSVGElement | null>, screen: S
     const current = svgRef.current
     setSvg(current)
     if (!current) return
-    const frame = measureFrame(current, overlays(), screen)
+    const frame = measureFrame(current, overlays(), screen, clearance)
     const next: Framing = frame ? { kind: "fitted", frame } : CRAMPED
     setFraming(previous => (sameFraming(previous, next) ? previous : next))
-  }, [svgRef, screen])
+  }, [svgRef, screen, clearance])
 
   useLayoutEffect(measure)
 
@@ -37,8 +36,8 @@ function overlays(): Element[] {
   return [...document.querySelectorAll("[data-overlay]")]
 }
 
-function measureFrame(svg: SVGSVGElement, overlays: readonly Element[], screen: Screen): Frame | null {
-  const area = freeArea(svg.getBoundingClientRect(), overlays.map(o => o.getBoundingClientRect()), CLEARANCE_PX)
+function measureFrame(svg: SVGSVGElement, overlays: readonly Element[], screen: Screen, clearance: Clearance): Frame | null {
+  const area = freeArea(svg.getBoundingClientRect(), overlays.map(o => o.getBoundingClientRect()), clearance)
   const toScreen = svg.getScreenCTM()
   if (!area || !toScreen || toScreen.a <= 0) return null
   const toSvg = toScreen.inverse()

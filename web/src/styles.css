@@ -1295,22 +1295,20 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 /* Laid out for a 600×315 viewport captured at device scale 2. X crops the 1200×630 image to 2:1 around its middle, so the content stays inside the central 600×300. */
 [data-chrome="capture"] .app { padding: 8px 0; }
 
-/* The room is narrower than the preview, so its legend goes beside it and the room keeps the height. */
-[data-chrome="capture"] .legend-beside .stage { flex-direction: row; align-items: center; }
+[data-chrome="capture"] .stage-bottom { padding: 0 8px 6px; }
 
-[data-chrome="capture"] .legend-beside .stage-bottom { flex: none; min-width: 0; max-width: 42%; padding: 0 12px 0 0; }
+[data-chrome="capture"] .legend { padding: 6px; }
 
-[data-chrome="capture"] .legend-beside .legend:not(.legend-gradient) { flex-direction: column; flex-wrap: nowrap; align-items: stretch; overflow: hidden; }
+/* Value first, as the half rings label their sectors. */
+[data-chrome="capture"] .legend li { gap: 4px; padding: 2px 4px; white-space: nowrap; }
 
-[data-chrome="capture"] .legend-beside .legend:not(.legend-excerpt):has(> li:nth-child(7)) { display: grid; grid-template-columns: repeat(2, minmax(0, auto)); }
+[data-chrome="capture"] .legend li > .legend-count { color: var(--fg); font-weight: 500; }
 
-[data-chrome="capture"] .legend-beside .legend li { min-width: 0; white-space: nowrap; }
+[data-chrome="capture"] .legend li > .legend-name { order: 1; color: #d6d6d6; }
 
-[data-chrome="capture"] .legend-beside .legend-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.legend .legend-more { color: var(--muted); }
 
-.legend .legend-more { padding-left: 20px; color: var(--muted); }
-
-[data-chrome="capture"] .legend-beside .legend-gradient { width: 220px; }
+[data-chrome="capture"] .legend-excerpt { font-size: 11px; }
 
 [data-chrome="capture"] .legend-gradient { padding: 6px 14px; }
 

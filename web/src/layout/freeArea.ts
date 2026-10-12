@@ -1,6 +1,8 @@
 import type { Rect } from "../preview/placement.ts"
 
-export function freeArea(stage: Rect, overlays: readonly Rect[], clearance: number): Rect | null {
+export type Clearance = { readonly x: number; readonly y: number }
+
+export function freeArea(stage: Rect, overlays: readonly Rect[], clearance: Clearance): Rect | null {
   let top = stage.top
   let bottom = stage.bottom
   for (const overlay of overlays) {
@@ -11,7 +13,7 @@ export function freeArea(stage: Rect, overlays: readonly Rect[], clearance: numb
   return inset({ left: stage.left, top, right: stage.right, bottom }, clearance) ?? inset(stage, clearance)
 }
 
-function inset(rect: Rect, by: number): Rect | null {
-  const inner = { left: rect.left + by, top: rect.top + by, right: rect.right - by, bottom: rect.bottom - by }
+function inset(rect: Rect, { x, y }: Clearance): Rect | null {
+  const inner = { left: rect.left + x, top: rect.top + y, right: rect.right - x, bottom: rect.bottom - y }
   return inner.right > inner.left && inner.bottom > inner.top ? inner : null
 }
