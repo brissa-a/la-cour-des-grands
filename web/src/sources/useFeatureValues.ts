@@ -27,13 +27,16 @@ export function useFeatureValues(cache: FeatureCache, features: readonly Colorab
   return last.current
 }
 
-export function loadMissing(cache: FeatureCache, features: readonly ColorableFeature[], loaded: () => void): () => void {
+export function loadMissing(cache: FeatureCache, features: readonly ColorableFeature[], settled: () => void): () => void {
   let current = true
   for (const feature of features)
     if (!cache.peek(feature))
       cache.load(feature).then(
-        () => current && loaded(),
-        (error: unknown) => console.error(error),
+        () => current && settled(),
+        (error: unknown) => {
+          console.error(error)
+          if (current) settled()
+        },
       )
   return () => {
     current = false

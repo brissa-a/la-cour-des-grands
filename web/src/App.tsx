@@ -13,6 +13,8 @@ import { Stage } from "./layout/Stage.tsx"
 import { Legend } from "./layout/Legend.tsx"
 import { VoteHeader } from "./layout/VoteHeader.tsx"
 import { VoteLine } from "./layout/VoteLine.tsx"
+import type { MotionPreference } from "./layout/staging.ts"
+import { useDrawing } from "./layout/useDrawing.ts"
 import { useStageFrame } from "./layout/useStageFrame.ts"
 import { useStaging } from "./layout/useStaging.ts"
 import { useMediaQuery } from "./layout/useMediaQuery.ts"
@@ -59,6 +61,7 @@ const PHONE = "(max-width: 759px)"
 // Below this width the side panel and the deputy sheet together would leave the drawing under 480 px.
 const CROWDED = "(max-width: 1159px)"
 const TOUCH_ONLY = "(hover: none)"
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)"
 
 type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache: FeatureCache; initial: ParsedView; chrome: Chrome }
 
@@ -117,6 +120,8 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
   const phone = chrome.kind === "full" && narrow
   const touchOnly = useMediaQuery(TOUCH_ONLY)
   const crowded = useMediaQuery(CROWDED)
+  const motion: MotionPreference = useMediaQuery(REDUCED_MOTION) ? "reduced" : "full"
+  const [voteMissing, setVoteMissing] = useState(false)
   const sheetOpen = selected !== null
   const [side, setSide] = useState<Side>(() => besideSheet("open", sheetOpen, crowded))
   const [viewSheet, onViewSheet] = useSheet()
@@ -130,6 +135,17 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
     [view.layout, order, drawn, layoutValues, vote, seats],
   )
   const staged = useStaging(arrangement, frame, seats, drawn)
+  useDrawing(
+    {
+      vote: voteMissing ? "missing" : voteInView ? voteView.status : "none",
+      valuesFailed: featuresOf([view.color.of, ...picksOf(view.layout)]).some(cache.failed),
+      color: { wanted: chosenColored, shown: colored },
+      arrangement: { wanted: arrangement, shown: staged.arrangement },
+      measured: frame !== null,
+      motion,
+    },
+    [staged.scene, colored?.paint],
+  )
 
   useEffect(() => {
     if (chrome.kind === "full") loadOfficialPages().then(setOfficialPages, (error: unknown) => console.error(error))
@@ -146,7 +162,9 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
   }, [])
 
   useEffect(() => {
-    if (voteView.status === "missing") update(cleared(panel))
+    if (voteView.status !== "missing") return
+    update(cleared(panel))
+    setVoteMissing(true)
   }, [voteView.status])
 
   useEffect(() => setSide(current => besideSheet(current, sheetOpen, crowded)), [sheetOpen, crowded])
@@ -156,6 +174,7 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
   }, [sheetOpen, phone, onViewSheet])
 
   const update = (next: ViewState) => {
+    setVoteMissing(false)
     setPanel(next)
     writeUrl(next.view)
   }
@@ -353,6 +372,7 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
       store={preview}
       selected={ringed}
       zoomable={chrome.kind === "full"}
+      motion={motion}
       onTap={onTap}
     />
   )

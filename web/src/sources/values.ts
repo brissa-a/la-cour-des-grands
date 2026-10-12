@@ -18,23 +18,30 @@ export type FeatureValues = CategoryValues | NumberValues
 
 export type FeatureCache = {
   peek: (feature: ColorableFeature) => FeatureValues | undefined
+  failed: (feature: ColorableFeature) => boolean
   load: (feature: ColorableFeature) => Promise<FeatureValues>
 }
 
 export function createFeatureCache(store: FeatureStore): FeatureCache {
   const loaded = new Map<FeatureKey, FeatureValues>()
   const pending = new Map<FeatureKey, Promise<FeatureValues>>()
+  const failures = new Set<FeatureKey>()
   return {
     peek: feature => loaded.get(feature.key),
+    failed: feature => failures.has(feature.key),
     load: feature => {
       const known = pending.get(feature.key)
       if (known) return known
+      failures.delete(feature.key)
       const promise = loadValues(store, feature).then(values => {
         loaded.set(feature.key, values)
         return values
       })
       pending.set(feature.key, promise)
-      promise.catch(() => pending.delete(feature.key))
+      promise.catch(() => {
+        pending.delete(feature.key)
+        failures.add(feature.key)
+      })
       return promise
     },
   }

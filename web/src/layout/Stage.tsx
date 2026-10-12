@@ -4,7 +4,7 @@ import type { Scene } from "../forms/form.ts"
 import type { Point } from "../preview/placement.ts"
 import { usePreview, type Hit, type PreviewStore } from "../preview/previewStore.ts"
 import { Marks } from "./Marks.tsx"
-import { motionOf, transitionOf, type Motion } from "./staging.ts"
+import { motionOf, transitionOf, type Motion, type MotionPreference } from "./staging.ts"
 import { FixedSvg } from "./FixedSvg.tsx"
 import { PanZoomSvg, type PointerHandlers } from "./PanZoomSvg.tsx"
 
@@ -35,10 +35,11 @@ type Props = {
   store: PreviewStore
   selected: DeputyId | null
   zoomable: boolean
+  motion: MotionPreference
   onTap: (hit: Hit | null, pointerType: string) => void
 }
 
-export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlighted, showPhotos, colorOf, store, selected, zoomable, onTap }: Props) {
+export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlighted, showPhotos, colorOf, store, selected, zoomable, motion, onTap }: Props) {
   const { radius, snap } = scene
   const dotsRef = useRef<SVGGElement>(null)
   const hovered = useRef<DeputyId | null>(null)
@@ -51,11 +52,11 @@ export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlight
     return {
       placed: deputies.flatMap((deputy, index): Placed[] => {
         const point = scene.dots.get(deputy.id)
-        return point ? [{ id: deputy.id, point, motion: motionOf(index, since) }] : []
+        return point ? [{ id: deputy.id, point, motion: motionOf(index, since, motion) }] : []
       }),
-      roomMotion: motionOf(0, since),
+      roomMotion: motionOf(0, since, motion),
     }
-  }, [deputies, scene])
+  }, [deputies, scene, motion])
   const placedById = useMemo(() => new Map(placed.map(p => [p.id, p])), [placed])
 
   const shown = useRef(placedById)

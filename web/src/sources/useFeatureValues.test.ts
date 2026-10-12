@@ -37,6 +37,7 @@ test("only features not loaded yet are fetched, and a fetch that lands after the
   const landing: ((values: FeatureValues) => void)[] = []
   const cache: FeatureCache = {
     peek: feature => (feature.key === AGE.key ? ages : undefined),
+    failed: () => false,
     load: feature => {
       fetched.push(feature.key)
       return new Promise(resolve => landing.push(resolve))
@@ -52,6 +53,29 @@ test("only features not loaded yet are fetched, and a fetch that lands after the
   const movedOn = loadMissing(cache, [GROUP], () => readings++)
   movedOn()
   landing.shift()?.(groups)
+  await settled()
+  assert.equal(readings, 1)
+})
+
+test("a failed fetch is logged and asks for a new reading too, so the failure can be told, unless the view moved on", async t => {
+  const logged = t.mock.method(console, "error", () => undefined)
+  const failing: ((error: Error) => void)[] = []
+  const cache: FeatureCache = {
+    peek: () => undefined,
+    failed: () => true,
+    load: () => new Promise((_, reject) => failing.push(reject)),
+  }
+  const settled = () => new Promise(resolve => setImmediate(resolve))
+  let readings = 0
+  loadMissing(cache, [AGE], () => readings++)
+  const offline = new Error("offline")
+  failing.shift()?.(offline)
+  await settled()
+  assert.equal(readings, 1)
+  assert.deepEqual(logged.mock.calls.map(call => call.arguments), [[offline]])
+  const movedOn = loadMissing(cache, [AGE], () => readings++)
+  movedOn()
+  failing.shift()?.(new Error("offline"))
   await settled()
   assert.equal(readings, 1)
 })

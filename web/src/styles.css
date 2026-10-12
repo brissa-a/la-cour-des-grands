@@ -1,3 +1,12 @@
+@font-face {
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("@fontsource-variable/roboto/files/roboto-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   --bg: #212121;
   --panel: rgba(28, 28, 28, 0.72);
@@ -1174,12 +1183,6 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 .vote-screen-results { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom); }
 
-@media (prefers-reduced-motion: reduce) {
-  .stage, .footer, .side-panel, .deputy-panel, .deputy-panel.open, .preview-card, .preview-card.visible { transition: none; }
-
-  .sheet, .side-content { animation: none; }
-}
-
 @media (max-width: 759px) {
   .app { --side: 0px; position: fixed; inset: 0; display: flex; flex-direction: column; padding-top: 64px; }
 
@@ -1254,3 +1257,11 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 .site-link { align-self: flex-end; font-size: 11px; line-height: 14px; color: var(--muted); text-decoration: none; }
 
 .site-link:hover, .site-link:focus-visible { color: var(--cream); text-decoration: underline; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stage, .footer, .side-panel, .deputy-panel, .deputy-panel.open, .preview-card, .preview-card.visible { transition: none; }
+
+  .room, .seat-dot, .seat.highlighted .seat-dot, .vote-header, .vote-line, .preview-photo img { transition: none; }
+
+  .sheet, .side-content { animation: none; }
+}
