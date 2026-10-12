@@ -1,31 +1,15 @@
 import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
 import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
-import { loadCsv, type Row } from "./csv.ts"
+import { loadCsv } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
+import { CIVILITIES, INIT_COLUMNS, type Civility, type ConstituencyLabel, type Group, type InitRow, type Person } from "./person.ts"
 import { parseSeatRows, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS, SEATS_FILE, seatProblemWarning, type EmptySeat, type Seat } from "./seats.ts"
 import type { ReadText } from "./source.ts"
 import { parseViewBox, type ViewBox } from "./viewBox.ts"
 
-export type { DeputyId, Seat }
-
-const INIT_COLUMNS = [
-  "deputy_id", "photo", "last_name", "first_name", "civility", "birth_date", "age", "in_office",
-  "constituency", "department", "department_number", "constituency_number", "mandate_periods", "group",
-] as const
-
-type InitRow = Row<(typeof INIT_COLUMNS)[number]>
-
-const CIVILITIES = ["M.", "Mme"] as const
-
-export type Civility = (typeof CIVILITIES)[number]
-
-export type Person = Omit<InitRow, "civility"> & { civility: Civility; id: DeputyId; politicalGroup: Group }
+export type { Civility, ConstituencyLabel, DeputyId, Group, Person, Seat }
 
 export type Deputy = Person & { seat: Seat }
-
-export type ConstituencyLabel = Pick<InitRow, "department" | "department_number" | "constituency_number">
-
-export type Group = { name: string; short: string; color: string; seatCount: number }
 
 export type Background = { box: ViewBox; markup: string }
 

@@ -1,4 +1,4 @@
-export type Param = readonly [name: string, value: string | null]
+import type { Param } from "./param.ts"
 
 export function readParam(name: string): string | null {
   return new URLSearchParams(location.search).get(name)

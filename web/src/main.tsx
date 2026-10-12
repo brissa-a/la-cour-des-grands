@@ -9,7 +9,7 @@ import { markDrawing } from "./layout/useDrawing.ts"
 import { createFeatureCache } from "./sources/values.ts"
 import { DEFAULT_COLOR_FEATURE, HIDDEN_FEATURES } from "./sources/views.ts"
 import { readParam } from "./url.ts"
-import { parseView } from "./view/view.ts"
+import { defaultColoring, parseView } from "./view/view.ts"
 import "./styles.css"
 
 const chrome = parseChrome(readParam)
@@ -18,9 +18,10 @@ markDrawing("loading")
 
 const loaded = loadAssembly(readPublished).then(async assembly => {
   const features = colorableFeatures(assembly.catalog, HIDDEN_FEATURES)
-  const cache = createFeatureCache(createFeatureStore(assembly, readPublished))
-  const initial = parseView(readParam, features, DEFAULT_COLOR_FEATURE)
-  if (!initial) throw new Error(`catalog.json: no feature ${DEFAULT_COLOR_FEATURE}`)
+  const cache = createFeatureCache(createFeatureStore(assembly.initRows, readPublished))
+  const defaultColor = defaultColoring(features, DEFAULT_COLOR_FEATURE)
+  if (!defaultColor) throw new Error(`catalog.json: no feature ${DEFAULT_COLOR_FEATURE}`)
+  const initial = parseView(readParam, features, defaultColor)
   await cache.load(initial.fallback.of)
   return { assembly, features, cache, initial }
 })

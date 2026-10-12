@@ -1,17 +1,16 @@
 import { knownDeputy, type DeputyId } from "../data/deputyId.ts"
 import type { ColorableFeature } from "../data/features.ts"
+import type { ColorChoice } from "../paint/registry.ts"
+import type { Param } from "../param.ts"
 import { DEFAULT_COLOR_FEATURE } from "../sources/views.ts"
-import type { Param } from "../url.ts"
-import { parseView, viewParams, type View } from "../view/view.ts"
+import { parseView, viewParams, type Plain, type View } from "../view/view.ts"
 
 export type Shared = { readonly view: View; readonly deputy: DeputyId | null; readonly photos: boolean }
 
-export type Known = { readonly features: readonly ColorableFeature[]; readonly people: ReadonlyMap<DeputyId, unknown> }
+export type Known = { readonly features: readonly ColorableFeature[]; readonly defaultColor: Plain<ColorChoice>; readonly people: ReadonlyMap<DeputyId, unknown> }
 
 export function parseShared(read: (name: string) => string | null, known: Known): Shared {
-  const parsed = parseView(read, known.features, DEFAULT_COLOR_FEATURE)
-  if (!parsed) throw new Error(`catalog.json: no feature ${DEFAULT_COLOR_FEATURE}`)
-  return { view: parsed.view, deputy: knownDeputy(known.people, read("deputy")), photos: read("showPic") === "true" }
+  return { view: parseView(read, known.features, known.defaultColor).view, deputy: knownDeputy(known.people, read("deputy")), photos: read("showPic") === "true" }
 }
 
 export function sharedParams({ view, deputy, photos }: Shared): readonly Param[] {

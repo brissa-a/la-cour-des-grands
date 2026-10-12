@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import { loadShareData } from "./data.ts"
 import { FILES, readerOf } from "./fixture.test.ts"
-import { canonicalQuery, parseShared, type Known } from "./query.ts"
+import { canonicalQuery, type Known } from "./query.ts"
 
 const KNOWN: Known = await loadShareData(readerOf(FILES))
 
@@ -35,9 +35,4 @@ test("a canonical query is its own canonical form", () => {
     const once = canonical(search)
     assert.equal(canonical(`?${once}`), once, search)
   }
-})
-
-test("data whose features lack the default colour cannot read a link", () => {
-  const params = new URLSearchParams("")
-  assert.throws(() => parseShared(name => params.get(name), { ...KNOWN, features: KNOWN.features.filter(feature => feature.kind === "number") }), /catalog\.json: no feature deputies\/init\.csv:group/)
 })

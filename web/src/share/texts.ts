@@ -1,4 +1,4 @@
-import type { Person } from "../data/assembly.ts"
+import type { Person } from "../data/person.ts"
 import type { DeputyId } from "../data/deputyId.ts"
 import type { IsoDate } from "../data/isoDate.ts"
 import { sentenceText, summary } from "../panel/summary.ts"

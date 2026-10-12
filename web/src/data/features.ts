@@ -1,4 +1,3 @@
-import type { Assembly } from "./assembly.ts"
 import type { Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
@@ -37,9 +36,11 @@ export function colorableFeatures(catalog: Catalog, hidden: ReadonlySet<FeatureK
   )
 }
 
-export function createFeatureStore(assembly: Assembly, read: ReadText) {
-  const files = new Map<string, Promise<ReadonlyMap<DeputyId, Readonly<Record<string, string>>>>>([
-    [INIT_FILE, Promise.resolve(assembly.initRows)],
+export type InitRows = ReadonlyMap<DeputyId, Readonly<Record<string, string>>>
+
+export function createFeatureStore(initRows: InitRows, read: ReadText) {
+  const files = new Map<string, Promise<InitRows>>([
+    [INIT_FILE, Promise.resolve(initRows)],
   ])
   const tables = new Map<string, Promise<ValueRow[]>>()
 

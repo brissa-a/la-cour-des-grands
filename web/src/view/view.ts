@@ -2,7 +2,7 @@ import type { ColorableFeature, FeatureKey } from "../data/features.ts"
 import { defaultLayout, EXTRA_SLOTS, isDefaultLayout, layoutsOf, type ExtraSources, type LayoutChoice } from "../forms/registry.ts"
 import { COLORINGS, DEFAULT_PAINT, isDefaultColoring, type ColorChoice } from "../paint/registry.ts"
 import { SEAT, sourceKey, VOTE, type Source, type VoteSource } from "../sources/shapes.ts"
-import type { Param } from "../url.ts"
+import type { Param } from "../param.ts"
 import { voteId, type VoteId } from "../votes/voteId.ts"
 
 type Choice = ColorChoice | LayoutChoice
@@ -32,12 +32,6 @@ export function readsVote<C extends Choice>(choice: C): choice is ReadsVote<C> {
   return mainOf(choice).kind === "vote"
 }
 
-export function viewOf(color: ColorChoice, layout: LayoutChoice, scrutin: VoteId | null): View | null {
-  if (scrutin !== null) return viewWithScrutin(color, layout, scrutin)
-  if (readsVote(color) || readsVote(layout)) return null
-  return { scrutin, color, layout }
-}
-
 export function viewWithScrutin(color: ColorChoice, layout: LayoutChoice, scrutin: VoteId): View {
   if (readsVote(color)) return { scrutin, color, layout }
   if (readsVote(layout)) return { scrutin, color, layout }
@@ -54,11 +48,15 @@ export function colorFor(feature: ColorableFeature): Plain<ColorChoice> | null {
   return choice && !readsVote(choice) ? choice : null
 }
 
-export function parseView(read: (name: string) => string | null, features: readonly ColorableFeature[], defaultColor: FeatureKey): ParsedView | null {
+export function defaultColoring(features: readonly ColorableFeature[], key: FeatureKey): Plain<ColorChoice> | null {
+  const feature = features.find(f => f.key === key)
+  return feature ? colorFor(feature) : null
+}
+
+export function parseView(read: (name: string) => string | null, features: readonly ColorableFeature[], defaultColor: Plain<ColorChoice>): ParsedView {
   const feature = (key: string | null) => features.find(f => f.key === key)
-  const colorFeature = feature(read("color")) ?? feature(defaultColor)
-  const fallback = colorFeature && colorFor(colorFeature)
-  if (!fallback) return null
+  const colorFeature = feature(read("color"))
+  const fallback = (colorFeature && colorFor(colorFeature)) ?? defaultColor
   const asked = read("vote") ?? ""
   const scrutin = voteId(asked)
   const chart = read("chart")
@@ -70,9 +68,11 @@ export function parseView(read: (name: string) => string | null, features: reado
     }),
   )
   const layout = layoutsOf(main, extra).find(choice => choice.form === read("layout")) ?? defaultLayout(main, extra) ?? HEMICYCLE
-  const color = scrutin && (read("color") === VOTE.kind || !readsVote(layout)) ? VOTE_COLOR : fallback
-  const view = viewOf(color, layout, scrutin)
-  return view && { view, fallback, voteDropped: asked !== "" && scrutin === null }
+  const view: View =
+    scrutin === null
+      ? { scrutin, color: fallback, layout: readsVote(layout) ? HEMICYCLE : layout }
+      : viewWithScrutin(read("color") === VOTE.kind || !readsVote(layout) ? VOTE_COLOR : fallback, layout, scrutin)
+  return { view, fallback, voteDropped: asked !== "" && scrutin === null }
 }
 
 export function viewParams(view: View, defaultColor: FeatureKey): readonly Param[] {

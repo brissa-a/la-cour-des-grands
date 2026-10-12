@@ -1,6 +1,6 @@
 import type { ChosenVote } from "../panel/rows.ts"
 import { sentenceText, summary } from "../panel/summary.ts"
-import type { Param } from "../url.ts"
+import type { Param } from "../param.ts"
 import type { View } from "../view/view.ts"
 import { embedUrl } from "./chrome.ts"
 

@@ -5,7 +5,7 @@ import { SEAT, VOTE } from "../sources/shapes.ts"
 import { voteId } from "../votes/voteId.ts"
 import { choiceKey, panelRows, pressed } from "../panel/rows.ts"
 import { withParams } from "../url.ts"
-import { HEMICYCLE, mainOf, parseView, viewOf, viewParams, VOTE_COLOR, withoutScrutin, type View } from "./view.ts"
+import { defaultColoring, HEMICYCLE, mainOf, parseView, viewParams, viewWithScrutin, VOTE_COLOR, withoutScrutin, type View } from "./view.ts"
 
 const GROUP: CategoryFeature = { kind: "category", key: "deputies/init.csv:group", file: "deputies/init.csv", column: "group", title: "Groupe politique", values: "g" }
 const CIVILITY: CategoryFeature = { kind: "category", key: "deputies/init.csv:civility", file: "deputies/init.csv", column: "civility", title: "Civilité", values: "c" }
@@ -33,11 +33,11 @@ export const impossible: readonly View[] = [
   { scrutin: SCRUTIN, color: VOTE_COLOR, layout: { form: "halfRings", picks: { main: CIVILITY } } },
 ]
 
+const BY_GROUP = defaultColoring(FEATURES, GROUP.key) ?? assert.fail("the group colouring")
+
 function parse(search: string) {
   const params = new URLSearchParams(search)
-  const parsed = parseView(name => params.get(name), FEATURES, GROUP.key)
-  assert.ok(parsed, search)
-  return parsed
+  return parseView(name => params.get(name), FEATURES, BY_GROUP)
 }
 
 function written(view: View, search = ""): string {
@@ -85,8 +85,7 @@ const LAYOUT_OFFERS = OFFERS.flatMap(row => row.layout)
 test("every view the panel's glyphs give survives a round trip through the link", () => {
   for (const color of COLOR_OFFERS)
     for (const layout of LAYOUT_OFFERS) {
-      const view = viewOf(color.choice, layout.choice, SCRUTIN)
-      assert.ok(view)
+      const view = viewWithScrutin(color.choice, layout.choice, SCRUTIN)
       assert.deepEqual(parse(`?${written(view)}`).view, view, `${choiceKey(color.choice)} × ${choiceKey(layout.choice)}`)
     }
 })
@@ -98,10 +97,8 @@ test("a vote drawn in half-rings keeps its link: the form is read back from it a
   assert.equal(written(view), link)
 })
 
-test("a view drops a scrutin that no channel shows and refuses a vote without one", () => {
-  assert.equal(viewOf({ paint: "palette", of: GROUP }, HEMICYCLE, SCRUTIN)?.scrutin, null)
-  assert.equal(viewOf(VOTE_COLOR, HEMICYCLE, null), null)
-  assert.equal(viewOf({ paint: "palette", of: GROUP }, { form: "columns", picks: { main: VOTE } }, null), null)
+test("a view drops a scrutin that no channel shows", () => {
+  assert.deepEqual(viewWithScrutin({ paint: "palette", of: GROUP }, HEMICYCLE, SCRUTIN), { scrutin: null, color: { paint: "palette", of: GROUP }, layout: HEMICYCLE })
 })
 
 test("leaving the scrutin out keeps the channels that do not read it and puts back the fallback colour and the hemicycle", () => {
@@ -116,8 +113,7 @@ test("each glyph of the panel stands for its own choice, and the view it gives p
   assert.equal(new Set(keys).size, keys.length)
   for (const color of COLOR_OFFERS)
     for (const layout of LAYOUT_OFFERS) {
-      const view = viewOf(color.choice, layout.choice, SCRUTIN)
-      assert.ok(view)
+      const view = viewWithScrutin(color.choice, layout.choice, SCRUTIN)
       assert.deepEqual(COLOR_OFFERS.filter(offer => pressed(view, offer)), [color])
       assert.deepEqual(LAYOUT_OFFERS.filter(offer => pressed(view, offer)), [layout])
     }

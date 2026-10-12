@@ -30,3 +30,9 @@ test("a data file the reader cannot give fails the load with that file's path", 
     await assert.rejects(loadShareData(readerOf(files)), new RegExp(`^Error: ${missing}`), missing)
   }
 })
+
+test("a catalogue without the default colour feature fails the load, so the service keeps the version it has", async () => {
+  const catalog: unknown = JSON.parse(FILES["catalog.json"] ?? "")
+  const withoutGroup = JSON.stringify(catalog).replace('"column":"group"', '"column":"party"')
+  await assert.rejects(loadShareData(readerOf({ ...FILES, "catalog.json": withoutGroup })), /^Error: catalog\.json: no feature deputies\/init\.csv:group$/)
+})

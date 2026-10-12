@@ -1,4 +1,4 @@
-import type { Civility, ConstituencyLabel, Person } from "../data/assembly.ts"
+import type { Civility, ConstituencyLabel, Person } from "../data/person.ts"
 
 export const numberFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 })
 

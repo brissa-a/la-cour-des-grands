@@ -1,7 +1,7 @@
 import type { DeputyId } from "../data/deputyId.ts"
 import type { LayoutChoice } from "../forms/registry.ts"
 import { sourceKey, type Source } from "../sources/shapes.ts"
-import type { Param } from "../url.ts"
+import type { Param } from "../param.ts"
 import { readsVote } from "../view/view.ts"
 
 export type Chrome = { readonly kind: "full" } | { readonly kind: "clean"; readonly title: boolean } | { readonly kind: "capture" }
