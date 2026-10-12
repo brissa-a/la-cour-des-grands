@@ -254,16 +254,16 @@ test("a crawler's page draws its image ahead only on an idle render slot, never 
   assert.deepEqual([stuck.renders.map(({ query }) => query), stuck.queue.running(), stuck.queue.waiting()], [["deputy=PA720614"], 1, 0])
 })
 
-test("one client, as Traefik names it in X-Real-Ip, holds at most its quota of renders and gets the generic image past it, while others still queue", async () => {
+test("one client, as Traefik names it in X-Real-Ip, waits past its share behind other clients, and gets the generic image when its turn comes too late", async () => {
   const stuck = await startService({ behaviour: "hang", limits: { ...LIMITS, perClient: 1 }, waitMs: 100 })
   const [first, second, third] = await Promise.all(["deputy=PA720614", "deputy=PA720892", "vote=VTANR5L17V1&color=vote"].map(search => imagePathOf(stuck.port, search)))
   const asking = raw(stuck.port, first ?? "", "GET", { "x-real-ip": "203.0.113.7" })
   await settle()
-  const refused = await raw(stuck.port, second ?? "", "GET", { "x-real-ip": "203.0.113.7" })
-  assert.deepEqual([refused.status, refused.headers["cache-control"], refused.body.toString()], [200, "public, max-age=60", "generic image"])
+  const late = await raw(stuck.port, second ?? "", "GET", { "x-real-ip": "203.0.113.7" })
+  assert.deepEqual([late.status, late.headers["cache-control"], late.body.toString()], [200, "public, max-age=60", "generic image"])
   void raw(stuck.port, third ?? "", "GET", { "x-real-ip": "198.51.100.1" })
   await settle()
-  assert.deepEqual([stuck.queue.running(), stuck.queue.waiting()], [1, 1])
+  assert.deepEqual([stuck.queue.running(), stuck.queue.waiting(), stuck.queue.clients()], [1, 2, 2])
   await asking
 })
 

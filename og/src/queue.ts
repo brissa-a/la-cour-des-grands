@@ -23,7 +23,7 @@ const BUSY = { kind: "busy" } as const
 
 export function renderQueue<T>({ concurrency, capacity, perClient, timeoutMs }: QueueLimits): RenderQueue<T> {
   const inFlight = new Map<string, Promise<Outcome<T>>>()
-  const waiting: (() => void)[] = []
+  const lines: Readonly<Record<"fair" | "surplus", (() => void)[]>> = { fair: [], surplus: [] }
   const held = new Map<ClientId, number>()
   let running = 0
 
@@ -49,37 +49,44 @@ export function renderQueue<T>({ concurrency, capacity, perClient, timeoutMs }: 
     })
   }
 
-  function admitted(client: ClientId, admission: Admission): boolean {
-    if ((held.get(client) ?? 0) >= perClient) return false
-    if (running < concurrency) return true
-    return admission === "wait" && waiting.length < capacity
+  // Surplus renders start only when no fair one waits, so ahead of a newcomer one client never has more than perClient renders, its running ones included.
+  function lineFor(client: ClientId, admission: Admission): "now" | "fair" | "surplus" | null {
+    if (running < concurrency) return "now"
+    if (admission === "idleOnly") return null
+    const line = (held.get(client) ?? 0) < perClient ? "fair" : "surplus"
+    return lines[line].length < capacity ? line : null
   }
 
   return {
     run: (key, client, admission, job) => {
       const joined = inFlight.get(key)
       if (joined !== undefined) return joined
-      if (!admitted(client, admission)) return Promise.resolve(BUSY)
-      hold(client, 1)
+      const line = lineFor(client, admission)
+      if (line === null) return Promise.resolve(BUSY)
       const outcome = new Promise<Outcome<T>>(resolve => {
         const start = () => {
           running += 1
+          if (line !== "fair") hold(client, 1)
           void execute(job).then(result => {
             running -= 1
             hold(client, -1)
             inFlight.delete(key)
             resolve(result)
-            waiting.shift()?.()
+            const next = lines.fair.shift() ?? lines.surplus.shift()
+            next?.()
           })
         }
-        if (running < concurrency) start()
-        else waiting.push(start)
+        if (line === "now") start()
+        else {
+          if (line === "fair") hold(client, 1)
+          lines[line].push(start)
+        }
       })
       inFlight.set(key, outcome)
       return outcome
     },
     running: () => running,
-    waiting: () => waiting.length,
+    waiting: () => lines.fair.length + lines.surplus.length,
     clients: () => held.size,
   }
 }

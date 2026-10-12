@@ -100,25 +100,60 @@ test("a requester who cannot wait longer gets late, and one whose render ends in
   assert.deepEqual(await promise, { kind: "done", value: "late jpeg" })
 })
 
-test("one client holds at most its quota of renders, running or waiting, so it cannot fill the queue; joining a render already asked costs nothing", async () => {
-  const queue = renderQueue<string>({ concurrency: 2, capacity: 12, perClient: 2, timeoutMs: 12_000 })
+function named(): { readonly ask: (key: string) => Job<string>; readonly order: string[]; readonly started: Pending[] } {
   const { job, started } = controlled()
-  const first = queue.run("a", ALICE, "wait", job)
-  void queue.run("b", ALICE, "wait", job)
-  assert.deepEqual(await queue.run("c", ALICE, "wait", job), { kind: "busy" })
-  assert.equal(queue.run("a", BOB, "wait", job), first)
-  void queue.run("c", BOB, "wait", job)
-  assert.deepEqual([started.length, queue.running(), queue.waiting()], [2, 2, 1])
-  started[0]?.finish("a")
-  await first
-  await flush()
-  void queue.run("d", ALICE, "wait", job)
-  assert.deepEqual([queue.running(), queue.waiting(), queue.clients()], [2, 1, 2])
-  for (const index of [1, 2, 3]) {
+  const order: string[] = []
+  return {
+    order,
+    started,
+    ask: key => signal => {
+      order.push(key)
+      return job(signal)
+    },
+  }
+}
+
+async function finishInTurn(started: Pending[], from: number, count: number): Promise<void> {
+  for (let index = from; index < from + count; index += 1) {
     started[index]?.finish("done")
     await flush()
   }
-  assert.deepEqual([queue.running(), queue.clients()], [0, 0])
+}
+
+test("past its share, a client's renders wait behind every other client's, its running renders counted in the share", async () => {
+  const queue = renderQueue<string>({ concurrency: 1, capacity: 4, perClient: 1, timeoutMs: 12_000 })
+  const { ask, order, started } = named()
+  const first = queue.run("a", ALICE, "wait", ask("a"))
+  void queue.run("b", BOB, "wait", ask("b"))
+  void queue.run("c", ALICE, "wait", ask("c"))
+  assert.equal(queue.run("a", BOB, "wait", ask("a")), first)
+  assert.deepEqual([queue.running(), queue.waiting(), queue.clients()], [1, 2, 2])
+  started[0]?.finish("a")
+  await first
+  await flush()
+  void queue.run("d", ALICE, "wait", ask("d"))
+  await finishInTurn(started, 1, 2)
+  assert.deepEqual(order, ["a", "b", "d", "c"])
+  void queue.run("e", BOB, "wait", ask("e"))
+  void queue.run("f", ALICE, "wait", ask("f"))
+  await finishInTurn(started, 3, 3)
+  assert.deepEqual(order, ["a", "b", "d", "c", "e", "f"])
+  assert.deepEqual([queue.running(), queue.waiting(), queue.clients()], [0, 0, 0])
+})
+
+test("a burst from one client is queued whole while its line has room, and a full surplus line still lets other clients in", async () => {
+  const queue = renderQueue<string>({ concurrency: 2, capacity: 4, perClient: 2, timeoutMs: 12_000 })
+  const { ask, order, started } = named()
+  const burst = ["k1", "k2", "k3", "k4", "k5", "k6"].map(key => queue.run(key, ALICE, "wait", ask(key)))
+  assert.deepEqual(await queue.run("k7", ALICE, "wait", ask("k7")), { kind: "busy" })
+  const other = queue.run("b", BOB, "wait", ask("b"))
+  assert.deepEqual([queue.running(), queue.waiting()], [2, 5])
+  await finishInTurn(started, 0, 7)
+  assert.deepEqual(order, ["k1", "k2", "b", "k3", "k4", "k5", "k6"])
+  assert.deepEqual(
+    (await Promise.all([...burst, other])).map(({ kind }) => kind),
+    Array.from({ length: 7 }, () => "done"),
+  )
 })
 
 test("a render asked only if a slot is idle starts at once when one is, and is refused rather than queued when none is", async () => {
