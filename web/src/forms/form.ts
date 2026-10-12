@@ -9,6 +9,9 @@ export const NO_HOLLOW: ReadonlySet<DeputyId> = new Set()
 
 export type Screen = "desktop" | "phone"
 
+// From the approved mockups: the outcome at the heart of the arc is 26/21 of the half rings' counts.
+export const HUB_PX: Readonly<Record<Screen, number>> = { desktop: 26, phone: 17 }
+
 export type Frame = { readonly area: Rect; readonly px: number; readonly screen: Screen }
 
 export type Order = (a: DeputyId, b: DeputyId) => number
@@ -46,6 +49,8 @@ export type Mark =
       readonly lay: Lay
     }
 
+export type Hub = { readonly box: Rect; readonly size: number }
+
 export type Where = { readonly kind: "part"; readonly part: Part; readonly within: string } | { readonly kind: "seat"; readonly number: string }
 
 export type Scene = {
@@ -55,6 +60,7 @@ export type Scene = {
   readonly dots: ReadonlyMap<DeputyId, Point>
   readonly hollow: ReadonlySet<DeputyId>
   readonly marks: readonly Mark[]
+  readonly hub: Hub | null
   readonly lines: readonly (readonly DeputyId[])[]
   readonly where: (id: DeputyId) => Where | null
 }

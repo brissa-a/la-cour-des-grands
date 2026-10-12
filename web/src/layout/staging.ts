@@ -20,7 +20,7 @@ const STANDARD = "cubic-bezier(0.4, 0, 0.2, 1)"
 const DECELERATE = "cubic-bezier(0, 0, 0.2, 1)"
 const INSTANT: Motion = { delay: 0, duration: 0, easing: STANDARD }
 
-const UNMEASURED: Scene = { card: "beside", radius: DOT_RADIUS, snap: 0, dots: new Map(), hollow: NO_HOLLOW, marks: [], lines: [], where: () => null }
+const UNMEASURED: Scene = { card: "beside", radius: DOT_RADIUS, snap: 0, dots: new Map(), hollow: NO_HOLLOW, marks: [], hub: null, lines: [], where: () => null }
 
 // Before the stage is measured the room places nobody, or its dots would fly in from an unfitted room to the fitted one.
 export function roomStaging(reading: Reading<"seat">, frame: Frame | null): Staging {

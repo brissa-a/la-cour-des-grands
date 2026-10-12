@@ -1,6 +1,6 @@
 import { useRef } from "react"
-import type { Mark } from "../forms/form.ts"
-import { RULE_CLASS, labelAttributes, nameAttributes, roomAttributes, type RoomMark } from "./markAttributes.ts"
+import type { Hub, Mark } from "../forms/form.ts"
+import { RULE_CLASS, captionIn, labelAttributes, nameAttributes, roomAttributes, type RoomMark } from "./markAttributes.ts"
 import { transitionOf, type Motion } from "./staging.ts"
 
 type Props = { marks: readonly Mark[]; scale: number; motion: Motion }
@@ -63,6 +63,15 @@ function Label({ mark }: { mark: Extract<Mark, { kind: "label" }> }) {
       <title>{title}</title>
       <tspan className="chart-count">{count}</tspan>
       {name ? <tspan {...name}>{text}</tspan> : ` ${text}`}
+    </text>
+  )
+}
+
+export function HubCaption({ hub, text }: { hub: Hub; text: string }) {
+  const { at, size } = captionIn(hub, text)
+  return (
+    <text className="hub-caption" x={at.x} y={at.y} textAnchor="middle" dominantBaseline="central" style={{ fontSize: size }}>
+      {text}
     </text>
   )
 }

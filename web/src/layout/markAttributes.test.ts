@@ -4,9 +4,10 @@ import { test } from "node:test"
 import { deputyId } from "../data/deputyId.ts"
 import { parseViewBox } from "../data/viewBox.ts"
 import { placeHemicycle } from "../forms/hemicycle.ts"
+import { textEm } from "../forms/text.ts"
 import type { Point } from "../sources/shapes.ts"
 import { seatsOf } from "../sources/seats.ts"
-import { labelAttributes, nameAttributes, roomAttributes, RULE_CLASS, type RoomMark } from "./markAttributes.ts"
+import { captionIn, labelAttributes, nameAttributes, roomAttributes, RULE_CLASS, type RoomMark } from "./markAttributes.ts"
 
 const AT = { x: 0.4, y: -0.2 }
 
@@ -67,4 +68,11 @@ test("the room's outline and empty seats, drawn through its fit, land on the dot
   assert.ok(near(center.x, dot.x) && near(center.y, dot.y), JSON.stringify({ center, dot }))
   assert.ok(near(outline.x, dot.x) && near(outline.y, dot.y), JSON.stringify({ outline, dot }))
   assert.ok(near(onScreen({ x: cx + r, y: cy }).x - center.x, scene.radius))
+})
+
+test("a caption sits at the centre of its hub in the hub's size, shrunk only as far as the hub's width or height needs", () => {
+  const hub = (width: number, height: number) => ({ box: { left: 1, top: 2, right: 1 + width, bottom: 2 + height }, size: 0.1 })
+  assert.deepEqual(captionIn(hub(1, 0.5), "Adopté"), { at: { x: 1.5, y: 2.25 }, size: 0.1 })
+  assert.equal(captionIn(hub(0.25, 0.5), "Adopté").size, 0.25 / textEm("Adopté"))
+  assert.equal(captionIn(hub(1, 0.0625), "Adopté").size, 0.0625 / 1.2)
 })

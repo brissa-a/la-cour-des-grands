@@ -1,4 +1,5 @@
-import type { Lay, Mark, Tone } from "../forms/form.ts"
+import type { Hub, Lay, Mark, Tone } from "../forms/form.ts"
+import { textEm } from "../forms/text.ts"
 import type { Point } from "../sources/shapes.ts"
 
 export type RoomMark = Extract<Mark, { kind: "room" }>
@@ -17,6 +18,11 @@ type TextAttributes = {
 }
 
 type NameAttributes = { readonly x?: number; readonly dx?: number; readonly dy?: number; readonly style?: { readonly fontSize: number } }
+
+export type Caption = { readonly at: Point; readonly size: number }
+
+// Room for the accents above and the descenders below a line set on its central baseline.
+const CAPTION_LINE_EM = 1.2
 
 export const RULE_CLASS: Readonly<Record<Tone, string | undefined>> = { grid: undefined, base: "chart-baseline", leader: "chart-leader" }
 
@@ -49,5 +55,12 @@ export function roomAttributes({ fit, radius }: RoomMark, scale: number): RoomAt
     fit: `translate(${fit.offset.x * scale}px, ${fit.offset.y * scale}px) scale(${fit.scale})`,
     background: `scale(${scale})`,
     seat: ({ x, y }) => ({ cx: x * scale, cy: y * scale, r: radius * scale }),
+  }
+}
+
+export function captionIn({ box, size }: Hub, text: string): Caption {
+  return {
+    at: { x: (box.left + box.right) / 2, y: (box.top + box.bottom) / 2 },
+    size: Math.min(size, (box.right - box.left) / textEm(text), (box.bottom - box.top) / CAPTION_LINE_EM),
   }
 }

@@ -65,6 +65,54 @@ test("every capture keeps its legend inside the part of the image X shows, under
   }
 })
 
+const OUTCOMES = [
+  ["vote=VTANR5L17V8427&color=vote", "Adopté"],
+  ["vote=VTANR5L17V8427&color=vote&chart=vote&layout=halfRings", "Adopté"],
+  ["vote=VTANR5L17V7979&color=vote&chart=vote&layout=halfRings", "Rejeté"],
+  ["vote=VTANR5L17V7979&color=deputies%2Finit.csv%3Agroup&deputy=PA720892", "Rejeté"],
+  ["vote=VTANR5L17V8427&chart=vote", null],
+  ["", null],
+] as const
+
+type Caption = { readonly text: string | null; readonly box: Box; readonly px: number; readonly covered: number; readonly room: Box; readonly tribune: Box | null }
+
+test("a vote's outcome stands in large type in the hollow of an arc, clear of every seat and of the tribune, and a chart without an arc or a vote has none", { timeout: 120_000 }, async t => {
+  const browser = await openBrowser(LOCAL)
+  t.after(() => browser.close())
+  for (const [search, outcome] of OUTCOMES) {
+    const { image } = canonicalView(new URLSearchParams(search), data)
+    const caption = await withCapturePage(browser, { version: SHA, query: image }, site, upstream, AbortSignal.timeout(30_000), page =>
+      page.evaluate((): Caption | null => {
+        const boxOf = (element: Element): Box => {
+          const { left, top, right, bottom } = element.getBoundingClientRect()
+          return { left, top, right, bottom }
+        }
+        const text = document.querySelector(".hub-caption")
+        const room = document.querySelector(".stage svg")
+        if (!(text instanceof SVGTextElement) || room === null) return null
+        const box = boxOf(text)
+        const covered = [...document.querySelectorAll(".seat-dot, .room:not(.hidden) .empty-seat")]
+          .map(boxOf)
+          .filter(seat => seat.left < box.right && box.left < seat.right && seat.top < box.bottom && box.top < seat.bottom).length
+        const tribune = document.querySelector(".room:not(.hidden) #tribune")
+        const px = Number.parseFloat(getComputedStyle(text).fontSize) * (text.getScreenCTM()?.a ?? 0)
+        return { text: text.textContent, box, px, covered, room: boxOf(room), tribune: tribune && boxOf(tribune) }
+      }),
+    )
+    if (outcome === null) {
+      assert.equal(caption, null, search)
+      continue
+    }
+    assert.ok(caption, `${search}: no outcome`)
+    const { text, box, px, covered, room, tribune } = caption
+    assert.equal(text, outcome, search)
+    assert.ok(px >= 15, `${search}: outcome in ${px} px`)
+    assert.equal(covered, 0, `${search}: the outcome covers ${covered} seats`)
+    assert.ok(box.left >= room.left && box.top >= room.top && box.right <= room.right && box.bottom <= room.bottom, `${search}: outcome ${JSON.stringify(box)} out of the room`)
+    if (tribune) assert.ok(box.bottom <= tribune.top, `${search}: outcome ${JSON.stringify(box)} over the tribune ${JSON.stringify(tribune)}`)
+  }
+})
+
 test("a Chromium in another container, reached through a Playwright server, draws the same image and reaches nothing the service does not answer", { timeout: 90_000 }, async () => {
   const server = spawn(process.execPath, [new URL("../node_modules/playwright-core/cli.js", import.meta.url).pathname, "run-server", "--port", "0", "--host", "127.0.0.1", "--path", "/capture"])
   try {

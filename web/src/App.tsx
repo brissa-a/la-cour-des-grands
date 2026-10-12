@@ -328,6 +328,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
   const panelDeputy = panelId === null ? undefined : (sitting.byId.get(panelId) ?? assembly.people.get(panelId))
   const panelOutOfView = panelDeputy === undefined ? null : outOfView(panelDeputy, sitting, vote)
   const colorsVote = colored.reading.source.kind === "vote"
+  const outcome = chrome.kind === "capture" && voteInView && voteView.status === "ready" ? voteView.labels.result[voteView.read.vote.result] : null
   const layoutGlyph = FORMS[staged.arrangement?.form ?? HEMICYCLE.form].glyph
   const folded = side !== "open"
   const searchingVote = phone && viewSheet.kind === "searching"
@@ -384,6 +385,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
       selected={ringed}
       input={stageInput(chrome)}
       motion={motion}
+      caption={outcome}
       onTap={onTap}
     />
   )

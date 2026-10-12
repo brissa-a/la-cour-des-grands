@@ -5,7 +5,7 @@ import type { Scene } from "../forms/form.ts"
 import type { Places } from "../forms/registry.ts"
 import type { Point } from "../preview/placement.ts"
 import { usePreview, type Hit, type PreviewStore } from "../preview/previewStore.ts"
-import { Marks } from "./Marks.tsx"
+import { HubCaption, Marks } from "./Marks.tsx"
 import { dotMotion, motionOf, transitionOf, waveFor, type Motion, type MotionPreference, type Wave } from "./staging.ts"
 import { FixedSvg } from "./FixedSvg.tsx"
 import { PanZoomSvg, type PointerHandlers } from "./PanZoomSvg.tsx"
@@ -39,10 +39,11 @@ type Props = {
   selected: DeputyId | null
   input: StageInput
   motion: MotionPreference
+  caption: string | null
   onTap: (hit: Hit | null, pointerType: string) => void
 }
 
-export function Stage({ svgRef, viewBox, deputies, scene, places, highlighted, showPhotos, colorOf, store, selected, input, motion, onTap }: Props) {
+export function Stage({ svgRef, viewBox, deputies, scene, places, highlighted, showPhotos, colorOf, store, selected, input, motion, caption, onTap }: Props) {
   const { radius, snap } = scene
   const dotsRef = useRef<SVGGElement>(null)
   const hovered = useRef<DeputyId | null>(null)
@@ -169,6 +170,7 @@ export function Stage({ svgRef, viewBox, deputies, scene, places, highlighted, s
         </clipPath>
       </defs>
       <Marks marks={scene.marks} scale={DOT_SCALE} motion={roomMotion} />
+      {caption !== null && scene.hub && <HubCaption hub={scene.hub} text={caption} />}
       <g ref={dotsRef} transform={`scale(${1 / DOT_SCALE})`}>
         {deputies.map(deputy => {
           const p = placedById.get(deputy.id)

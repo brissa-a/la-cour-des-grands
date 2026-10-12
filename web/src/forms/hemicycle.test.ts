@@ -42,15 +42,26 @@ test("seats on the bottom row step along their own wing", () => {
 
 const BOX = parseViewBox("-3 -3 4 2") ?? assert.fail("viewBox")
 
-test("the hemicycle fits its room's box to the free area, filling the tighter side and centred on the other, room and empty seats through the same fit", () => {
+test("the hemicycle fits its room's box to the free area, filling the tighter side and centred on the other, room, empty seats and hub through the same fit", () => {
   const empty = { number: "2", x: 0.1, y: -2.5 }
   const seats = seatsOf({ deputies: [{ id: id("a"), seat: { number: "1", x: -0.5, y: -1.5 } }], emptySeats: [empty] }, { box: BOX, markup: "<path/>" })
   const wide = placeHemicycle({ main: seats }, over({ left: 1, top: 1, right: 17, bottom: 5 }))
   assert.deepEqual(wide.dots.get(id("a")), { x: 10, y: 4 })
   assert.deepEqual(wide.marks, [{ kind: "room", room: "<path/>", empty: [empty], radius: 0.019, fit: { scale: 2, offset: { x: 11, y: 7 } } }])
   assert.deepEqual(wide.where(id("a")), { kind: "seat", number: "1" })
+  const own = placeHemicycle({ main: seats }, over({ left: -3, top: -3, right: 1, bottom: -1 })).hub ?? assert.fail("no hub")
+  assert.deepEqual(wide.hub, { box: { left: 11 + 2 * own.box.left, top: 7 + 2 * own.box.top, right: 11 + 2 * own.box.right, bottom: 7 + 2 * own.box.bottom }, size: 26 * 0.002 })
   const tall = placeHemicycle({ main: seats }, over({ left: 1, top: 1, right: 5, bottom: 17 }))
   assert.deepEqual(tall.dots.get(id("a")), { x: 3.5, y: 9.5 })
+})
+
+test("the hub is centred on the room's axis, inside its box and above its base line, where the tribune stands", () => {
+  const box = parseViewBox("-1.1 -1.1 2.2 1.5") ?? assert.fail("viewBox")
+  const seats = seatsOf({ deputies: [], emptySeats: [] }, { box, markup: "" })
+  const { hub } = placeHemicycle({ main: seats }, over({ left: -1.1, top: -1.1, right: 1.1, bottom: 0.4 }))
+  assert.ok(hub)
+  assert.equal(hub.box.left, -hub.box.right)
+  assert.ok(hub.box.left >= box.x && hub.box.top >= box.y && hub.box.left < hub.box.right && hub.box.top < hub.box.bottom && hub.box.bottom < 0, JSON.stringify(hub.box))
 })
 
 test("hemicycle dots and their pointer reach keep the size tuned at the room's own scale, and scale with the fit", () => {

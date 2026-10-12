@@ -173,6 +173,23 @@ test("each sector is headed by its count then its label, in the parts' order, cl
     }
 })
 
+test("the hub is the hole at the heart of the arc, standing on its base line and clear of every dot, and holds the outcome at 26/21 of the counts", () => {
+  for (const [present, absent] of ROSTERS)
+    for (const frame of [DESKTOP, PHONE]) {
+      const scene = place(turnoutOf(present, absent), frame)
+      const { box, size } = scene.hub ?? assert.fail("no hub")
+      const centre = centreOf(scene)
+      assert.ok(Math.abs((box.left + box.right) / 2 - centre.x) < 1e-6 && Math.abs(box.bottom - centre.y) < 1e-6, JSON.stringify({ box, centre }))
+      for (const dot of scene.dots.values()) {
+        const nearest = { x: Math.min(Math.max(dot.x, box.left), box.right), y: Math.min(Math.max(dot.y, box.top), box.bottom) }
+        assert.ok(distance(nearest, dot) >= scene.radius, `${JSON.stringify(present)}: the hub covers a dot`)
+      }
+      const count = labelsOf(scene)[0]?.size ?? assert.fail("no label")
+      assert.ok(Math.abs(size / count - 26 / 21) < 0.03, `${size / count}`)
+      assert.ok(textEm("Adopté") * size <= box.right - box.left && 1.2 * size <= box.bottom - box.top, `${JSON.stringify(present)}: the outcome does not fit`)
+    }
+})
+
 test("a sector label sets its count then its name in the mockups' sizes and gap: 21, 15 and 5.88 px on a desktop, 14, 12 and 3.92 px on a phone", () => {
   for (const [frame, pixels] of [[DESKTOP, [21, 15, 5.88]], [PHONE, [14, 12, 3.92]]] as const)
     for (const { size, lay } of labelsOf(place(turnoutOf(VOTE, VOTE_ABSENT), frame))) {

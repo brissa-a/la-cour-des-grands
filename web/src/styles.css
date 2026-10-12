@@ -1314,6 +1314,8 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 [data-chrome="capture"] .gradient-bar { margin: 4px 0 16px; }
 
+.hub-caption { fill: var(--fg); font-weight: 500; }
+
 [data-chrome="capture"] .ring.selected .ring-outer { stroke-width: 0.45; transform: scale(1.9); transform-box: fill-box; transform-origin: center; }
 
 .site-link { align-self: flex-end; font-size: 11px; line-height: 14px; color: var(--muted); text-decoration: none; }

@@ -117,6 +117,7 @@ export function placeColumns({ main }: { readonly main: Parts }, { frame, order 
     dots,
     hollow: NO_HOLLOW,
     marks,
+    hub: null,
     lines: [...byRow.values()],
     where: id => {
       const part = partOf.get(id)

@@ -221,7 +221,7 @@ export const probes = [
   // @ts-expect-error a form computed from values that also takes the seats, to draw the room
   defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal", "seats"] }, ordered: true, place: () => placed(null) }),
   // @ts-expect-error a scene without reading lines
-  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, ordered: true, place: () => ({ card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], where: () => null }) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, ordered: true, place: () => ({ card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], hub: null, where: () => null }) }),
   // @ts-expect-error a second slot read in a shape it does not take
   defineForm({ label: "x", glyph: GLYPH, slots: { main: ["numbers"], y: ["numbers"] }, ordered: true, place: ({ main, y }: { main: Numbers; y: Parts }) => placed([main, y]) }),
   // @ts-expect-error a form that declares its places free of the order reads the order
@@ -239,5 +239,5 @@ export const choosers: readonly unknown[] = [
 
 function placed(input: unknown): Scene {
   void input
-  return { card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], lines: [], where: () => null }
+  return { card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], hub: null, lines: [], where: () => null }
 }

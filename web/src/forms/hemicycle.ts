@@ -3,10 +3,12 @@ import type { ViewBox } from "../data/viewBox.ts"
 import { dots, type Glyph } from "../glyph/glyph.ts"
 import type { Rect } from "../preview/placement.ts"
 import type { Point, Seats } from "../sources/shapes.ts"
-import { DOT_RADIUS, NO_HOLLOW, type Fit, type FormSpec, type Framed, type Scene } from "./form.ts"
+import { DOT_RADIUS, HUB_PX, NO_HOLLOW, type Fit, type FormSpec, type Framed, type Scene } from "./form.ts"
 
 const SNAP = 0.6 * 2.75 * DOT_RADIUS
 const ROW_TOLERANCE = 0.025
+// The hollow of seats/hemicycle.svg above its tribune and below the innermost seats, in the room's units.
+const HUB: Rect = { left: -0.19, top: -0.25, right: 0.19, bottom: -0.13 }
 
 export function placeHemicycle({ main: seats }: { readonly main: Seats }, { frame }: Framed): Scene {
   const fit = fitted(seats.box, frame.area)
@@ -18,6 +20,10 @@ export function placeHemicycle({ main: seats }: { readonly main: Seats }, { fram
     dots: new Map(Array.from(seats.seatOf, ([id, { x, y }]) => [id, { x: offset.x + scale * x, y: offset.y + scale * y }])),
     hollow: NO_HOLLOW,
     marks: [{ kind: "room", room: seats.room, empty: seats.empty, radius: DOT_RADIUS, fit }],
+    hub: {
+      box: { left: offset.x + scale * HUB.left, top: offset.y + scale * HUB.top, right: offset.x + scale * HUB.right, bottom: offset.y + scale * HUB.bottom },
+      size: HUB_PX[frame.screen] * frame.px,
+    },
     lines: rows(seats.seatOf),
     where: id => {
       const seat = seats.seatOf.get(id)

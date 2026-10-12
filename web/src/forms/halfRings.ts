@@ -1,6 +1,6 @@
 import type { DeputyId } from "../data/deputyId.ts"
 import type { Part, Point, Turnout } from "../sources/shapes.ts"
-import { defineForm, DOT_RADIUS, type Anchor, type Lay, type Mark, type Order, type Scene, type Screen, type Target } from "./form.ts"
+import { defineForm, DOT_RADIUS, HUB_PX, type Anchor, type Hub, type Lay, type Mark, type Order, type Scene, type Screen, type Target } from "./form.ts"
 import { textEm } from "./text.ts"
 
 const DOT_PITCHES = 0.42
@@ -25,6 +25,9 @@ const GAP_EM = 0.5
 const STACK_EM = 0.2
 const LEADER_EM = 0.5
 const LEADER_INSET_EM = 0.25
+// The hub spans the chord of the hole at this angle off the base line: a box about three times as wide as tall, the shape of one word.
+const HUB_ANGLE = (33 * Math.PI) / 180
+const HUB_INSET_PITCHES = 1
 
 export type Sector = { readonly count: number; readonly apart: boolean }
 
@@ -129,6 +132,12 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
     return [{ kind: "rule", from, to, tone: "leader" }, text]
   })
 
+  const hole = (grid.inner - HUB_INSET_PITCHES) * pitch
+  const hub: Hub = {
+    box: { left: cx - hole * Math.cos(HUB_ANGLE), top: cy - hole * Math.sin(HUB_ANGLE), right: cx + hole * Math.cos(HUB_ANGLE), bottom: cy },
+    size: HUB_PX[screen] * px,
+  }
+
   return {
     card: "beside",
     radius: radiusAt(pitch),
@@ -136,6 +145,7 @@ export function placeHalfRings({ main }: { readonly main: Turnout }, { frame, or
     dots,
     hollow: new Set(sectors.flatMap(({ apart, members }) => (apart ? members : []))),
     marks,
+    hub,
     lines: rings,
     where: id => {
       const part = partOf.get(id)
