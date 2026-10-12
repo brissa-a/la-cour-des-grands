@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client"
 import { App } from "./App.tsx"
 import { loadAssembly } from "./data/assembly.ts"
 import { colorableFeatures, createFeatureStore } from "./data/features.ts"
+import { readPublished } from "./data/published.ts"
 import { parseChrome } from "./embed/chrome.ts"
 import { markDrawing } from "./layout/useDrawing.ts"
 import { createFeatureCache } from "./sources/values.ts"
@@ -15,9 +16,9 @@ const chrome = parseChrome(readParam)
 document.documentElement.dataset.chrome = chrome.kind
 markDrawing("loading")
 
-const loaded = loadAssembly().then(async assembly => {
-  const features = colorableFeatures(assembly, HIDDEN_FEATURES)
-  const cache = createFeatureCache(createFeatureStore(assembly))
+const loaded = loadAssembly(readPublished).then(async assembly => {
+  const features = colorableFeatures(assembly.catalog, HIDDEN_FEATURES)
+  const cache = createFeatureCache(createFeatureStore(assembly, readPublished))
   const initial = parseView(readParam, features, DEFAULT_COLOR_FEATURE)
   if (!initial) throw new Error(`catalog.json: no feature ${DEFAULT_COLOR_FEATURE}`)
   await cache.load(initial.fallback.of)
@@ -25,7 +26,7 @@ const loaded = loadAssembly().then(async assembly => {
 })
 
 function Loaded({ app }: { app: typeof loaded }) {
-  return <App {...use(app)} chrome={chrome} />
+  return <App {...use(app)} chrome={chrome} read={readPublished} />
 }
 
 class LoadError extends Component<{ children: ReactNode }, { error: Error | null }> {

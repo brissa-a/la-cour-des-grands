@@ -1,4 +1,6 @@
+import { isoDate, type IsoDate } from "./isoDate.ts"
 import { isList, isRecord, type JsonRecord } from "./json.ts"
+import type { ReadText } from "./source.ts"
 
 export const CATALOG_FILE = "catalog.json"
 
@@ -17,11 +19,22 @@ export type ColumnsOf = { entity: string; feature: ColumnKind }
 
 export type CatalogFile = { file: string; entity: string; rows: number | null; features: Feature[]; columnsOf: ColumnsOf | null }
 
-export type Catalog = { files: CatalogFile[] }
+export type Catalog = { files: CatalogFile[]; generated: IsoDate | null }
+
+export async function loadCatalog(read: ReadText): Promise<Catalog> {
+  return parseCatalog(JSON.parse(await read(CATALOG_FILE)))
+}
 
 export function parseCatalog(json: unknown): Catalog {
   if (!isRecord(json) || !isList(json.files)) throw invalid("no files list")
-  return { files: json.files.map(catalogFile) }
+  return { files: json.files.map(catalogFile), generated: generatedOf(json.generated) }
+}
+
+function generatedOf(value: unknown): IsoDate | null {
+  if (value === undefined) return null
+  const date = typeof value === "string" ? isoDate(value) : null
+  if (date === null) throw invalid("generated is not a YYYY-MM-DD date")
+  return date
 }
 
 export function valuesTablePath(catalog: Catalog, file: string, column: string): string {

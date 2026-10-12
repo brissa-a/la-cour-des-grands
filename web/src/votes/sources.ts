@@ -2,6 +2,7 @@ import { memoize } from "../address/memoize.ts"
 import { columnsValuesTablePath, valuesTablePath, type Catalog } from "../data/catalog.ts"
 import { loadCsv } from "../data/csv.ts"
 import type { DeputyId } from "../data/deputyId.ts"
+import type { ReadText } from "../data/source.ts"
 import { LABEL_COLUMNS } from "./labels.ts"
 import { parseCells, parsePositionTable, type PositionRow, type PositionTable } from "./positions.ts"
 import { readVote, type VoteReading } from "./reading.ts"
@@ -15,19 +16,21 @@ export type VoteSource = {
   read: (vote: Vote) => Promise<ReadVote>
 }
 
-export function createVoteSource(catalog: Catalog, people: ReadonlyMap<DeputyId, HolderRow>): VoteSource {
-  const index = memoize(async () => {
-    const kindTable = valuesTablePath(catalog, VOTES_FILE, "kind")
-    const resultTable = valuesTablePath(catalog, VOTES_FILE, "result")
-    const [rows, kinds, results] = await Promise.all([
-      loadCsv(VOTES_FILE, VOTE_COLUMNS),
-      loadCsv(kindTable, LABEL_COLUMNS),
-      loadCsv(resultTable, LABEL_COLUMNS),
-    ])
-    return voteIndex(parseVotes(rows), parseVoteLabels(kinds, kindTable, results, resultTable))
-  })
-  const positionRows = memoize((file: string): Promise<readonly PositionRow[]> => loadCsv(file, ["deputy_id"]))
-  const positionLabels = memoize((table: string) => loadCsv(table, LABEL_COLUMNS))
+export async function loadVoteIndex(read: ReadText, catalog: Catalog): Promise<VoteIndex> {
+  const kindTable = valuesTablePath(catalog, VOTES_FILE, "kind")
+  const resultTable = valuesTablePath(catalog, VOTES_FILE, "result")
+  const [rows, kinds, results] = await Promise.all([
+    loadCsv(read, VOTES_FILE, VOTE_COLUMNS),
+    loadCsv(read, kindTable, LABEL_COLUMNS),
+    loadCsv(read, resultTable, LABEL_COLUMNS),
+  ])
+  return voteIndex(parseVotes(rows), parseVoteLabels(kinds, kindTable, results, resultTable))
+}
+
+export function createVoteSource(catalog: Catalog, people: ReadonlyMap<DeputyId, HolderRow>, read: ReadText): VoteSource {
+  const index = memoize(() => loadVoteIndex(read, catalog))
+  const positionRows = memoize((file: string): Promise<readonly PositionRow[]> => loadCsv(read, file, ["deputy_id"]))
+  const positionLabels = memoize((table: string) => loadCsv(read, table, LABEL_COLUMNS))
   let holders: readonly Holder[] | null = null
 
   return {

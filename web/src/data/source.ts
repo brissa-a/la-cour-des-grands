@@ -1,11 +1,13 @@
+export type ReadText = (path: string) => Promise<string>
+
 const DATA_BRANCH = "test-v2"
 
-const PUBLISHED_ROOT = `https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/`
+export const PUBLISHED_ROOT = `https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/`
 
-const DATA_ROOT = (import.meta.env.DEV && import.meta.env.VITE_DATA_ROOT) || PUBLISHED_ROOT
-
-export async function fetchText(path: string): Promise<string> {
-  const response = await fetch(DATA_ROOT + path)
-  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`)
-  return response.text()
+export function fetchUnder(root: string, fetcher: (url: string) => Promise<Response> = fetch): ReadText {
+  return async path => {
+    const response = await fetcher(root + path)
+    if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`)
+    return response.text()
+  }
 }

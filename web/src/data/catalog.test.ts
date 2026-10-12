@@ -15,6 +15,13 @@ test("a row count that is not a whole number of rows is rejected", () => {
   for (const rows of [-1, 12.5, "8672", null, Number.MAX_SAFE_INTEGER + 2]) assert.throws(() => parseCatalog(votes(rows)), /votes\/votes\.csv has a row count/, String(rows))
 })
 
+test("the catalog's publication day is read as a date when given, unknown when absent, and rejected when it is not a day", () => {
+  assert.equal(parseCatalog({ ...votes(1), generated: "2026-10-10" }).generated, "2026-10-10")
+  assert.equal(parseCatalog(votes(1)).generated, null)
+  for (const generated of ["2026-10-10T08:00:00Z", "2026-13-01", "10/10/2026", "", 20261010, null])
+    assert.throws(() => parseCatalog({ ...votes(1), generated }), /^Error: catalog\.json: generated is not a YYYY-MM-DD date$/, String(generated))
+})
+
 test("each file reads its features by kind, or the one kind all its columns share", () => {
   const catalog = parseCatalog({
     files: [
@@ -53,6 +60,7 @@ test("each file reads its features by kind, or the one kind all its columns shar
         columnsOf: { entity: "vote", feature: { title: "Position", type: "category", values: "votes/values/position.csv" } },
       },
     ],
+    generated: null,
   })
   assert.equal(valuesTablePath(catalog, "deputies/init.csv", "group"), "deputies/values/group.csv")
   assert.equal(columnsValuesTablePath(catalog, "votes/positions.csv"), "votes/values/position.csv")

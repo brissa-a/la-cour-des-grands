@@ -1,6 +1,8 @@
 import type { Assembly } from "./assembly.ts"
+import type { Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
+import type { ReadText } from "./source.ts"
 
 export type FeatureKey = `${string}:${string}`
 
@@ -14,14 +16,14 @@ export type ColorableFeature = CategoryFeature | NumberFeature
 
 export type ValueRow = { value: string; label: string; short: string | undefined; color: string | undefined }
 
-const INIT_FILE = "deputies/init.csv"
+export const INIT_FILE = "deputies/init.csv"
 
 export function featureKey(file: string, column: string): FeatureKey {
   return `${file}:${column}`
 }
 
-export function colorableFeatures(assembly: Assembly, hidden: ReadonlySet<FeatureKey>): ColorableFeature[] {
-  return assembly.catalog.files.flatMap(file =>
+export function colorableFeatures(catalog: Catalog, hidden: ReadonlySet<FeatureKey>): ColorableFeature[] {
+  return catalog.files.flatMap(file =>
     file.entity === "deputy"
       ? file.features.flatMap((feature): ColorableFeature[] => {
           const key = featureKey(file.file, feature.column)
@@ -35,7 +37,7 @@ export function colorableFeatures(assembly: Assembly, hidden: ReadonlySet<Featur
   )
 }
 
-export function createFeatureStore(assembly: Assembly) {
+export function createFeatureStore(assembly: Assembly, read: ReadText) {
   const files = new Map<string, Promise<ReadonlyMap<DeputyId, Readonly<Record<string, string>>>>>([
     [INIT_FILE, Promise.resolve(assembly.initRows)],
   ])
@@ -44,7 +46,7 @@ export function createFeatureStore(assembly: Assembly) {
   const fileRows = (file: string) => {
     let rows = files.get(file)
     if (!rows) {
-      rows = loadCsv(file, ["deputy_id"]).then(r => new Map(r.map(row => [deputyId(row.deputy_id), row])))
+      rows = loadCsv(read, file, ["deputy_id"]).then(r => new Map(r.map(row => [deputyId(row.deputy_id), row])))
       files.set(file, rows)
     }
     return rows
@@ -64,7 +66,7 @@ export function createFeatureStore(assembly: Assembly) {
     valuesTable(path: string): Promise<ValueRow[]> {
       let table = tables.get(path)
       if (!table) {
-        table = loadCsv(path, ["value", "label_fr"]).then(rows =>
+        table = loadCsv(read, path, ["value", "label_fr"]).then(rows =>
           rows.map((row: Row<"value" | "label_fr"> & Partial<Row<"short_fr" | "color">>) => ({
             value: row.value,
             label: row.label_fr,

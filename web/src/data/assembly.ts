@@ -1,9 +1,9 @@
 import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
-import { CATALOG_FILE, parseCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
+import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
 import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
 import { parseSeatRows, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS, SEATS_FILE, seatProblemWarning, type EmptySeat, type Seat } from "./seats.ts"
-import { fetchText } from "./source.ts"
+import type { ReadText } from "./source.ts"
 import { parseViewBox, type ViewBox } from "./viewBox.ts"
 
 export type { DeputyId, Seat }
@@ -48,14 +48,14 @@ export type Assembly = Omit<Sitting, "emptySeats"> & {
 
 const GROUP_VALUE_COLUMNS = ["value", "label_fr", "short_fr", "color"] as const
 
-export async function loadAssembly(): Promise<Assembly> {
-  const catalogLoaded = fetchText(CATALOG_FILE).then(text => parseCatalog(JSON.parse(text)))
+export async function loadAssembly(read: ReadText): Promise<Assembly> {
+  const catalogLoaded = loadCatalog(read)
   const [catalog, groupRows, rows, seatRows, svg] = await Promise.all([
     catalogLoaded,
-    catalogLoaded.then(catalog => loadCsv(valuesTablePath(catalog, "deputies/init.csv", "group"), GROUP_VALUE_COLUMNS)),
-    loadCsv("deputies/init.csv", INIT_COLUMNS),
-    loadCsv(SEATS_FILE, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS),
-    fetchText("seats/hemicycle.svg"),
+    catalogLoaded.then(catalog => loadCsv(read, valuesTablePath(catalog, "deputies/init.csv", "group"), GROUP_VALUE_COLUMNS)),
+    loadCsv(read, "deputies/init.csv", INIT_COLUMNS),
+    loadCsv(read, SEATS_FILE, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS),
+    read("seats/hemicycle.svg"),
   ])
 
   const groups = groupRows.map((r): Group => ({ name: r.value, short: r.short_fr, color: r.color, seatCount: 0 }))
@@ -128,12 +128,12 @@ function parseBackground(svg: string): Background {
   return { box, markup: root.innerHTML }
 }
 
-export async function loadOfficialPages(): Promise<ReadonlyMap<DeputyId, string>> {
-  const rows = await loadCsv("deputies/links.csv", ["deputy_id", "official_page"])
+export async function loadOfficialPages(read: ReadText): Promise<ReadonlyMap<DeputyId, string>> {
+  const rows = await loadCsv(read, "deputies/links.csv", ["deputy_id", "official_page"])
   return new Map(rows.map(r => [deputyId(r.deputy_id), r.official_page]))
 }
 
-export async function loadCommunes(): Promise<ReadonlyMap<DeputyId, string>> {
-  const rows = await loadCsv("deputies/communes.csv", ["deputy_id", "communes"])
+export async function loadCommunes(read: ReadText): Promise<ReadonlyMap<DeputyId, string>> {
+  const rows = await loadCsv(read, "deputies/communes.csv", ["deputy_id", "communes"])
   return new Map(rows.map(r => [deputyId(r.deputy_id), r.communes]))
 }

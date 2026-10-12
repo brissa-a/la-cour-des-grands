@@ -4,7 +4,9 @@ import type { Located } from "./address/lookup.ts"
 import { createLookupSources } from "./address/sources.ts"
 import { rowCount } from "./data/catalog.ts"
 import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId, type Person, type Sitting } from "./data/assembly.ts"
+import { knownDeputy } from "./data/deputyId.ts"
 import type { ColorableFeature } from "./data/features.ts"
+import type { ReadText } from "./data/source.ts"
 import { viewBoxAttribute } from "./data/viewBox.ts"
 import { fullSiteUrl, legendShown, type Chrome } from "./embed/chrome.ts"
 import { EmbedButton } from "./embed/EmbedButton.tsx"
@@ -66,10 +68,10 @@ const CROWDED = "(max-width: 1159px)"
 const TOUCH_ONLY = "(hover: none)"
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)"
 
-type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache: FeatureCache; initial: ParsedView; chrome: Chrome }
+type Props = { assembly: Assembly; features: readonly ColorableFeature[]; cache: FeatureCache; initial: ParsedView; chrome: Chrome; read: ReadText }
 
-export function App({ assembly, features, cache, initial, chrome }: Props) {
-  const votes = useMemo(() => createVoteSource(assembly.catalog, assembly.people), [assembly])
+export function App({ assembly, features, cache, initial, chrome, read }: Props) {
+  const votes = useMemo(() => createVoteSource(assembly.catalog, assembly.people, read), [assembly, read])
   const finder = useMemo(() => voteFinder(votes.index), [votes])
   const voteCount = rowCount(assembly.catalog, VOTES_FILE)
   const [panel, setPanel] = useState(() => initialState(initial))
@@ -117,7 +119,8 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
   const photos = useMemo(() => (showPhotos ? sitting.deputies.flatMap(deputy => (deputy.photo ? [deputy.photo] : [])) : NO_PHOTOS), [showPhotos, sitting])
   const [officialPages, setOfficialPages] = useState<ReadonlyMap<DeputyId, string>>(new Map())
   const [configOpen, setConfigOpen] = useState(false)
-  const lookupSources = useMemo(() => createLookupSources(assembly.catalog), [assembly])
+  const lookupSources = useMemo(() => createLookupSources(assembly.catalog, read), [assembly, read])
+  const communes = useCallback(() => loadCommunes(read), [read])
   const [addressContext, setAddressContext] = useState<Located | null>(null)
   const narrow = useMediaQuery(PHONE)
   const screen: Screen = narrow ? "phone" : "desktop"
@@ -154,8 +157,8 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
   )
 
   useEffect(() => {
-    if (chrome.kind === "full") loadOfficialPages().then(setOfficialPages, (error: unknown) => console.error(error))
-  }, [chrome])
+    if (chrome.kind === "full") loadOfficialPages(read).then(setOfficialPages, (error: unknown) => console.error(error))
+  }, [chrome, read])
 
   useEffect(() => preview.configure(previewOptions), [preview, previewOptions])
 
@@ -354,7 +357,7 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
   const search = (
     <Search
       assembly={assembly}
-      loadCommunes={loadCommunes}
+      loadCommunes={communes}
       findVotes={finder}
       lookupSources={lookupSources}
       onHalo={preview.halo}
@@ -527,8 +530,7 @@ function outOfView(person: Person, sitting: Sitting, vote: ReadVote | null): str
 }
 
 function deputyInUrl(assembly: Assembly): DeputyId | null {
-  const requested = readParam("deputy")
-  return Array.from(assembly.people.keys()).find(id => id === requested) ?? null
+  return knownDeputy(assembly.people, readParam("deputy"))
 }
 
 function isPanelHistoryEntry(state: unknown): boolean {
