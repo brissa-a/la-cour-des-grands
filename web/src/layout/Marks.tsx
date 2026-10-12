@@ -1,9 +1,7 @@
 import { useRef } from "react"
-import type { Fit, Mark } from "../forms/form.ts"
-import { RULE_CLASS, labelAttributes, nameAttributes } from "./markAttributes.ts"
+import type { Mark } from "../forms/form.ts"
+import { RULE_CLASS, labelAttributes, nameAttributes, roomAttributes, type RoomMark } from "./markAttributes.ts"
 import { transitionOf, type Motion } from "./staging.ts"
-
-type RoomMark = Extract<Mark, { kind: "room" }>
 
 type Props = { marks: readonly Mark[]; scale: number; motion: Motion }
 
@@ -13,14 +11,15 @@ export function Marks({ marks, scale, motion }: Props) {
   if (room) lastRoom.current = room
   const drawnRoom = room ?? lastRoom.current
   const axes = marks.filter(mark => mark.kind !== "room")
+  const drawn = drawnRoom && roomAttributes(drawnRoom, scale)
   return (
     <>
-      {drawnRoom && (
-        <g className={room ? "room" : "room hidden"} transform={`scale(${1 / scale})`}>
-          <g className="room-fit" style={{ transform: fitTransform(drawnRoom.fit, scale), ...transitionOf(motion) }}>
-            <g className="hemicycle-background" transform={`scale(${scale})`} dangerouslySetInnerHTML={{ __html: drawnRoom.room }} />
+      {drawnRoom && drawn && (
+        <g className={room ? "room" : "room hidden"} transform={drawn.room}>
+          <g className="room-fit" style={{ transform: drawn.fit, ...transitionOf(motion) }}>
+            <g className="hemicycle-background" transform={drawn.background} dangerouslySetInnerHTML={{ __html: drawnRoom.room }} />
             {drawnRoom.empty.map(seat => (
-              <circle key={seat.number} className="empty-seat" cx={seat.x * scale} cy={seat.y * scale} r={drawnRoom.radius * scale} />
+              <circle key={seat.number} className="empty-seat" {...drawn.seat(seat)} />
             ))}
           </g>
         </g>
@@ -28,10 +27,6 @@ export function Marks({ marks, scale, motion }: Props) {
       {axes.length > 0 && <g className="chart-axes">{axes.map(MarkShape)}</g>}
     </>
   )
-}
-
-function fitTransform({ scale: fitScale, offset }: Fit, scale: number): string {
-  return `translate(${offset.x * scale}px, ${offset.y * scale}px) scale(${fitScale})`
 }
 
 function MarkShape(mark: Mark, index: number) {

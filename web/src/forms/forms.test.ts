@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import type { CategoryFeature, ColorableFeature, NumberFeature } from "../data/features.ts"
+import { parseViewBox } from "../data/viewBox.ts"
 import type { Glyph } from "../glyph/glyph.ts"
 import { definePaint } from "../paint/paint.ts"
 import { paintParts } from "../paint/palette.ts"
@@ -65,7 +66,7 @@ function room(): Sample {
       else deputies.push({ id: fresh(), seat })
     }
   }
-  const seats = seatsOf({ deputies, emptySeats }, { box: { x: -1.1, y: -1.1, width: 2.2, height: 1.5 }, markup: "" })
+  const seats = seatsOf({ deputies, emptySeats }, { box: parseViewBox("-1.1 -1.1 2.2 1.5") ?? assert.fail("viewBox"), markup: "" })
   return { name: "room", reading: readSeats(seats), deputies: deputies.map(d => d.id) }
 }
 

@@ -3,6 +3,7 @@ import { test } from "node:test"
 import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import type { CategoryFeature, NumberFeature } from "../data/features.ts"
 import { isoDate } from "../data/isoDate.ts"
+import { parseViewBox } from "../data/viewBox.ts"
 import type { VotePosition } from "../votes/positions.ts"
 import type { ReadVote } from "../votes/sources.ts"
 import { voteId } from "../votes/voteId.ts"
@@ -13,7 +14,7 @@ import { MISSING, VOTE } from "./shapes.ts"
 
 const PA0 = deputyId("PA0")
 const PA1 = deputyId("PA1")
-const seats = seatsOf({ deputies: [], emptySeats: [] }, { box: { x: 0, y: 0, width: 1, height: 1 }, markup: "" })
+const seats = seatsOf({ deputies: [], emptySeats: [] }, { box: parseViewBox("0 0 1 1") ?? assert.fail("viewBox"), markup: "" })
 const number = (key: `${string}:${string}`): NumberFeature => ({ kind: "number", key, file: "f", column: "c", title: "Titre" })
 const CATEGORY: CategoryFeature = { kind: "category", key: "f:c", file: "f", column: "c", title: "Titre", values: "v" }
 

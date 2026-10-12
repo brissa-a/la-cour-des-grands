@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import { deputyId } from "../data/deputyId.ts"
+import { parseViewBox } from "../data/viewBox.ts"
 import { step } from "../preview/neighbours.ts"
 import type { Rect } from "../preview/placement.ts"
 import { seatsOf } from "../sources/seats.ts"
@@ -16,7 +17,7 @@ const over = (area: Rect): { readonly frame: Frame } => ({ frame: { area, px: 0.
 
 function lines(seats: Record<string, { x: number; y: number }>) {
   const deputies = Object.entries(seats).map(([id, point], i) => ({ id: deputyId(id), seat: { number: String(i), ...point } }))
-  const box = { x: -1.1, y: -1.1, width: 2.2, height: 1.5 }
+  const box = parseViewBox("-1.1 -1.1 2.2 1.5") ?? assert.fail("viewBox")
   return placeHemicycle({ main: seatsOf({ deputies, emptySeats: [] }, { box, markup: "" }) }, over({ left: 0, top: 0, right: 0.66, bottom: 0.45 })).lines
 }
 
@@ -39,7 +40,7 @@ test("seats on the bottom row step along their own wing", () => {
   assert.equal(step(rows, id("rightEnd"), "left"), id("rightNext"))
 })
 
-const BOX = { x: -3, y: -3, width: 4, height: 2 }
+const BOX = parseViewBox("-3 -3 4 2") ?? assert.fail("viewBox")
 
 test("the hemicycle fits its room's box to the free area, filling the tighter side and centred on the other, room and empty seats through the same fit", () => {
   const empty = { number: "2", x: 0.1, y: -2.5 }

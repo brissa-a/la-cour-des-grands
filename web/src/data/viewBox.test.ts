@@ -1,6 +1,9 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { parseViewBox, viewBoxAttribute } from "./viewBox.ts"
+import { parseViewBox, viewBoxAttribute, type ViewBox } from "./viewBox.ts"
+
+// @ts-expect-error a box written by hand, whose size no reader checked before a fit divides by it
+export const handMade: ViewBox = { x: 0, y: 0, width: 0, height: 1 }
 
 test("a viewBox reads four numbers apart by spaces, commas or both, as svg writes them", () => {
   const room = { x: -1.1, y: -1.1, width: 2.2, height: 1.5 }
@@ -15,5 +18,5 @@ test("a viewBox that is not exactly four finite numbers with a positive size is 
 })
 
 test("a viewBox written back for the svg element reads as the same box", () => {
-  assert.equal(viewBoxAttribute({ x: -1.1, y: -1.1, width: 2.2, height: 1.5 }), "-1.1 -1.1 2.2 1.5")
+  assert.equal(viewBoxAttribute(parseViewBox(" -1.1,-1.1 2.2  1.5") ?? assert.fail("viewBox")), "-1.1 -1.1 2.2 1.5")
 })

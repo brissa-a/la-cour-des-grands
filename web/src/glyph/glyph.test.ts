@@ -1,6 +1,9 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { dots, each } from "./glyph.ts"
+import { dots, each, type GlyphPart } from "./glyph.ts"
+
+// @ts-expect-error a stroke whose path does not start where it draws, such as an empty one that draws nothing
+export const blank: GlyphPart = { kind: "stroke", d: "", width: 1, opacity: 1 }
 
 test("a glyph drawn from pairs keeps one part per pair, in their order, the first one included", () => {
   assert.deepEqual(dots(1.5, [[1, 2], [3, 4]]), [

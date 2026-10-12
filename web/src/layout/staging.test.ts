@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import { deputyId, type DeputyId } from "../data/deputyId.ts"
+import { parseViewBox } from "../data/viewBox.ts"
 import type { Frame } from "../forms/form.ts"
 import { readSeats } from "../sources/read.ts"
 import { seatsOf } from "../sources/seats.ts"
@@ -12,7 +13,7 @@ const B = deputyId("PA1")
 const FRAME: Frame = { area: { left: 0, top: 0, right: 1, bottom: 1 }, px: 0.002, screen: "desktop" }
 
 function seated(ids: readonly DeputyId[]) {
-  return readSeats(seatsOf({ deputies: ids.map((id, i) => ({ id, seat: { number: String(i), x: i, y: 0 } })), emptySeats: [] }, { box: { x: 0, y: 0, width: 1, height: 1 }, markup: "" }))
+  return readSeats(seatsOf({ deputies: ids.map((id, i) => ({ id, seat: { number: String(i), x: i, y: 0 } })), emptySeats: [] }, { box: parseViewBox("0 0 1 1") ?? assert.fail("viewBox"), markup: "" }))
 }
 
 function staging(ids: readonly DeputyId[]): Staging {

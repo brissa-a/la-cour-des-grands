@@ -2,13 +2,14 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import { deputyId } from "../data/deputyId.ts"
 import type { CategoryFeature, NumberFeature } from "../data/features.ts"
+import { parseViewBox } from "../data/viewBox.ts"
 import { paintParts } from "../paint/palette.ts"
 import { readingOf, readSeats } from "../sources/read.ts"
 import { seatsOf } from "../sources/seats.ts"
 import { colorLine, layoutLine, layoutPlace } from "./lines.ts"
 
 const PA0 = deputyId("PA0")
-const seats = seatsOf({ deputies: [{ id: PA0, seat: { number: "1", x: 0, y: 0 } }], emptySeats: [] }, { box: { x: 0, y: 0, width: 1, height: 1 }, markup: "" })
+const seats = seatsOf({ deputies: [{ id: PA0, seat: { number: "1", x: 0, y: 0 } }], emptySeats: [] }, { box: parseViewBox("0 0 1 1") ?? assert.fail("viewBox"), markup: "" })
 const category = (key: `${string}:${string}`): CategoryFeature => ({ kind: "category", key, file: "f", column: "c", title: "T", values: "v" })
 const AGE: NumberFeature = { kind: "number", key: "deputies/init.csv:age", file: "f", column: "age", title: "Âge" }
 

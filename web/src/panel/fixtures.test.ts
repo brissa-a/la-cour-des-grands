@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import type { CategoryFeature, NumberFeature, ValueRow } from "../data/features.ts"
 import { isoDate } from "../data/isoDate.ts"
+import { parseViewBox } from "../data/viewBox.ts"
 import type { LayoutChoice } from "../forms/registry.ts"
 import { readingOf } from "../sources/read.ts"
 import { seatsOf } from "../sources/seats.ts"
@@ -49,7 +50,7 @@ export function numberValues(feature: NumberFeature, held: readonly (number | nu
 
 export const SEATS = seatsOf(
   { deputies: DRAWN.map((id, i) => ({ id, seat: { number: String(i + 1), x: i, y: 0 } })), emptySeats: [{ number: "7", x: 6, y: 0 }, { number: "8", x: 7, y: 0 }] },
-  { box: { x: 0, y: 0, width: 1, height: 1 }, markup: "" },
+  { box: parseViewBox("0 0 1 1") ?? assert.fail("viewBox"), markup: "" },
 )
 
 export function readVoteOf(positions: readonly VotePosition[]): ReadVote {
