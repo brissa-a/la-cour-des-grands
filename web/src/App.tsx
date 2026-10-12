@@ -8,7 +8,8 @@ import { knownDeputy } from "./data/deputyId.ts"
 import type { ColorableFeature } from "./data/features.ts"
 import type { ReadText } from "./data/source.ts"
 import { viewBoxAttribute } from "./data/viewBox.ts"
-import { fullSiteUrl, legendShown, type Chrome } from "./embed/chrome.ts"
+import { CaptureBand } from "./embed/CaptureBand.tsx"
+import { fullSiteUrl, legendShown, stageInput, type Chrome } from "./embed/chrome.ts"
 import { EmbedButton } from "./embed/EmbedButton.tsx"
 import { embedCode, embedTitle } from "./embed/snippet.ts"
 import type { Order, Screen } from "./forms/form.ts"
@@ -42,6 +43,7 @@ import { DeputyPanel } from "./profile/DeputyPanel.tsx"
 import { longDate } from "./profile/format.ts"
 import { Search } from "./search/Search.tsx"
 import { Footer } from "./Footer.tsx"
+import { bandOf } from "./share/texts.ts"
 import { voteParts } from "./sources/parts.ts"
 import { readingOf } from "./sources/read.ts"
 import type { Source } from "./sources/shapes.ts"
@@ -109,7 +111,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
   const previewOptions = useConfig(config => config.preview)
   const [preview] = useState(() => createPreviewStore(previewOptions))
   const [selected, setSelected] = useState<DeputyId | null>(() => (chrome.kind === "full" ? deputyInUrl(assembly) : null))
-  const [pinned] = useState(() => (chrome.kind === "clean" ? deputyInUrl(assembly) : null))
+  const [pinned] = useState(() => (chrome.kind === "full" ? null : deputyInUrl(assembly)))
   const ringed = selected ?? pinned
   const [panelId, setPanelId] = useState<DeputyId | null>(selected)
   const [hint, setHint] = useState(() => !hasOpenedPanel())
@@ -127,7 +129,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
   const phone = chrome.kind === "full" && narrow
   const touchOnly = useMediaQuery(TOUCH_ONLY)
   const crowded = useMediaQuery(CROWDED)
-  const motion: MotionPreference = useMediaQuery(REDUCED_MOTION) ? "reduced" : "full"
+  const motion: MotionPreference = useMediaQuery(REDUCED_MOTION) || chrome.kind === "capture" ? "reduced" : "full"
   const [voteMissing, setVoteMissing] = useState(initial.voteDropped)
   const sheetOpen = selected !== null
   const [side, setSide] = useState<Side>(() => besideSheet("open", sheetOpen, crowded))
@@ -203,7 +205,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
     window.open(fullSiteUrl(location.href, urlParams(view, showPhotos), id), "_blank", "noopener")
   }
 
-  const openDeputy = chrome.kind === "clean" ? openSite : open
+  const openDeputy = chrome.kind === "full" ? open : openSite
 
   const show = (id: DeputyId) => {
     if (id === selected) return
@@ -237,7 +239,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
   }
 
   useEffect(() => {
-    if (chrome.kind === "clean") return
+    if (chrome.kind !== "full") return
     const onPopState = () => {
       const id = deputyInUrl(assembly)
       setSelected(id)
@@ -381,7 +383,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
       colorOf={colored.paint.colorOf}
       store={preview}
       selected={ringed}
-      zoomable={chrome.kind === "full"}
+      input={stageInput(chrome)}
       motion={motion}
       onTap={onTap}
     />
@@ -402,6 +404,20 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
       onOpen={openDeputy}
     />
   )
+
+  if (chrome.kind === "capture") {
+    const labeled = voteInView && voteView.status === "ready" ? { vote: voteView.read.vote, labels: voteView.labels } : null
+    const band = bandOf(view, labeled, assembly.catalog.generated, pinned === null ? null : (assembly.people.get(pinned) ?? null))
+    return (
+      <div className={view.layout.form === "hemicycle" ? "app legend-beside" : "app"}>
+        <main className="stage">
+          {stage}
+          {legend && <div className="stage-bottom">{legend}</div>}
+        </main>
+        <CaptureBand band={band} />
+      </div>
+    )
+  }
 
   if (chrome.kind === "clean")
     return (

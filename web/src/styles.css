@@ -1257,13 +1257,13 @@ mark { background: none; color: var(--accent); font-weight: 700; }
   .copy-field { height: 44px; font-size: 16px; }
 }
 
-[data-chrome="clean"] .app { position: fixed; inset: 0; display: flex; flex-direction: column; padding: 0; }
+:is([data-chrome="clean"], [data-chrome="capture"]) .app { position: fixed; inset: 0; display: flex; flex-direction: column; padding: 0; }
 
-[data-chrome="clean"] .stage { position: relative; inset: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+:is([data-chrome="clean"], [data-chrome="capture"]) .stage { position: relative; inset: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
-[data-chrome="clean"] .stage > svg { flex: 1; min-height: 0; }
+:is([data-chrome="clean"], [data-chrome="capture"]) .stage > svg { flex: 1; min-height: 0; }
 
-[data-chrome="clean"] .stage-bottom { position: static; gap: 4px; padding: 0 12px 6px; }
+:is([data-chrome="clean"], [data-chrome="capture"]) .stage-bottom { position: static; gap: 4px; padding: 0 12px 6px; }
 
 [data-chrome="clean"] .preview-card { width: min(300px, calc(100vw - 16px)); }
 
@@ -1292,9 +1292,78 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 .vote-line-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
 
+/* Laid out for a 600×315 viewport captured at device scale 2. X crops the 1200×630 image to 2:1 around its middle, so the content stays inside the central 600×300. */
+[data-chrome="capture"] .app { padding: 8px 0; }
+
+/* The room is narrower than the preview, so its legend goes beside it and the room keeps the height. */
+[data-chrome="capture"] .legend-beside .stage { flex-direction: row; align-items: center; }
+
+[data-chrome="capture"] .legend-beside .stage-bottom { flex: none; max-width: 42%; padding: 0 12px 0 0; }
+
+[data-chrome="capture"] .legend-beside .legend:not(.legend-gradient) { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+
+[data-chrome="capture"] .legend-beside .legend:has(> li:nth-child(7)) { display: grid; grid-template-columns: repeat(2, auto); }
+
+[data-chrome="capture"] .legend-beside .legend li { white-space: nowrap; }
+
+[data-chrome="capture"] .legend-beside .legend-gradient { width: 220px; }
+
+[data-chrome="capture"] .legend-gradient { padding: 6px 14px; }
+
+[data-chrome="capture"] .gradient-bar { margin: 4px 0 16px; }
+
+[data-chrome="capture"] .ring.selected .ring-outer { stroke-width: 0.45; transform: scale(1.9); transform-box: fill-box; transform-origin: center; }
+
+.capture-band {
+  flex: none;
+  margin: 0 12px;
+  padding: 6px 2px 0;
+  border-top: 1px solid var(--line);
+}
+
+.capture-title {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 19px;
+  color: var(--fg);
+}
+
+.capture-facts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.capture-facts > * { flex: none; }
+
+.capture-facts > :not(.capture-site) + :not(.capture-site)::before { content: "·"; margin-right: 8px; color: var(--muted); }
+
+.capture-facts > .capture-deputy { flex: 0 1 auto; min-width: 0; }
+
+.capture-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+.capture-deputy { display: flex; align-items: center; gap: 4px; color: var(--cream); }
+
+.capture-ring { flex: none; width: 12px; height: 12px; fill: none; stroke: var(--cream); stroke-width: 1.4; }
+
+.capture-site { margin-left: auto; padding-left: 8px; font-weight: 500; color: var(--cream); }
+
 .site-link { align-self: flex-end; font-size: 11px; line-height: 14px; color: var(--muted); text-decoration: none; }
 
 .site-link:hover, .site-link:focus-visible { color: var(--cream); text-decoration: underline; }
+
+[data-chrome="capture"] :is(.room, .seat-dot, .seat.highlighted .seat-dot) { transition: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .stage, .footer, .side-panel, .deputy-panel, .deputy-panel.open, .preview-card, .preview-card.visible { transition: none; }

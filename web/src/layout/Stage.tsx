@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, type RefObject } from "react"
 import type { Deputy, DeputyId } from "../data/assembly.ts"
+import type { StageInput } from "../embed/chrome.ts"
 import type { Scene } from "../forms/form.ts"
 import type { Places } from "../forms/registry.ts"
 import type { Point } from "../preview/placement.ts"
@@ -36,12 +37,12 @@ type Props = {
   colorOf: (id: DeputyId) => string
   store: PreviewStore
   selected: DeputyId | null
-  zoomable: boolean
+  input: StageInput
   motion: MotionPreference
   onTap: (hit: Hit | null, pointerType: string) => void
 }
 
-export function Stage({ svgRef, viewBox, deputies, scene, places, highlighted, showPhotos, colorOf, store, selected, zoomable, motion, onTap }: Props) {
+export function Stage({ svgRef, viewBox, deputies, scene, places, highlighted, showPhotos, colorOf, store, selected, input, motion, onTap }: Props) {
   const { radius, snap } = scene
   const dotsRef = useRef<SVGGElement>(null)
   const hovered = useRef<DeputyId | null>(null)
@@ -191,15 +192,26 @@ export function Stage({ svgRef, viewBox, deputies, scene, places, highlighted, s
     </>
   )
 
-  return zoomable ? (
-    <PanZoomSvg svgRef={svgRef} viewBox={viewBox} {...handlers}>
-      {content}
-    </PanZoomSvg>
-  ) : (
-    <FixedSvg svgRef={svgRef} viewBox={viewBox} {...handlers}>
-      {content}
-    </FixedSvg>
-  )
+  switch (input) {
+    case "panZoom":
+      return (
+        <PanZoomSvg svgRef={svgRef} viewBox={viewBox} {...handlers}>
+          {content}
+        </PanZoomSvg>
+      )
+    case "tap":
+      return (
+        <FixedSvg svgRef={svgRef} viewBox={viewBox} {...handlers}>
+          {content}
+        </FixedSvg>
+      )
+    case "none":
+      return (
+        <svg ref={svgRef} className="fixed-svg" viewBox={viewBox}>
+          {content}
+        </svg>
+      )
+  }
 }
 
 function Rings({
