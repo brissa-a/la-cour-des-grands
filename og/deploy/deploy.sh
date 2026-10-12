@@ -6,6 +6,7 @@
 set -euo pipefail
 
 readonly CONTEXT=abysshopper
+readonly ORIGIN=https://lcdg.kxv.fr
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 root=$(cd "$here/../.." && pwd)
@@ -22,5 +23,11 @@ compose=(docker --context "$CONTEXT" compose -f "$here/docker-compose.yml")
 "${compose[@]}" up --detach --build --wait --wait-timeout 300
 "${compose[@]}" ps
 
-(cd "$root/og" && npm run test:live)
-echo "lcdg-og:$LCDG_TAG is live at https://lcdg.kxv.fr"
+# A first deploy waits for its Let's Encrypt certificate, and every start for the data version to load.
+for _ in $(seq 60); do
+  if curl -fsS "$ORIGIN/healthz" 2>/dev/null | grep -q '"data":"ready"'; then break; fi
+  sleep 2
+done
+
+(cd "$root/og" && LIVE_ORIGIN=$ORIGIN npm run test:live)
+echo "lcdg-og:$LCDG_TAG is live at $ORIGIN"
