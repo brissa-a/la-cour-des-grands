@@ -37,13 +37,14 @@ type Layout = {
   readonly seats: Box
   readonly tribune: Box | null
   readonly floor: (Box & Painted) | null
+  readonly ramp: { readonly mean: Box; readonly bar: Box } | null
   readonly clipped: readonly string[]
 }
 
 // X crops the image to 2:1 around its middle.
 const CROPPED = (CAPTURE_SETTINGS.height - CAPTURE_SETTINGS.width / 2) / 2
 
-test("every capture keeps its legend inside the part of the image X shows, clear of every seat and of the tribune with only the room's floor under it, on two lines at most, and no label cut", { timeout: 120_000 }, async t => {
+test("every capture keeps its legend inside the part of the image X shows, clear of every seat and of the tribune with only the room's floor under it, on two lines at most, a ramp on one with its mean first, and no label cut", { timeout: 120_000 }, async t => {
   const browser = await openBrowser(LOCAL)
   t.after(() => browser.close())
   for (const search of VIEWS) {
@@ -84,6 +85,8 @@ test("every capture keeps its legend inside the part of the image X shows, clear
         }
         const legend = document.querySelector(".legend")
         const floor = document.querySelector(".room:not(.hidden) #border")
+        const mean = shown(".legend-gradient > .legend-count")
+        const bar = shown(".gradient-bar")
         const clipped = [...document.querySelectorAll(".legend li, .legend-name")].filter(element => element.scrollWidth > element.clientWidth + 1).map(element => element.textContent)
         const lines = new Set([...document.querySelectorAll(".legend li")].map(item => item.getBoundingClientRect().top)).size
         return {
@@ -92,6 +95,7 @@ test("every capture keeps its legend inside the part of the image X shows, clear
           seats: boxOfAll(".seat-dot"),
           tribune: shown(".room:not(.hidden) #tribune"),
           floor: floor && legend && { ...boxOf(floor), ...painted(floor, legend) },
+          ramp: mean && bar && { mean, bar },
           clipped,
         }
       }),
@@ -107,6 +111,10 @@ test("every capture keeps its legend inside the part of the image X shows, clear
       assert.ok(floor.under > 0 && floor.over === 0, `${search}: the room's floor drawn over the legend at ${floor.over} points, under it at ${floor.under}`)
     }
     assert.ok(layout.lines <= 2, `${search}: legend on ${layout.lines} lines`)
+    if (layout.ramp) {
+      const { mean, bar } = layout.ramp
+      assert.ok(mean.right <= bar.left && mean.top < bar.bottom && bar.top < mean.bottom, `${search}: the mean ${JSON.stringify(mean)} not on the ramp's row, before its bar ${JSON.stringify(bar)}`)
+    }
   }
 })
 

@@ -1300,22 +1300,26 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 [data-chrome="capture"] .stage > svg { overflow: visible; }
 
-[data-chrome="capture"] .legend { padding: 6px; }
+[data-chrome="capture"] .legend { row-gap: 4px; padding: 5px 6px; }
 
 /* Value first, as the half rings label their sectors. */
-[data-chrome="capture"] .legend li { gap: 4px; padding: 2px 4px; white-space: nowrap; }
+[data-chrome="capture"] .legend li { gap: 4px; padding: 0 4px; border: 0; white-space: nowrap; }
 
 [data-chrome="capture"] .legend li > .legend-count { color: var(--fg); font-weight: 500; }
 
 [data-chrome="capture"] .legend li > .legend-name { order: 1; color: #d6d6d6; }
 
+[data-chrome="capture"] .legend li.chosen { box-shadow: 0 2px 0 var(--cream); }
+
 .legend .legend-more { color: var(--muted); }
 
 [data-chrome="capture"] .legend-excerpt { font-size: 11px; }
 
-[data-chrome="capture"] .legend-gradient { padding: 6px 14px; }
+[data-chrome="capture"] .legend-gradient { flex-direction: row; align-items: flex-start; gap: 16px; width: auto; padding: 6px 16px 4px; }
 
-[data-chrome="capture"] .gradient-bar { margin: 4px 0 16px; }
+[data-chrome="capture"] .gradient-bar { flex: none; width: 240px; margin: 4px 0 16px; }
+
+[data-chrome="capture"] .legend-gradient > .legend-count { order: -1; line-height: 18px; }
 
 .hub-caption { fill: var(--fg); font-weight: 500; }
 
