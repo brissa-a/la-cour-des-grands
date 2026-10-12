@@ -30,4 +30,18 @@ The data version is the commit SHA of the `test-v2` branch of `brissa-a/lcdg-dat
 
 ## Checks
 
-`npm run check`, `npm run lint`, `npm test`, `npm run test:integration` (needs the front built, Chromium and the network), `npm run mutate` (on a scratch copy of `web/` and `og/`: it runs in place).
+`npm run check`, `npm run lint`, `npm test`, `npm run test:integration` (needs the front built, Chromium and the network), `npm run test:live` (the deployed site as crawlers see it; `LIVE_ORIGIN` defaults to `https://lcdg.kxv.fr`), `npm run mutate` (on a scratch copy of `web/` and `og/`: it runs in place).
+
+## Deploy
+
+`deploy/deploy.sh` builds the front, builds the image on the Dedibox through the `abysshopper` Docker context (tagged with the commit), starts the compose project `lcdg` behind Traefik on the `edge` network, waits for the certificate and the data, then runs `npm run test:live`. It touches nothing but that project, its image and its `lcdg_cache` volume.
+
+```sh
+compose="docker --context abysshopper compose -f og/deploy/docker-compose.yml"
+docker --context abysshopper image ls lcdg-og     # the tags deployed so far
+LCDG_TAG=<tag> $compose up -d --no-build          # roll back to one of them
+$compose logs --tail 50                           # one JSON line per render
+$compose down                                     # stop and remove the service; the image cache volume stays
+```
+
+On a first deploy Traefik asks Let's Encrypt for the certificate; if that attempt fails, it only retries on its next configuration change: `LCDG_TAG=<current tag> $compose up -d --no-build --force-recreate` gives it one.
