@@ -29,11 +29,14 @@ const VIEWS = [
 
 type Box = { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number }
 
-type Layout = { readonly legend: Box | null; readonly room: Box; readonly band: Box; readonly clipped: readonly string[] }
+type Layout = { readonly legend: Box | null; readonly room: Box; readonly clipped: readonly string[] }
 
 const apart = (a: Box, b: Box) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top
 
-test("every capture keeps its legend inside the frame and above the band, beside or under the room without covering it, and no label cut", { timeout: 120_000 }, async t => {
+// X crops the image to 2:1 around its middle.
+const CROPPED = (CAPTURE_SETTINGS.height - CAPTURE_SETTINGS.width / 2) / 2
+
+test("every capture keeps its legend inside the part of the image X shows, beside or under the room without covering it, and no label cut", { timeout: 120_000 }, async t => {
   const browser = await openBrowser(LOCAL)
   t.after(() => browser.close())
   for (const search of VIEWS) {
@@ -51,13 +54,13 @@ test("every capture keeps its legend inside the frame and above the band, beside
         }
         const legend = document.querySelector(".legend")
         const clipped = [...document.querySelectorAll(".legend li, .legend-name")].filter(element => element.scrollWidth > element.clientWidth + 1).map(element => element.textContent)
-        return { legend: legend && boxOf(legend), room: boxOf(required(".stage svg")), band: boxOf(required(".capture-band")), clipped }
+        return { legend: legend && boxOf(legend), room: boxOf(required(".stage svg")), clipped }
       }),
     )
     assert.deepEqual(layout.clipped, [], search)
     if (layout.legend === null) continue
-    const { legend, room, band } = layout
-    assert.ok(legend.left >= 0 && legend.top >= 0 && legend.right <= CAPTURE_SETTINGS.width && legend.bottom <= band.top, `${search}: legend ${JSON.stringify(legend)} out of the frame`)
+    const { legend, room } = layout
+    assert.ok(legend.left >= 0 && legend.top >= CROPPED && legend.right <= CAPTURE_SETTINGS.width && legend.bottom <= CAPTURE_SETTINGS.height - CROPPED, `${search}: legend ${JSON.stringify(legend)} out of the frame`)
     assert.ok(apart(legend, room), `${search}: legend ${JSON.stringify(legend)} over the room ${JSON.stringify(room)}`)
   }
 })

@@ -8,7 +8,6 @@ import { knownDeputy } from "./data/deputyId.ts"
 import type { ColorableFeature } from "./data/features.ts"
 import type { ReadText } from "./data/source.ts"
 import { viewBoxAttribute } from "./data/viewBox.ts"
-import { CaptureBand } from "./embed/CaptureBand.tsx"
 import { fullSiteUrl, legendShown, stageInput, type Chrome } from "./embed/chrome.ts"
 import { EmbedButton } from "./embed/EmbedButton.tsx"
 import { embedCode, embedTitle } from "./embed/snippet.ts"
@@ -43,7 +42,6 @@ import { DeputyPanel } from "./profile/DeputyPanel.tsx"
 import { longDate } from "./profile/format.ts"
 import { Search } from "./search/Search.tsx"
 import { Footer } from "./Footer.tsx"
-import { bandOf } from "./share/texts.ts"
 import { voteParts } from "./sources/parts.ts"
 import { readingOf } from "./sources/read.ts"
 import type { Source } from "./sources/shapes.ts"
@@ -412,19 +410,15 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
     />
   )
 
-  if (chrome.kind === "capture") {
-    const labeled = voteInView && voteView.status === "ready" ? { vote: voteView.read.vote, labels: voteView.labels } : null
-    const band = bandOf(view, labeled, assembly.catalog.generated, pinned === null ? null : (assembly.people.get(pinned) ?? null))
+  if (chrome.kind === "capture")
     return (
       <div className={view.layout.form === "hemicycle" ? "app legend-beside" : "app"}>
         <main className="stage">
           {stage}
           {legend && <div className="stage-bottom">{legend}</div>}
         </main>
-        <CaptureBand band={band} />
       </div>
     )
-  }
 
   if (chrome.kind === "clean")
     return (

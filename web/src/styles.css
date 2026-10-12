@@ -1318,51 +1318,6 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 [data-chrome="capture"] .ring.selected .ring-outer { stroke-width: 0.45; transform: scale(1.9); transform-box: fill-box; transform-origin: center; }
 
-.capture-band {
-  flex: none;
-  margin: 0 12px;
-  padding: 6px 2px 0;
-  border-top: 1px solid var(--line);
-}
-
-.capture-title {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 19px;
-  color: var(--fg);
-}
-
-.capture-facts {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.capture-facts > * { flex: none; }
-
-.capture-facts > :not(.capture-site) + :not(.capture-site)::before { content: "·"; margin-right: 8px; color: var(--muted); }
-
-.capture-facts > .capture-deputy { flex: 0 1 auto; min-width: 0; }
-
-.capture-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-
-.capture-deputy { display: flex; align-items: center; gap: 4px; color: var(--cream); }
-
-.capture-ring { flex: none; width: 12px; height: 12px; fill: none; stroke: var(--cream); stroke-width: 1.4; }
-
-.capture-site { margin-left: auto; padding-left: 8px; font-weight: 500; color: var(--cream); }
-
 .site-link { align-self: flex-end; font-size: 11px; line-height: 14px; color: var(--muted); text-decoration: none; }
 
 .site-link:hover, .site-link:focus-visible { color: var(--cream); text-decoration: underline; }
