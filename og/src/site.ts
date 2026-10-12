@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises"
 import { extname, join, relative, sep } from "node:path"
-import { brotliCompressSync, gzipSync } from "node:zlib"
+import { brotliCompressSync, constants, gzipSync } from "node:zlib"
 
 export type Encoding = "br" | "gzip" | "identity"
 
@@ -35,6 +35,9 @@ const TYPES: Readonly<Record<string, { readonly type: string; readonly compress:
 }
 
 const UNKNOWN_TYPE = { type: "application/octet-stream", compress: false }
+
+// Each page is compressed as it is sent, on the event loop: brotli's default quality 11 costs ~75 times quality 5 for 10 % fewer bytes.
+const PAGE_BROTLI = { params: { [constants.BROTLI_PARAM_QUALITY]: 5 } }
 
 export function bodiesOf(content: Buffer, compress: boolean): Bodies {
   if (!compress) return { identity: content, compressed: null }
@@ -82,7 +85,7 @@ export function preferredEncoding(acceptEncoding: string | undefined): Encoding 
 export function encoded(content: Buffer, encoding: Encoding): Buffer {
   switch (encoding) {
     case "br":
-      return brotliCompressSync(content)
+      return brotliCompressSync(content, PAGE_BROTLI)
     case "gzip":
       return gzipSync(content)
     case "identity":

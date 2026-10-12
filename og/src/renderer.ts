@@ -1,30 +1,40 @@
-import { chromium, type Browser, type Route } from "playwright-core"
+import { chromium, type Browser, type LaunchOptions, type Page, type Route } from "playwright-core"
 import { recycler } from "./browsers.ts"
-import type { CanonicalQuery } from "./canonical.ts"
-import { captureRoute, captureUrl } from "./capture.ts"
+import type { ImageQuery } from "./canonical.ts"
+import { CAPTURE_SETTINGS, captureRoute, captureUrl } from "./capture.ts"
+import type { BrowserSource } from "./config.ts"
 import { siteFile, type StaticSite } from "./site.ts"
-import { IMAGE_HEIGHT, IMAGE_WIDTH } from "./tags.ts"
 import type { Upstream } from "./upstream.ts"
 import type { DataVersion } from "./version.ts"
 
-export type CaptureTarget = { readonly version: DataVersion; readonly query: CanonicalQuery }
+export type CaptureTarget = { readonly version: DataVersion; readonly query: ImageQuery }
 
 export type Render = (target: CaptureTarget, signal: AbortSignal) => Promise<Buffer>
 
 export type Renderer = { readonly render: Render; readonly close: () => Promise<void> }
 
-// The capture view is laid out for 600x315 shot at scale 2: its labels then read at 10 to 12 px once a network shrinks the image.
-const SCALE = 2
-const VIEWPORT = { width: IMAGE_WIDTH / SCALE, height: IMAGE_HEIGHT / SCALE }
 const NAVIGATION_TIMEOUT_MS = 10_000
 const DRAWING_TIMEOUT_MS = 12_000
-const JPEG_QUALITY = 80
+const CONNECT_TIMEOUT_MS = 30_000
 const RENDERS_PER_BROWSER = 100
+const SETTLED = 'html[data-drawing="ready"], html[data-drawing="error"]'
 
-export function createRenderer(site: StaticSite, upstream: Upstream): Renderer {
+// Every request the page makes is answered by Node through context.route; the proxy only catches what routing does not see.
+const LAUNCH: LaunchOptions = { headless: true, proxy: { server: "http://127.0.0.1:9" } }
+
+export function openBrowser(source: BrowserSource): Promise<Browser> {
+  switch (source.kind) {
+    case "launch":
+      return chromium.launch(LAUNCH)
+    case "connect":
+      return chromium.connect(source.endpoint, { headers: { "x-playwright-launch-options": JSON.stringify(LAUNCH) }, timeout: CONNECT_TIMEOUT_MS })
+  }
+}
+
+export function createRenderer(site: StaticSite, upstream: Upstream, source: BrowserSource): Renderer {
   const browsers = recycler<Browser>({
     launch: async lost => {
-      const browser = await chromium.launch({ headless: true })
+      const browser = await openBrowser(source)
       browser.on("disconnected", lost)
       return browser
     },
@@ -32,16 +42,17 @@ export function createRenderer(site: StaticSite, upstream: Upstream): Renderer {
     maxUses: RENDERS_PER_BROWSER,
   })
   return {
-    render: (target, signal) => browsers.use(browser => capture(browser, target, signal, site, upstream)),
+    render: (target, signal) =>
+      browsers.use(browser => withCapturePage(browser, target, site, upstream, signal, page => page.screenshot({ type: "jpeg", quality: CAPTURE_SETTINGS.jpegQuality, timeout: NAVIGATION_TIMEOUT_MS }))),
     close: browsers.close,
   }
 }
 
-async function capture(browser: Browser, target: CaptureTarget, signal: AbortSignal, site: StaticSite, upstream: Upstream): Promise<Buffer> {
+export async function withCapturePage<T>(browser: Browser, target: CaptureTarget, site: StaticSite, upstream: Upstream, signal: AbortSignal, use: (page: Page) => Promise<T>): Promise<T> {
   signal.throwIfAborted()
   const context = await browser.newContext({
-    viewport: VIEWPORT,
-    deviceScaleFactor: SCALE,
+    viewport: { width: CAPTURE_SETTINGS.width, height: CAPTURE_SETTINGS.height },
+    deviceScaleFactor: CAPTURE_SETTINGS.scale,
     reducedMotion: "reduce",
     serviceWorkers: "block",
     locale: "fr-FR",
@@ -51,19 +62,13 @@ async function capture(browser: Browser, target: CaptureTarget, signal: AbortSig
   signal.addEventListener("abort", abandon, { once: true })
   try {
     await context.route("**/*", route => answer(route, target.version, site, upstream).catch(() => undefined))
+    await context.routeWebSocket(/./, socket => socket.close())
     const page = await context.newPage()
     await page.goto(captureUrl(target.query), { waitUntil: "commit", timeout: NAVIGATION_TIMEOUT_MS })
-    const settled = await page.waitForFunction(
-      () => {
-        const drawing = document.documentElement.dataset.drawing
-        return drawing === "ready" || drawing === "error" ? drawing : null
-      },
-      undefined,
-      { timeout: DRAWING_TIMEOUT_MS },
-    )
-    const drawing = await settled.jsonValue()
+    const settled = await page.waitForSelector(SETTLED, { state: "attached", timeout: DRAWING_TIMEOUT_MS })
+    const drawing = await settled.getAttribute("data-drawing")
     if (drawing !== "ready") throw new Error(`the capture page reported data-drawing="${drawing ?? "none"}"`)
-    return await page.screenshot({ type: "jpeg", quality: JPEG_QUALITY, timeout: NAVIGATION_TIMEOUT_MS })
+    return await use(page)
   } finally {
     signal.removeEventListener("abort", abandon)
     await context.close()

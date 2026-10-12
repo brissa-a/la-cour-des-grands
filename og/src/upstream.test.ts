@@ -31,7 +31,7 @@ test("only successful answers are kept, so a missing file is asked again", async
   assert.deepEqual(asked, ["https://x/missing.csv", "https://x/missing.csv"])
 })
 
-test("past its memory bound the least recently used file is dropped, and clearing drops them all", async () => {
+test("past its memory bound the least recently used file is dropped", async () => {
   const { asked, fetcher } = counting(FILES)
   const upstream = createUpstream(fetcher, { maxBytes: 20, parallel: 4, timeoutMs: 1_000 })
   await upstream.get("https://x/a.csv")
@@ -41,10 +41,6 @@ test("past its memory bound the least recently used file is dropped, and clearin
   await upstream.get("https://x/a.csv")
   await upstream.get("https://x/b.csv")
   assert.deepEqual(asked, ["https://x/a.csv", "https://x/b.csv", "https://x/c.csv", "https://x/b.csv"])
-  upstream.clear()
-  await upstream.get("https://x/a.csv")
-  assert.equal(asked.at(-1), "https://x/a.csv")
-  assert.equal(asked.length, 5)
 })
 
 test("no more downloads run at once than the limit, the others start as soon as one ends", async () => {

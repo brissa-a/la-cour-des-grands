@@ -1,8 +1,12 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
+import { clientId } from "./client.ts"
 import { renderQueue, within, type Job, type Outcome } from "./queue.ts"
 
 const flush = () => new Promise(resolve => setImmediate(resolve))
+
+const ALICE = clientId("192.0.2.1")
+const BOB = clientId("192.0.2.2")
 
 type Pending = { readonly signal: AbortSignal; readonly finish: (value: string) => void; readonly fail: (error: Error) => void }
 
@@ -19,26 +23,26 @@ function controlled(): { readonly job: Job<string>; readonly started: Pending[] 
 }
 
 test("requests for a view that is already rendering share that one render", async () => {
-  const queue = renderQueue<string>({ concurrency: 1, capacity: 4, timeoutMs: 12_000 })
+  const queue = renderQueue<string>({ concurrency: 1, capacity: 4, perClient: 10, timeoutMs: 12_000 })
   const { job, started } = controlled()
-  const first = queue.run("a", job)
-  const second = queue.run("a", job)
+  const first = queue.run("a", ALICE, "wait", job)
+  const second = queue.run("a", ALICE, "wait", job)
   assert.equal(started.length, 1)
   started[0]?.finish("jpeg")
   assert.deepEqual(await Promise.all([first, second]), [
     { kind: "done", value: "jpeg" },
     { kind: "done", value: "jpeg" },
   ])
-  const third = queue.run("a", job)
+  const third = queue.run("a", ALICE, "wait", job)
   assert.equal(started.length, 2)
   started[1]?.finish("again")
   assert.deepEqual(await third, { kind: "done", value: "again" })
 })
 
 test("no more renders run than the concurrency allows, and a waiting one starts as soon as a running one ends, failed or not", async () => {
-  const queue = renderQueue<string>({ concurrency: 2, capacity: 4, timeoutMs: 12_000 })
+  const queue = renderQueue<string>({ concurrency: 2, capacity: 4, perClient: 10, timeoutMs: 12_000 })
   const { job, started } = controlled()
-  const outcomes = ["a", "b", "c", "d"].map(key => queue.run(key, job))
+  const outcomes = ["a", "b", "c", "d"].map(key => queue.run(key, ALICE, "wait", job))
   assert.deepEqual([started.length, queue.running(), queue.waiting()], [2, 2, 2])
   started[0]?.fail(new Error("crash"))
   assert.deepEqual(await outcomes[0], { kind: "failed", error: new Error("crash") })
@@ -51,11 +55,11 @@ test("no more renders run than the concurrency allows, and a waiting one starts 
 })
 
 test("a full queue answers busy at once, without starting or keeping the render", async () => {
-  const queue = renderQueue<string>({ concurrency: 1, capacity: 1, timeoutMs: 12_000 })
+  const queue = renderQueue<string>({ concurrency: 1, capacity: 1, perClient: 10, timeoutMs: 12_000 })
   const { job, started } = controlled()
-  void queue.run("a", job)
-  void queue.run("b", job)
-  assert.deepEqual(await queue.run("c", job), { kind: "busy" })
+  void queue.run("a", ALICE, "wait", job)
+  void queue.run("b", ALICE, "wait", job)
+  assert.deepEqual(await queue.run("c", ALICE, "wait", job), { kind: "busy" })
   assert.deepEqual([started.length, queue.running(), queue.waiting()], [1, 1, 1])
   started[0]?.finish("a")
   await flush()
@@ -66,10 +70,10 @@ test("a full queue answers busy at once, without starting or keeping the render"
 
 test("a render past its time limit is abandoned: its signal aborts, its requesters get a timeout, and the next render starts", async t => {
   t.mock.timers.enable({ apis: ["setTimeout"] })
-  const queue = renderQueue<string>({ concurrency: 1, capacity: 1, timeoutMs: 12_000 })
+  const queue = renderQueue<string>({ concurrency: 1, capacity: 1, perClient: 10, timeoutMs: 12_000 })
   const { job, started } = controlled()
-  const stuck = queue.run("a", job)
-  const next = queue.run("b", job)
+  const stuck = queue.run("a", ALICE, "wait", job)
+  const next = queue.run("b", ALICE, "wait", job)
   t.mock.timers.tick(11_999)
   await flush()
   assert.deepEqual([started.length, started[0]?.signal.aborted], [1, false])
@@ -94,4 +98,39 @@ test("a requester who cannot wait longer gets late, and one whose render ends in
   assert.deepEqual(await quick, { kind: "done", value: "jpeg" })
   resolve({ kind: "done", value: "late jpeg" })
   assert.deepEqual(await promise, { kind: "done", value: "late jpeg" })
+})
+
+test("one client holds at most its quota of renders, running or waiting, so it cannot fill the queue; joining a render already asked costs nothing", async () => {
+  const queue = renderQueue<string>({ concurrency: 2, capacity: 12, perClient: 2, timeoutMs: 12_000 })
+  const { job, started } = controlled()
+  const first = queue.run("a", ALICE, "wait", job)
+  void queue.run("b", ALICE, "wait", job)
+  assert.deepEqual(await queue.run("c", ALICE, "wait", job), { kind: "busy" })
+  assert.equal(queue.run("a", BOB, "wait", job), first)
+  void queue.run("c", BOB, "wait", job)
+  assert.deepEqual([started.length, queue.running(), queue.waiting()], [2, 2, 1])
+  started[0]?.finish("a")
+  await first
+  await flush()
+  void queue.run("d", ALICE, "wait", job)
+  assert.deepEqual([queue.running(), queue.waiting(), queue.clients()], [2, 1, 2])
+  for (const index of [1, 2, 3]) {
+    started[index]?.finish("done")
+    await flush()
+  }
+  assert.deepEqual([queue.running(), queue.clients()], [0, 0])
+})
+
+test("a render asked only if a slot is idle starts at once when one is, and is refused rather than queued when none is", async () => {
+  const queue = renderQueue<string>({ concurrency: 1, capacity: 4, perClient: 4, timeoutMs: 12_000 })
+  const { job, started } = controlled()
+  const ahead = queue.run("a", ALICE, "idleOnly", job)
+  assert.deepEqual([started.length, queue.running()], [1, 1])
+  assert.deepEqual(await queue.run("b", BOB, "idleOnly", job), { kind: "busy" })
+  assert.equal(queue.waiting(), 0)
+  void queue.run("c", BOB, "wait", job)
+  started[0]?.finish("a")
+  await ahead
+  await flush()
+  assert.deepEqual([started.length, queue.waiting()], [2, 0])
 })

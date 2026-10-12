@@ -5,11 +5,11 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { brotliDecompressSync, gunzipSync } from "node:zlib"
-import { viewHash } from "./canonical.ts"
-import { openDiskCache } from "./disk.ts"
-import { DATA, NEW as CURRENT, OLD as OLDER, ORIGIN, viewOf } from "./fixture.test.ts"
+import { renderId, viewHash } from "./canonical.ts"
+import { openDiskCache, type DiskCache } from "./disk.ts"
+import { DATA, NEW as CURRENT, OLD as OLDER, ORIGIN, RENDER, viewOf } from "./fixture.test.ts"
 import { createImages, type Images, type RenderLine } from "./images.ts"
-import { renderQueue, type QueueLimits } from "./queue.ts"
+import { renderQueue, type QueueLimits, type RenderQueue } from "./queue.ts"
 import type { Release, Releases } from "./releases.ts"
 import type { CaptureTarget } from "./renderer.ts"
 import { createService } from "./server.ts"
@@ -41,18 +41,26 @@ type Options = {
   readonly waitMs?: number
   readonly releases?: () => Releases
   readonly fallback?: Buffer | null
+  readonly disk?: "works" | "full"
 }
 
-type Running = { readonly port: number; readonly renders: CaptureTarget[]; readonly lines: RenderLine[]; readonly errors: unknown[]; readonly images: Images }
+type Running = { readonly port: number; readonly renders: CaptureTarget[]; readonly lines: RenderLine[]; readonly errors: unknown[]; readonly images: Images; readonly queue: RenderQueue<Buffer>; readonly advance: (ms: number) => void }
+
+const LIMITS: QueueLimits = { concurrency: 1, capacity: 4, perClient: 4, timeoutMs: 12_000 }
+
+function full(cache: DiskCache): DiskCache {
+  return { ...cache, put: () => Promise.reject(new Error("ENOSPC: no space left on device, write")) }
+}
 
 const RENDER_CLOCK_MS = 1_234
 
-async function startService({ behaviour = "draw", limits = { concurrency: 1, capacity: 4, timeoutMs: 12_000 }, waitMs = 8_000, releases = () => READY, fallback = FALLBACK }: Options = {}): Promise<Running> {
+async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_000, releases = () => READY, fallback = FALLBACK, disk = "works" }: Options = {}): Promise<Running> {
   const renders: CaptureTarget[] = []
   const lines: RenderLine[] = []
   const errors: unknown[] = []
   const hanging: (() => void)[] = []
-  const cache = await openDiskCache(await mkdtemp(join(scratch, "cache-")), 1_000_000, () => CURRENT)
+  const opened = await openDiskCache(await mkdtemp(join(scratch, "cache-")), 1_000_000, RENDER, () => CURRENT)
+  const cache = disk === "full" ? full(opened) : opened
   let clock = 10_000
   const render = (target: CaptureTarget, signal: AbortSignal) => {
     renders.push(target)
@@ -69,11 +77,11 @@ async function startService({ behaviour = "draw", limits = { concurrency: 1, cap
         })
     }
   }
-  const images = createImages({ releases, cache, queue: renderQueue<Buffer>(limits), render, waitMs, log: line => lines.push(line), now: () => clock })
+  const queue = renderQueue<Buffer>(limits)
+  const images = createImages({ releases, cache, queue, render, renderId: RENDER, waitMs, log: line => lines.push(line), now: () => clock })
   const server = createService({
     site: SITE,
-    template: parseTemplate(SITE.index),
-    origin: ORIGIN,
+    page: { template: parseTemplate(SITE.index), origin: ORIGIN, render: RENDER },
     releases,
     images,
     fallback: () => fallback,
@@ -87,7 +95,17 @@ async function startService({ behaviour = "draw", limits = { concurrency: 1, cap
   })
   const address = server.address()
   assert.ok(address !== null && typeof address === "object")
-  return { port: address.port, renders, lines, errors, images }
+  return {
+    port: address.port,
+    renders,
+    lines,
+    errors,
+    images,
+    queue,
+    advance: ms => {
+      clock += ms
+    },
+  }
 }
 
 type Answer = { readonly status: number; readonly headers: IncomingHttpHeaders; readonly body: Buffer }
@@ -125,7 +143,7 @@ test("a shared link in canonical form gets the page with its view's tags; any ot
   const html = page.body.toString()
   assert.match(html, /<head>\s*<meta charset="utf-8" \/>\s*<meta property="og:title" content="Mathilde Panot · La motion de censure/)
   assert.ok(html.includes('<meta property="og:url" content="https://lcdg.kxv.fr/?vote=VTANR5L17V1&amp;color=vote&amp;deputy=PA720892" />'))
-  assert.match(ogImagePath(html), /^\/og\/2{40}\/[0-9a-f]{64}\.jpg\?vote=VTANR5L17V1&color=vote&deputy=PA720892$/)
+  assert.equal(ogImagePath(html).replace(/[0-9a-f]{64}/, "<hash>"), `/og/${CURRENT}/${RENDER}/<hash>.jpg?vote=VTANR5L17V1&color=vote&deputy=PA720892`)
   const moved = await raw(drawing.port, "/?deputy=PA720892&vote=VTANR5L17V1&utm_source=mastodon")
   assert.deepEqual([moved.status, moved.headers.location, moved.headers["cache-control"], moved.body.length], [301, "/?vote=VTANR5L17V1&color=vote&deputy=PA720892", "public, max-age=60", 0])
   const index = await raw(drawing.port, "/index.html")
@@ -170,12 +188,12 @@ test("a page's image is drawn once however many ask at the same time, then serve
   assert.equal(drawing.renders.length - before, 1)
 })
 
-test("two different views asked at the same time each get their own image", async () => {
+test("two different views asked at the same time each get their own image, drawn without photos even when the link shows them", async () => {
   const [first, second] = await Promise.all([imagePathOf(drawing.port, "deputy=PA720892&showPic=true"), imagePathOf(drawing.port, "vote=VTANR5L17V1&color=vote&showPic=true")])
   const answers = await Promise.all([raw(drawing.port, first), raw(drawing.port, second)])
   assert.deepEqual(
     answers.map(answer => answer.body.toString()),
-    ["jpeg of 2 deputy=PA720892&showPic=true", "jpeg of 2 vote=VTANR5L17V1&color=vote&showPic=true"],
+    ["jpeg of 2 deputy=PA720892", "jpeg of 2 vote=VTANR5L17V1&color=vote"],
   )
 })
 
@@ -188,26 +206,31 @@ test("each render is logged once with its time, version and view, and a failed o
   const failing = await startService({ behaviour: "fail" })
   await raw(failing.port, await imagePathOf(failing.port, "vote=VTANR5L17V1&color=vote"))
   assert.deepEqual(failing.lines, [{ version: CURRENT, query: "vote=VTANR5L17V1&color=vote", ms: RENDER_CLOCK_MS, outcome: "failed", reason: 'the capture page reported data-drawing="error"' }])
-  const stuck = await startService({ behaviour: "hang", limits: { concurrency: 1, capacity: 1, timeoutMs: 30 }, waitMs: 1_000 })
+  const stuck = await startService({ behaviour: "hang", limits: { ...LIMITS, capacity: 1, timeoutMs: 30 }, waitMs: 1_000 })
   await raw(stuck.port, await imagePathOf(stuck.port, "deputy=PA720892"))
   assert.deepEqual(stuck.lines, [{ version: CURRENT, query: "deputy=PA720892", ms: RENDER_CLOCK_MS, outcome: "timeout", reason: "aborted" }])
 })
 
-test("an image of the previous data version is still drawn, with that version; an older version moves to the current one; a hash not matching its query is not found", async () => {
-  const path = await imagePathOf(drawing.port, "showPic=true")
+test("an image of the previous data version is still drawn, with that version; an older version or render moves to the current one; a hash not matching its query is not found", async () => {
+  const path = await imagePathOf(drawing.port, "deputy=PA720892")
   const [file = "", query = ""] = path.split("?")
   const previous = await raw(drawing.port, `${file.replace(CURRENT, OLDER)}?${query}`)
-  assert.deepEqual([previous.status, previous.body.toString()], [200, "jpeg of 1 showPic=true"])
+  assert.deepEqual([previous.status, previous.body.toString()], [200, "jpeg of 1 deputy=PA720892"])
   const older = await raw(drawing.port, `${file.replace(CURRENT, "3".repeat(40))}?${query}`)
   assert.deepEqual([older.status, older.headers.location, older.headers["cache-control"]], [302, path, "no-store"])
-  const wrong = await raw(drawing.port, `${file}?showPic=false`)
+  const otherRender = renderId("<!doctype html>", { width: 601 })
+  const rebuilt = await raw(drawing.port, `${file.replace(RENDER, otherRender)}?${query}`)
+  assert.deepEqual([rebuilt.status, rebuilt.headers.location], [302, path])
+  const rebuiltPrevious = await raw(drawing.port, `${file.replace(CURRENT, OLDER).replace(RENDER, otherRender)}?${query}`)
+  assert.deepEqual([rebuiltPrevious.status, rebuiltPrevious.headers.location], [302, `${file.replace(CURRENT, OLDER)}?${query}`])
+  const wrong = await raw(drawing.port, `${file}?deputy=PA720614`)
   assert.deepEqual([wrong.status, wrong.body.toString()], [404, "Image introuvable\n"])
   assert.equal((await raw(drawing.port, file)).status, 404)
   const alone = await startService({ releases: () => ({ kind: "ready", current: CURRENT_RELEASE, previous: null }) })
   const moved = await raw(alone.port, `${file.replace(CURRENT, OLDER)}?${query}`)
   assert.deepEqual([moved.status, moved.headers.location], [302, path])
   const current = await raw(alone.port, path)
-  assert.deepEqual([current.status, current.body.toString()], [200, "jpeg of 2 showPic=true"])
+  assert.deepEqual([current.status, current.body.toString()], [200, "jpeg of 2 deputy=PA720892"])
 })
 
 test("a crawler fetching a page gets its image drawn ahead, unless the page names no drawable view; a browser does not", async () => {
@@ -223,14 +246,62 @@ test("a crawler fetching a page gets its image drawn ahead, unless the page name
   assert.equal(drawing.renders.length - before, 1)
 })
 
+test("a crawler's page draws its image ahead only on an idle render slot, never waiting in the queue ahead of the images networks ask for", async () => {
+  const stuck = await startService({ behaviour: "hang", limits: { ...LIMITS, concurrency: 1 } })
+  await raw(stuck.port, "/?deputy=PA720614", "GET", { "user-agent": CRAWLER })
+  await raw(stuck.port, "/?deputy=PA720892", "GET", { "user-agent": CRAWLER })
+  await settle()
+  assert.deepEqual([stuck.renders.map(({ query }) => query), stuck.queue.running(), stuck.queue.waiting()], [["deputy=PA720614"], 1, 0])
+})
+
+test("one client, as Traefik names it in X-Real-Ip, holds at most its quota of renders and gets the generic image past it, while others still queue", async () => {
+  const stuck = await startService({ behaviour: "hang", limits: { ...LIMITS, perClient: 1 }, waitMs: 100 })
+  const [first, second, third] = await Promise.all(["deputy=PA720614", "deputy=PA720892", "vote=VTANR5L17V1&color=vote"].map(search => imagePathOf(stuck.port, search)))
+  const asking = raw(stuck.port, first ?? "", "GET", { "x-real-ip": "203.0.113.7" })
+  await settle()
+  const refused = await raw(stuck.port, second ?? "", "GET", { "x-real-ip": "203.0.113.7" })
+  assert.deepEqual([refused.status, refused.headers["cache-control"], refused.body.toString()], [200, "public, max-age=60", "generic image"])
+  void raw(stuck.port, third ?? "", "GET", { "x-real-ip": "198.51.100.1" })
+  await settle()
+  assert.deepEqual([stuck.queue.running(), stuck.queue.waiting()], [1, 1])
+  await asking
+})
+
+test("an image drawn while the disk refuses to keep it is still served, logged as unsaved, and drawn again next time", async () => {
+  const full = await startService({ disk: "full" })
+  const path = await imagePathOf(full.port, "deputy=PA720614")
+  for (const round of [1, 2]) {
+    const answer = await raw(full.port, path)
+    assert.deepEqual([answer.status, answer.headers["cache-control"], answer.body.toString()], [200, "public, max-age=31536000, immutable", "jpeg of 2 deputy=PA720614"], `round ${round}`)
+  }
+  assert.deepEqual(
+    full.lines.map(({ outcome, reason, ms }) => [outcome, reason, ms]),
+    [
+      ["unsaved", "ENOSPC: no space left on device, write", RENDER_CLOCK_MS],
+      ["unsaved", "ENOSPC: no space left on device, write", RENDER_CLOCK_MS],
+    ],
+  )
+})
+
+test("the health of the renders counts the failures in a row until an image is drawn, and the seconds since the last one", async () => {
+  const failing = await startService({ behaviour: "fail" })
+  assert.deepEqual(failing.images.health(), { failuresInARow: 0, secondsSinceImage: null })
+  for (const search of ["deputy=PA720614", "deputy=PA720892"]) await raw(failing.port, await imagePathOf(failing.port, search))
+  assert.deepEqual(failing.images.health(), { failuresInARow: 2, secondsSinceImage: null })
+  await raw(drawing.port, await imagePathOf(drawing.port, "vote=VTANR5L17V1&color=vote&deputy=PA720614"))
+  assert.deepEqual(drawing.images.health(), { failuresInARow: 0, secondsSinceImage: 0 })
+  drawing.advance(2_400)
+  assert.deepEqual(drawing.images.health(), { failuresInARow: 0, secondsSinceImage: 2 })
+})
+
 test("a view the data cannot draw, or asked before the first data version, gets the generic image with a short cache and no render", async () => {
   const before = drawing.renders.length
-  const { query } = viewOf("vote=VTANR5L17V999999&color=vote")
-  const unknown = await raw(drawing.port, `/og/${CURRENT}/${viewHash(query)}.jpg?${query}`)
+  const { image } = viewOf("vote=VTANR5L17V999999&color=vote")
+  const unknown = await raw(drawing.port, `/og/${CURRENT}/${RENDER}/${viewHash(image)}.jpg?${image}`)
   assert.deepEqual([unknown.status, unknown.headers["cache-control"], unknown.body.toString()], [200, "public, max-age=60", "generic image"])
   assert.equal(drawing.renders.length, before)
   const starting = await startService({ releases: () => ({ kind: "starting" }) })
-  const early = await raw(starting.port, `/og/${CURRENT}/${"a".repeat(64)}.jpg`)
+  const early = await raw(starting.port, `/og/${CURRENT}/${RENDER}/${"a".repeat(64)}.jpg`)
   assert.deepEqual([early.status, early.body.toString()], [200, "generic image"])
   assert.equal(starting.renders.length, 0)
 })
@@ -242,12 +313,12 @@ test("a failed render gets the generic image with a short cache, so the network 
 })
 
 test("a crawler is never answered 429: a full queue or a render too slow to wait for gives it the generic image", async () => {
-  const stuck = await startService({ behaviour: "hang", limits: { concurrency: 1, capacity: 0, timeoutMs: 12_000 }, waitMs: 100 })
+  const stuck = await startService({ behaviour: "hang", limits: { ...LIMITS, capacity: 0 }, waitMs: 100 })
   const first = await imagePathOf(stuck.port, "vote=VTANR5L17V1&color=vote")
   const second = await imagePathOf(stuck.port, "vote=VTANR5L17V242&color=vote")
   const [late, busy] = await Promise.all([raw(stuck.port, first, "GET", { "user-agent": CRAWLER }), raw(stuck.port, second, "GET", { "user-agent": CRAWLER })])
   for (const answer of [late, busy]) assert.deepEqual([answer.status, answer.headers["cache-control"], answer.body.toString()], [200, "public, max-age=60", "generic image"])
-  assert.equal(stuck.renders.length, 1)
+  assert.deepEqual([stuck.renders.length, stuck.queue.running()], [1, 1])
 })
 
 test("the generic image is served at its own address, and while none exists yet the image addresses answer 503 to try again later", async () => {

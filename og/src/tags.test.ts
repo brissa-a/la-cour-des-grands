@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
-import { escapeHtml, pageHtml, parseTemplate, type PreviewTags } from "./tags.ts"
+import { escapeHtml, pageHtml, parseTemplate, previewTagsHtml, type PreviewTags } from "./tags.ts"
 
 const INDEX = readFileSync(new URL("../../web/index.html", import.meta.url), "utf8")
 
@@ -58,6 +58,8 @@ test("the page head starts, after the charset, with the view's tags, which repla
   assert.deepEqual([...head.matchAll(/<link rel="canonical" href="([^"]*)" \/>/g)].map(([, href]) => href), ["https://lcdg.kxv.fr/?vote=VTANR5L17V1&amp;color=vote"])
   assert.deepEqual(metaContents(head, "description"), metaContents(head, "og:description"))
   assert.equal(html.replace(head, ""), INDEX.replace(headOf(INDEX), ""))
+  assert.deepEqual([/<!doctype html>/gi, /<meta charset=/g, /<head>/g, /<\/head>/g, /<title>/g].map(pattern => html.match(pattern)?.length), [1, 1, 1, 1, 1])
+  assert.equal(html.replace(previewTagsHtml(TAGS), ""), INDEX.replaceAll(/\s*<(?:meta (?:property="og:[^"]*"|name="(?:twitter:[^"]*|description)")|link rel="canonical")[^>]*>/g, ""))
   assert.ok(head.includes('<link rel="icon" href="/logo-philo-blanc.png" media="(prefers-color-scheme: dark)" />') && head.includes("<title>LCDG - La cour des grands</title>"))
 })
 

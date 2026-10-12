@@ -1,6 +1,6 @@
 import { dataRootAt, PUBLISHED_ROOT } from "../../web/src/data/source.ts"
 import { chromeParams } from "../../web/src/embed/chrome.ts"
-import type { CanonicalQuery } from "./canonical.ts"
+import type { ImageQuery } from "./canonical.ts"
 import type { DataVersion } from "./version.ts"
 
 export type CaptureRoute =
@@ -10,11 +10,12 @@ export type CaptureRoute =
 
 export const CAPTURE_ORIGIN = "https://capture.invalid"
 
-export const PHOTOS_ROOT = "https://raw.githubusercontent.com/brissa-a/lcdg-nobg/test-v2/v2/"
+// The capture view is laid out for 600x315 shot at scale 2: its labels then read at 10 to 12 px once a network shrinks the image.
+export const CAPTURE_SETTINGS = { width: 600, height: 315, scale: 2, jpegQuality: 80 } as const
 
 const BLOCKED: CaptureRoute = { kind: "blocked" }
 
-export function captureUrl(query: CanonicalQuery): string {
+export function captureUrl(query: ImageQuery): string {
   const params = new URLSearchParams(query)
   for (const [name, value] of chromeParams({ kind: "capture" })) if (value !== null) params.append(name, value)
   return `${CAPTURE_ORIGIN}/?${params.toString()}`
@@ -26,6 +27,5 @@ export function captureRoute(address: string, version: DataVersion): CaptureRout
   if (url.origin === CAPTURE_ORIGIN) return { kind: "site", path: url.pathname }
   if (url.search !== "") return BLOCKED
   if (url.href.startsWith(PUBLISHED_ROOT)) return { kind: "upstream", url: dataRootAt(version) + url.href.slice(PUBLISHED_ROOT.length) }
-  if (url.href.startsWith(PHOTOS_ROOT)) return { kind: "upstream", url: url.href }
   return BLOCKED
 }

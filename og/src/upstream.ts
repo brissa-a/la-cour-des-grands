@@ -2,14 +2,14 @@ import { sizedLru } from "./lru.ts"
 
 export type UpstreamResponse = { readonly status: number; readonly contentType: string; readonly body: Buffer }
 
-export type Upstream = { readonly get: (url: string) => Promise<UpstreamResponse>; readonly clear: () => void }
+export type Upstream = { readonly get: (url: string) => Promise<UpstreamResponse> }
 
 export type UpstreamLimits = { readonly maxBytes: number; readonly parallel: number; readonly timeoutMs: number }
 
-// raw.githubusercontent.com stalls hundreds of parallel downloads, the photos of one capture: 400 of 652 timed out unbounded, none at 16.
+// raw.githubusercontent.com stalls hundreds of parallel downloads: 400 of 652 photos timed out unbounded, none at 16.
 export function createUpstream(fetcher: (url: string, init: RequestInit) => Promise<Response>, { maxBytes, parallel, timeoutMs }: UpstreamLimits): Upstream {
-  let kept = new Map<string, UpstreamResponse>()
-  let order = sizedLru<string>()
+  const kept = new Map<string, UpstreamResponse>()
+  const order = sizedLru<string>()
   const inFlight = new Map<string, Promise<UpstreamResponse>>()
   const waiting: (() => void)[] = []
   let active = 0
@@ -51,10 +51,6 @@ export function createUpstream(fetcher: (url: string, init: RequestInit) => Prom
       const fetching = download(url).finally(() => inFlight.delete(url))
       inFlight.set(url, fetching)
       return fetching
-    },
-    clear: () => {
-      kept = new Map()
-      order = sizedLru()
     },
   }
 }

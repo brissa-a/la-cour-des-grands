@@ -1,17 +1,15 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http"
 import { FALLBACK_PATH, parseImagePath } from "./canonical.ts"
-import type { PublicOrigin } from "./config.ts"
+import { clientOf, type ClientId } from "./client.ts"
 import { isLinkPreviewCrawler } from "./crawlers.ts"
 import type { ImageAnswer, Images } from "./images.ts"
-import { answerPage } from "./page.ts"
+import { answerPage, type PageSite } from "./page.ts"
 import type { Releases } from "./releases.ts"
 import { bodyFor, encoded, PAGE_TYPE, preferredEncoding, type Encoding, type StaticSite } from "./site.ts"
-import type { PageTemplate } from "./tags.ts"
 
 export type ServiceDeps = {
   readonly site: StaticSite
-  readonly template: PageTemplate
-  readonly origin: PublicOrigin
+  readonly page: PageSite
   readonly releases: () => Releases
   readonly images: Images
   readonly fallback: () => Buffer | null
@@ -74,12 +72,13 @@ async function handle(request: IncomingMessage, deps: ServiceDeps): Promise<Repl
   if (!target.startsWith("/")) return text(400, "Adresse invalide")
   const url = new URL(`http://service.invalid${target}`)
   const encoding = preferredEncoding(request.headers["accept-encoding"])
+  const client = clientOf(request.headers["x-real-ip"], request.socket.remoteAddress)
   switch (url.pathname) {
     case "/": {
       const question = target.indexOf("?")
-      const answer = answerPage(question === -1 ? null : target.slice(question + 1), deps.releases(), deps.template, deps.origin)
+      const answer = answerPage(question === -1 ? null : target.slice(question + 1), deps.releases(), deps.page)
       if (answer.kind === "redirect") return redirect(301, answer.location, PAGE_CACHE)
-      if (answer.prerender !== null && isLinkPreviewCrawler(request.headers["user-agent"])) deps.images.prerender(answer.prerender.release, answer.prerender.view)
+      if (answer.prerender !== null && isLinkPreviewCrawler(request.headers["user-agent"])) deps.images.prerender(answer.prerender.release, answer.prerender.view, client)
       return { status: 200, headers: { "content-type": PAGE_TYPE, "cache-control": PAGE_CACHE }, body: encoded(Buffer.from(answer.html), encoding), encoding, varies: true }
     }
     case "/index.html":
@@ -89,13 +88,13 @@ async function handle(request: IncomingMessage, deps: ServiceDeps): Promise<Repl
     case FALLBACK_PATH:
       return jpeg(deps.fallback(), FALLBACK_CACHE)
     default:
-      return file(url, encoding, deps)
+      return file(url, encoding, client, deps)
   }
 }
 
-async function file(url: URL, encoding: Encoding, deps: ServiceDeps): Promise<Reply> {
+async function file(url: URL, encoding: Encoding, client: ClientId, deps: ServiceDeps): Promise<Reply> {
   const address = parseImagePath(url.pathname)
-  if (address !== null) return imageReply(await deps.images.answer(address, url.searchParams), deps.fallback())
+  if (address !== null) return imageReply(await deps.images.answer(address, url.searchParams, client), deps.fallback())
   const asset = deps.site.assets.get(url.pathname)
   if (asset === undefined) return text(404, "Page introuvable")
   const chosen = bodyFor(asset.bodies, encoding)

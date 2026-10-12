@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "node src/main.ts",
-    "check": "tsc",
+    "check": "tsc && tsc -p tsconfig.page.json",
     "test": "node --test 'src/**/*.test.ts'",
     "test:integration": "node --test 'test/**/*.test.ts'",
     "test:live": "node --test test/live.ts",

@@ -1,10 +1,11 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { brotliDecompressSync, gunzipSync } from "node:zlib"
-import { bodyFor, loadSite, preferredEncoding, siteFile } from "./site.ts"
+import { brotliCompressSync, brotliDecompressSync, gunzipSync } from "node:zlib"
+import { bodyFor, encoded, loadSite, preferredEncoding, siteFile } from "./site.ts"
 
 const scratch = await mkdtemp(join(tmpdir(), "og-site-"))
 after(() => rm(scratch, { recursive: true, force: true }))
@@ -119,4 +120,19 @@ test("a build without index.html stops the service at start", async () => {
   const empty = join(scratch, "empty")
   await mkdir(empty)
   await assert.rejects(loadSite(empty), /no index\.html; build the front first/)
+})
+
+test("a page, compressed on the event loop as it is sent, costs a small fraction of brotli's default quality and decodes to itself", () => {
+  const page = Buffer.from(readFileSync(new URL("../../web/index.html", import.meta.url), "utf8").repeat(2))
+  const timed = (compress: () => Buffer) => {
+    const started = performance.now()
+    for (let round = 0; round < 40; round++) compress()
+    return performance.now() - started
+  }
+  const sent = timed(() => encoded(page, "br"))
+  const strongest = timed(() => brotliCompressSync(page))
+  assert.ok(sent * 5 < strongest, `${sent.toFixed(1)} ms against ${strongest.toFixed(1)} ms at quality 11`)
+  assert.deepEqual(brotliDecompressSync(encoded(page, "br")), page)
+  assert.deepEqual(gunzipSync(encoded(page, "gzip")), page)
+  assert.equal(encoded(page, "identity"), page)
 })

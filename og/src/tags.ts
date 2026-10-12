@@ -1,3 +1,5 @@
+import { CAPTURE_SETTINGS } from "./capture.ts"
+
 export type PreviewTags = {
   readonly title: string
   readonly description: string
@@ -8,9 +10,9 @@ export type PreviewTags = {
 
 export type PageTemplate = { readonly plain: string; readonly before: string; readonly after: string }
 
-export const IMAGE_WIDTH = 1200
+export const IMAGE_WIDTH = CAPTURE_SETTINGS.width * CAPTURE_SETTINGS.scale
 
-export const IMAGE_HEIGHT = 630
+export const IMAGE_HEIGHT = CAPTURE_SETTINGS.height * CAPTURE_SETTINGS.scale
 
 const SITE_NAME = "La cour des grands"
 
