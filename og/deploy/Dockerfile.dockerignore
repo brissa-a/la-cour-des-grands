@@ -1,0 +1,9 @@
+*
+!og/package.json
+!og/package-lock.json
+!og/src
+!web/package.json
+!web/package-lock.json
+!web/src
+!web/dist
+**/*.test.ts

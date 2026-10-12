@@ -10,6 +10,7 @@
     "check": "tsc",
     "test": "node --test 'src/**/*.test.ts'",
     "test:integration": "node --test 'test/**/*.test.ts'",
+    "test:live": "node --test test/live.ts",
     "lint": "oxlint --disable-nested-config --ignore-path=.gitignore && node ../web/lint/checkDirectives.ts",
     "mutate": "stryker run"
   },

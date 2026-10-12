@@ -15,6 +15,7 @@ import { createService } from "../src/server.ts"
 import { loadSite } from "../src/site.ts"
 import { parseTemplate } from "../src/tags.ts"
 import { createUpstream } from "../src/upstream.ts"
+import { jpegSize } from "./jpeg.ts"
 
 const scratch = await mkdtemp(join(tmpdir(), "og-service-"))
 const site = await loadSite(new URL("../../web/dist/", import.meta.url).pathname)
@@ -52,17 +53,6 @@ after(async () => {
   await renderer.close()
   await rm(scratch, { recursive: true, force: true })
 })
-
-function jpegSize(jpeg: Buffer): { readonly width: number; readonly height: number } {
-  assert.deepEqual([...jpeg.subarray(0, 3)], [0xff, 0xd8, 0xff])
-  let at = 2
-  while (at + 9 < jpeg.length) {
-    const marker = jpeg.readUInt16BE(at)
-    if (marker >= 0xffc0 && marker <= 0xffc2) return { height: jpeg.readUInt16BE(at + 5), width: jpeg.readUInt16BE(at + 7) }
-    at += 2 + jpeg.readUInt16BE(at + 2)
-  }
-  throw new Error("no frame header in the JPEG")
-}
 
 async function imageOf(search: string): Promise<{ readonly jpeg: Buffer; readonly ms: number; readonly cacheControl: string | null }> {
   const page = await fetch(`${local}/${search}`, { headers: { "user-agent": "Mozilla/5.0" } })

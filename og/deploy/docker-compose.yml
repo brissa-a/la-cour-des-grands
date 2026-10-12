@@ -1,0 +1,78 @@
+# Runs on the Dedibox through deploy.sh: docker --context abysshopper compose -f og/deploy/docker-compose.yml.
+# The service name is a DNS alias on the shared edge network: it must be unique on the server.
+name: lcdg
+
+services:
+  lcdg-og:
+    build:
+      context: ../..
+      dockerfile: og/deploy/Dockerfile
+    image: lcdg-og:${LCDG_TAG:-latest}
+    restart: unless-stopped
+    # Reaps the processes Chromium leaves behind when a browser is recycled or crashes.
+    init: true
+    read_only: true
+    # Chromium keeps its profile and, with --disable-dev-shm-usage, its shared memory here.
+    tmpfs:
+      - /tmp:size=256m
+    # Chromium runs without its own sandbox (Playwright's default): Docker's seccomp profile denies the user
+    # namespaces it needs, and allowing them would take CAP_SYS_ADMIN or a looser profile for the whole container.
+    # The page only ever loads this build, the pinned data and the photos (page.route aborts everything else),
+    # and the container itself confines it: no capabilities, no privilege gain, read-only root, non-root user.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    cpus: 2
+    pids_limit: 512
+    environment:
+      PUBLIC_ORIGIN: https://lcdg.kxv.fr
+      PORT: "8080"
+    volumes:
+      - cache:/app/og/cache
+    networks:
+      - edge
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=edge
+      - traefik.http.services.lcdg.loadbalancer.server.port=8080
+      - traefik.http.routers.lcdg.rule=Host(`lcdg.kxv.fr`)
+      - traefik.http.routers.lcdg.entrypoints=websecure
+      - traefik.http.routers.lcdg.tls.certresolver=le
+      - traefik.http.routers.lcdg.service=lcdg
+      - traefik.http.routers.lcdg.middlewares=lcdg-compress
+      # The service compresses its own text; this only catches text it would send plain, never the JPEGs.
+      - traefik.http.middlewares.lcdg-compress.compress.includedcontenttypes=text/html,text/css,text/javascript,application/json,image/svg+xml,text/plain
+      - traefik.http.routers.lcdg-og.rule=Host(`lcdg.kxv.fr`) && PathPrefix(`/og/`)
+      - traefik.http.routers.lcdg-og.entrypoints=websecure
+      - traefik.http.routers.lcdg-og.tls.certresolver=le
+      - traefik.http.routers.lcdg-og.service=lcdg
+      - traefik.http.routers.lcdg-og.middlewares=lcdg-og-ratelimit,lcdg-og-inflight
+      # Per client IP and far above what a link preview crawler asks for: the service's render queue and generic
+      # image are the real protection, and crawlers must not be answered 429.
+      - traefik.http.middlewares.lcdg-og-ratelimit.ratelimit.average=120
+      - traefik.http.middlewares.lcdg-og-ratelimit.ratelimit.period=1m
+      - traefik.http.middlewares.lcdg-og-ratelimit.ratelimit.burst=60
+      - traefik.http.middlewares.lcdg-og-inflight.inflightreq.amount=10
+      # Without a criterion, inFlightReq counts per request host, that is for everyone at once; depth 0 means the client's IP.
+      - traefik.http.middlewares.lcdg-og-inflight.inflightreq.sourcecriterion.ipstrategy.depth=0
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  edge:
+    external: true
+
+volumes:
+  cache:
