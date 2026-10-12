@@ -29,12 +29,21 @@ const VIEWS = [
 
 type Box = { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number }
 
-type Layout = { readonly legend: Box | null; readonly lines: number; readonly room: Box; readonly clipped: readonly string[] }
+type Painted = { readonly under: number; readonly over: number }
+
+type Layout = {
+  readonly legend: Box | null
+  readonly lines: number
+  readonly seats: Box
+  readonly tribune: Box | null
+  readonly floor: (Box & Painted) | null
+  readonly clipped: readonly string[]
+}
 
 // X crops the image to 2:1 around its middle.
 const CROPPED = (CAPTURE_SETTINGS.height - CAPTURE_SETTINGS.width / 2) / 2
 
-test("every capture keeps its legend inside the part of the image X shows, under the room without covering it, on two lines at most, and no label cut", { timeout: 120_000 }, async t => {
+test("every capture keeps its legend inside the part of the image X shows, clear of every seat and of the tribune with only the room's floor under it, on two lines at most, and no label cut", { timeout: 120_000 }, async t => {
   const browser = await openBrowser(LOCAL)
   t.after(() => browser.close())
   for (const search of VIEWS) {
@@ -45,22 +54,58 @@ test("every capture keeps its legend inside the part of the image X shows, under
           const { left, top, right, bottom } = element.getBoundingClientRect()
           return { left, top, right, bottom }
         }
-        const required = (selector: string) => {
+        const boxOfAll = (selector: string): Box =>
+          [...document.querySelectorAll(selector)].map(boxOf).reduce((all, box) => ({
+            left: Math.min(all.left, box.left),
+            top: Math.min(all.top, box.top),
+            right: Math.max(all.right, box.right),
+            bottom: Math.max(all.bottom, box.bottom),
+          }))
+        const shown = (selector: string) => {
           const element = document.querySelector(selector)
-          if (element === null) throw new Error(`no ${selector}`)
-          return element
+          return element && boxOf(element)
+        }
+        // elementsFromPoint lists what a point hits in paint order; past the legend's rounded corners the floor shows on purpose.
+        const painted = (floor: Element, legend: Element): Painted => {
+          const outer = boxOf(legend)
+          const inner = boxOf(floor)
+          const corner = Number.parseFloat(getComputedStyle(legend).borderTopLeftRadius)
+          let under = 0
+          let over = 0
+          for (let y = outer.top; y < Math.min(outer.bottom, inner.bottom); y += 0.5)
+            for (let x = Math.max(outer.left + corner, inner.left); x < Math.min(outer.right - corner, inner.right); x++) {
+              const stack = document.elementsFromPoint(x, y)
+              const at = stack.indexOf(floor)
+              if (at < 0) continue
+              if (stack.slice(0, at).some(element => legend.contains(element))) under++
+              else over++
+            }
+          return { under, over }
         }
         const legend = document.querySelector(".legend")
+        const floor = document.querySelector(".room:not(.hidden) #border")
         const clipped = [...document.querySelectorAll(".legend li, .legend-name")].filter(element => element.scrollWidth > element.clientWidth + 1).map(element => element.textContent)
         const lines = new Set([...document.querySelectorAll(".legend li")].map(item => item.getBoundingClientRect().top)).size
-        return { legend: legend && boxOf(legend), lines, room: boxOf(required(".stage svg")), clipped }
+        return {
+          legend: legend && boxOf(legend),
+          lines,
+          seats: boxOfAll(".seat-dot"),
+          tribune: shown(".room:not(.hidden) #tribune"),
+          floor: floor && legend && { ...boxOf(floor), ...painted(floor, legend) },
+          clipped,
+        }
       }),
     )
     assert.deepEqual(layout.clipped, [], search)
     if (layout.legend === null) continue
-    const { legend, room } = layout
+    const { legend, seats, tribune, floor } = layout
     assert.ok(legend.left >= 0 && legend.top >= CROPPED && legend.right <= CAPTURE_SETTINGS.width && legend.bottom <= CAPTURE_SETTINGS.height - CROPPED, `${search}: legend ${JSON.stringify(legend)} out of the frame`)
-    assert.ok(legend.top >= room.bottom, `${search}: legend ${JSON.stringify(legend)} not under the room ${JSON.stringify(room)}`)
+    assert.ok(legend.top >= seats.bottom, `${search}: legend ${JSON.stringify(legend)} over the seats ${JSON.stringify(seats)}`)
+    if (tribune) assert.ok(legend.top >= tribune.bottom, `${search}: legend ${JSON.stringify(legend)} over the tribune ${JSON.stringify(tribune)}`)
+    if (floor) {
+      assert.ok(floor.bottom > legend.top && floor.bottom <= legend.bottom, `${search}: the room's floor ${JSON.stringify(floor)} not under the legend ${JSON.stringify(legend)}`)
+      assert.ok(floor.under > 0 && floor.over === 0, `${search}: the room's floor drawn over the legend at ${floor.over} points, under it at ${floor.under}`)
+    }
     assert.ok(layout.lines <= 2, `${search}: legend on ${layout.lines} lines`)
   }
 })

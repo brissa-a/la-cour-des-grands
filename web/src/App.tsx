@@ -417,7 +417,11 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
       <div className="app">
         <main className="stage">
           {stage}
-          {legend && <div className="stage-bottom">{legend}</div>}
+          {legend && (
+            <div className="stage-bottom" data-cover="">
+              {legend}
+            </div>
+          )}
         </main>
       </div>
     )

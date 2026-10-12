@@ -5,7 +5,7 @@ import { parseViewBox } from "../data/viewBox.ts"
 import { step } from "../preview/neighbours.ts"
 import type { Rect } from "../preview/placement.ts"
 import { seatsOf } from "../sources/seats.ts"
-import type { Frame } from "./form.ts"
+import { DOT_RADIUS, type Frame } from "./form.ts"
 import { placeHemicycle } from "./hemicycle.ts"
 
 const arc = (radius: number, degrees: number) => {
@@ -13,7 +13,7 @@ const arc = (radius: number, degrees: number) => {
   return { x: radius * Math.cos(angle), y: -radius * Math.sin(angle) }
 }
 
-const over = (area: Rect): { readonly frame: Frame } => ({ frame: { area, px: 0.002, screen: "desktop" } })
+const over = (area: Rect, bleed = 0): { readonly frame: Frame } => ({ frame: { area, bleed, px: 0.002, screen: "desktop" } })
 
 function lines(seats: Record<string, { x: number; y: number }>) {
   const deputies = Object.entries(seats).map(([id, point], i) => ({ id: deputyId(id), seat: { number: String(i), ...point } }))
@@ -62,6 +62,28 @@ test("the hub is centred on the room's axis, inside its box and above its base l
   assert.ok(hub)
   assert.equal(hub.box.left, -hub.box.right)
   assert.ok(hub.box.left >= box.x && hub.box.top >= box.y && hub.box.left < hub.box.right && hub.box.top < hub.box.bottom && hub.box.bottom < 0, JSON.stringify(hub.box))
+})
+
+test("over a cover, the hemicycle grows until its tribune's foot meets the area's bottom, and lets only its floor run past, no further than the cover", () => {
+  const box = parseViewBox("-1.1 -1.1 2.2 1.5") ?? assert.fail("viewBox")
+  const seats = seatsOf({ deputies: [{ id: id("low"), seat: { number: "1", x: -0.9, y: 0 } }], emptySeats: [] }, { box, markup: "" })
+  const area = { left: -10, top: 0, right: 10, bottom: 1.36 }
+  const placed = (bleed: number) => {
+    const scene = placeHemicycle({ main: seats }, over(area, bleed))
+    const room = scene.marks.find(mark => mark.kind === "room") ?? assert.fail("no room")
+    const { scale, offset } = room.fit
+    const rounded = (value: number) => Math.round(value * 1e9) / 1e9 + 0
+    const at = (y: number) => rounded(offset.y + scale * y)
+    return { scale: rounded(scale), top: at(box.y), foot: at(0.26), bottom: at(box.y + box.height), seat: scene.dots.get(id("low"))?.y ?? assert.fail("no seat") }
+  }
+  const kept = placed(0)
+  assert.deepEqual([kept.top, kept.bottom], [area.top, area.bottom])
+  const ample = placed(1)
+  assert.deepEqual([ample.scale, ample.top, ample.foot, ample.bottom], [1, area.top, area.bottom, 1.5])
+  assert.ok(ample.seat + DOT_RADIUS < area.bottom)
+  const short = placed(0.07)
+  assert.ok(short.scale > kept.scale && short.scale < ample.scale, JSON.stringify(short))
+  assert.deepEqual([short.top, short.bottom], [area.top, 1.43])
 })
 
 test("hemicycle dots and their pointer reach keep the size tuned at the room's own scale, and scale with the fit", () => {

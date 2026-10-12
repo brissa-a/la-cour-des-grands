@@ -12,7 +12,8 @@ export type Screen = "desktop" | "phone"
 // From the approved mockups: the outcome at the heart of the arc is 26/21 of the half rings' counts.
 export const HUB_PX: Readonly<Record<Screen, number>> = { desktop: 26, phone: 17 }
 
-export type Frame = { readonly area: Rect; readonly px: number; readonly screen: Screen }
+// `bleed`: how far below the area, in its units, a chart's decoration may run under an element covering the stage.
+export type Frame = { readonly area: Rect; readonly bleed: number; readonly px: number; readonly screen: Screen }
 
 export type Order = (a: DeputyId, b: DeputyId) => number
 

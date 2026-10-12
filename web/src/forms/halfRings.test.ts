@@ -6,8 +6,8 @@ import type { Frame, Order, Scene } from "./form.ts"
 import { halfRingGrid, placeHalfRings, type Slot } from "./halfRings.ts"
 import { textEm } from "./text.ts"
 
-const DESKTOP: Frame = { area: { left: -1.18, top: -0.89, right: 1.18, bottom: 0.0283 }, px: 1 / 600, screen: "desktop" }
-const PHONE: Frame = { area: { left: -1.0296, top: -0.8897, right: 1.0296, bottom: 0.7529 }, px: 1 / 170.45, screen: "phone" }
+const DESKTOP: Frame = { area: { left: -1.18, top: -0.89, right: 1.18, bottom: 0.0283 }, bleed: 0, px: 1 / 600, screen: "desktop" }
+const PHONE: Frame = { area: { left: -1.0296, top: -0.8897, right: 1.0296, bottom: 0.7529 }, bleed: 0, px: 1 / 170.45, screen: "phone" }
 
 const VOTE = { Pour: 296, Contre: 224, Abstention: 41, "Non-votant": 1 }
 const VOTE_ABSENT = 15
@@ -323,8 +323,8 @@ test("a roster keeps the ring count and inner radius tuned for it, from one depu
 })
 
 test("a frame too small for the labels still holds every dot, as large as its narrow side allows", () => {
-  const narrow: Frame = { area: { left: 0, top: 0, right: 0.05, bottom: 0.8 }, px: 0.002, screen: "desktop" }
-  const low: Frame = { area: { left: 0, top: 0, right: 1, bottom: 0.05 }, px: 0.01, screen: "desktop" }
+  const narrow: Frame = { area: { left: 0, top: 0, right: 0.05, bottom: 0.8 }, bleed: 0, px: 0.002, screen: "desktop" }
+  const low: Frame = { area: { left: 0, top: 0, right: 1, bottom: 0.05 }, bleed: 0, px: 0.01, screen: "desktop" }
   for (const [frame, side] of [[narrow, "x"], [low, "y"]] as const) {
     const scene = place(turnoutOf(VOTE, VOTE_ABSENT), frame)
     const { area } = frame

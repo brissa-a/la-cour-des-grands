@@ -55,7 +55,7 @@ test("the room's outline and empty seats, drawn through its fit, land on the dot
   const box = parseViewBox("-3 -3 4 2") ?? assert.fail("viewBox")
   const seat = { number: "1", x: -0.5, y: -1.5 }
   const seats = seatsOf({ deputies: [{ id: deputyId("a"), seat }], emptySeats: [] }, { box, markup: "" })
-  const scene = placeHemicycle({ main: seats }, { frame: { area: { left: 1, top: 1, right: 17, bottom: 5 }, px: 0.01, screen: "desktop" } })
+  const scene = placeHemicycle({ main: seats }, { frame: { area: { left: 1, top: 1, right: 17, bottom: 5 }, bleed: 0, px: 0.01, screen: "desktop" } })
   const room = scene.marks.find((mark): mark is RoomMark => mark.kind === "room") ?? assert.fail("room")
   const scale = 100
   const drawn = roomAttributes(room, scale)

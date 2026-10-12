@@ -3,15 +3,17 @@ import type { ViewBox } from "../data/viewBox.ts"
 import { dots, type Glyph } from "../glyph/glyph.ts"
 import type { Rect } from "../preview/placement.ts"
 import type { Point, Seats } from "../sources/shapes.ts"
-import { DOT_RADIUS, HUB_PX, NO_HOLLOW, type Fit, type FormSpec, type Framed, type Scene } from "./form.ts"
+import { DOT_RADIUS, HUB_PX, NO_HOLLOW, type Fit, type FormSpec, type Frame, type Framed, type Scene } from "./form.ts"
 
 const SNAP = 0.6 * 2.75 * DOT_RADIUS
 const ROW_TOLERANCE = 0.025
 // The hollow of seats/hemicycle.svg above its tribune and below the innermost seats, in the room's units.
 const HUB: Rect = { left: -0.19, top: -0.25, right: 0.19, bottom: -0.13 }
+// The foot of seats/hemicycle.svg's tribune, in the room's units: only the floor below it may run under a legend.
+const TRIBUNE_FOOT = 0.26
 
 export function placeHemicycle({ main: seats }: { readonly main: Seats }, { frame }: Framed): Scene {
-  const fit = fitted(seats.box, frame.area)
+  const fit = fitted(seats.box, frame)
   const { scale, offset } = fit
   return {
     card: "beside",
@@ -40,9 +42,13 @@ const GLYPH: Glyph = [
 
 export const hemicycle: FormSpec<{ readonly main: readonly ["seats"] }> = { label: "Hémicycle", glyph: GLYPH, slots: { main: ["seats"] }, ordered: false, place: placeHemicycle }
 
-function fitted(box: ViewBox, area: Rect): Fit {
-  const scale = Math.min((area.right - area.left) / box.width, (area.bottom - area.top) / box.height)
-  const offset = { x: (area.left + area.right - scale * (2 * box.x + box.width)) / 2, y: (area.top + area.bottom - scale * (2 * box.y + box.height)) / 2 }
+function fitted(box: ViewBox, { area, bleed }: Frame): Fit {
+  const bottom = box.y + box.height
+  const foot = Math.min(TRIBUNE_FOOT, bottom)
+  const height = area.bottom - area.top
+  const scale = Math.min((area.right - area.left) / box.width, height / (foot - box.y), (height + bleed) / box.height)
+  const shownBottom = Math.max(foot, bottom - bleed / scale)
+  const offset = { x: (area.left + area.right - scale * (2 * box.x + box.width)) / 2, y: (area.top + area.bottom - scale * (box.y + shownBottom)) / 2 }
   return { scale, offset }
 }
 

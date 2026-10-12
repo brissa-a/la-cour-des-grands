@@ -12,7 +12,7 @@ import { dotMotion, motionOf, nextStaging, roomStaging, settleMs, transitionOf, 
 const A = deputyId("PA0")
 const B = deputyId("PA1")
 
-const FRAME: Frame = { area: { left: 0, top: 0, right: 1, bottom: 1 }, px: 0.002, screen: "desktop" }
+const FRAME: Frame = { area: { left: 0, top: 0, right: 1, bottom: 1 }, bleed: 0, px: 0.002, screen: "desktop" }
 
 function seated(ids: readonly DeputyId[]) {
   return readSeats(seatsOf({ deputies: ids.map((id, i) => ({ id, seat: { number: String(i), x: i, y: 0 } })), emptySeats: [] }, { box: parseViewBox("0 0 1 1") ?? assert.fail("viewBox"), markup: "" }))

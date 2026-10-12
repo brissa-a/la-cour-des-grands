@@ -1295,7 +1295,10 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 /* Laid out for a 600×315 viewport captured at device scale 2. X crops the 1200×630 image to 2:1 around its middle, so the content stays inside the central 600×300. */
 [data-chrome="capture"] .app { padding: 8px 0; }
 
-[data-chrome="capture"] .stage-bottom { padding: 0 8px 6px; }
+/* The room's floor runs past the svg's box, under the legend's cover; a margin keeps that cover to the legend itself. */
+[data-chrome="capture"] .stage-bottom { margin-bottom: 6px; padding: 0 8px; }
+
+[data-chrome="capture"] .stage > svg { overflow: visible; }
 
 [data-chrome="capture"] .legend { padding: 6px; }
 

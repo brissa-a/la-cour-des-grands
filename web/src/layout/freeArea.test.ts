@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { freeArea } from "./freeArea.ts"
+import { bleedBelow, freeArea } from "./freeArea.ts"
 
 test("the area starts below the lowest overlay at the top and ends above the overlays at the bottom, with each axis's clearance", () => {
   const stage = { left: 0, top: 0, right: 1440, bottom: 900 }
@@ -43,4 +43,17 @@ test("an overlay beside the stage, like the search in the side panel, leaves the
   assert.deepEqual(freeArea(stage, [panelSearch, touching, legend], { x: 12, y: 12 }), { left: 312, top: 12, right: 1428, bottom: 788 })
   const overlapping = { left: 290, top: 12, right: 301, bottom: 60 }
   assert.deepEqual(freeArea(stage, [overlapping], { x: 12, y: 12 }), { left: 312, top: 72, right: 1428, bottom: 888 })
+})
+
+test("a chart may run below its area down to the bottom of the lowest cover under it, touching or not, and never under a cover beside or across the area", () => {
+  const area = { left: 12, top: 12, right: 588, bottom: 255 }
+  const legend = { left: 8, top: 259, right: 592, bottom: 301 }
+  const lower = { left: 300, top: 262, right: 320, bottom: 305 }
+  assert.equal(bleedBelow(area, []), 0)
+  assert.equal(bleedBelow(area, [legend]), 46)
+  assert.equal(bleedBelow(area, [legend, lower]), 50)
+  assert.equal(bleedBelow(area, [{ left: 8, top: 255, right: 592, bottom: 290 }]), 35)
+  assert.equal(bleedBelow(area, [{ left: 0, top: 259, right: 12, bottom: 301 }]), 0)
+  assert.equal(bleedBelow(area, [{ left: 588, top: 259, right: 600, bottom: 301 }]), 0)
+  assert.equal(bleedBelow(area, [{ left: 8, top: 250, right: 592, bottom: 301 }]), 0)
 })
