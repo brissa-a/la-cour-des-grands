@@ -1,0 +1,126 @@
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http"
+import { FALLBACK_PATH, parseImagePath } from "./canonical.ts"
+import type { PublicOrigin } from "./config.ts"
+import { isLinkPreviewCrawler } from "./crawlers.ts"
+import type { ImageAnswer, Images } from "./images.ts"
+import { answerPage } from "./page.ts"
+import type { Releases } from "./releases.ts"
+import { bodyFor, encoded, PAGE_TYPE, preferredEncoding, type Encoding, type StaticSite } from "./site.ts"
+import type { PageTemplate } from "./tags.ts"
+
+export type ServiceDeps = {
+  readonly site: StaticSite
+  readonly template: PageTemplate
+  readonly origin: PublicOrigin
+  readonly releases: () => Releases
+  readonly images: Images
+  readonly fallback: () => Buffer | null
+  readonly health: () => Readonly<Record<string, unknown>>
+  readonly logError: (error: unknown) => void
+}
+
+type Reply = {
+  readonly status: number
+  readonly headers: Readonly<Record<string, string>>
+  readonly body: Buffer
+  readonly encoding: Encoding
+  readonly varies: boolean
+}
+
+export const MAX_TARGET_BYTES = 2048
+
+export const HEALTH_PATH = "/healthz"
+
+const IMMUTABLE = "public, max-age=31536000, immutable"
+const PAGE_CACHE = "public, max-age=60"
+const FALLBACK_CACHE = "public, max-age=60"
+const JPEG = "image/jpeg"
+const RETRY_AFTER_S = "30"
+
+function reply(status: number, headers: Readonly<Record<string, string>>, body: Buffer): Reply {
+  return { status, headers, body, encoding: "identity", varies: false }
+}
+
+function text(status: number, message: string, headers: Readonly<Record<string, string>> = {}): Reply {
+  return reply(status, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", ...headers }, Buffer.from(`${message}\n`))
+}
+
+function redirect(status: 301 | 302, location: string, cacheControl: string): Reply {
+  return reply(status, { location, "cache-control": cacheControl }, Buffer.alloc(0))
+}
+
+function jpeg(image: Buffer | null, cacheControl: string): Reply {
+  if (image === null) return text(503, "Image indisponible, réessayez plus tard", { "retry-after": RETRY_AFTER_S })
+  return reply(200, { "content-type": JPEG, "cache-control": cacheControl }, image)
+}
+
+function imageReply(answer: ImageAnswer, fallback: Buffer | null): Reply {
+  switch (answer.kind) {
+    case "image":
+      return jpeg(answer.jpeg, IMMUTABLE)
+    case "fallback":
+      return jpeg(fallback, FALLBACK_CACHE)
+    case "moved":
+      return redirect(302, answer.location, "no-store")
+    case "notFound":
+      return text(404, "Image introuvable")
+  }
+}
+
+async function handle(request: IncomingMessage, deps: ServiceDeps): Promise<Reply> {
+  const target = request.url ?? ""
+  if (Buffer.byteLength(target) > MAX_TARGET_BYTES) return text(414, "Adresse trop longue")
+  if (request.method !== "GET" && request.method !== "HEAD") return text(405, "Méthode non permise", { allow: "GET, HEAD" })
+  if (!target.startsWith("/")) return text(400, "Adresse invalide")
+  const url = new URL(`http://service.invalid${target}`)
+  const encoding = preferredEncoding(request.headers["accept-encoding"])
+  switch (url.pathname) {
+    case "/": {
+      const question = target.indexOf("?")
+      const answer = answerPage(question === -1 ? null : target.slice(question + 1), deps.releases(), deps.template, deps.origin)
+      if (answer.kind === "redirect") return redirect(301, answer.location, PAGE_CACHE)
+      if (answer.prerender !== null && isLinkPreviewCrawler(request.headers["user-agent"])) deps.images.prerender(answer.prerender.release, answer.prerender.view)
+      return { status: 200, headers: { "content-type": PAGE_TYPE, "cache-control": PAGE_CACHE }, body: encoded(Buffer.from(answer.html), encoding), encoding, varies: true }
+    }
+    case "/index.html":
+      return redirect(301, "/", PAGE_CACHE)
+    case HEALTH_PATH:
+      return reply(200, { "content-type": "application/json", "cache-control": "no-store" }, Buffer.from(JSON.stringify(deps.health())))
+    case FALLBACK_PATH:
+      return jpeg(deps.fallback(), FALLBACK_CACHE)
+    default:
+      return file(url, encoding, deps)
+  }
+}
+
+async function file(url: URL, encoding: Encoding, deps: ServiceDeps): Promise<Reply> {
+  const address = parseImagePath(url.pathname)
+  if (address !== null) return imageReply(await deps.images.answer(address, url.searchParams), deps.fallback())
+  const asset = deps.site.assets.get(url.pathname)
+  if (asset === undefined) return text(404, "Page introuvable")
+  const chosen = bodyFor(asset.bodies, encoding)
+  return { status: 200, headers: { "content-type": asset.type, "cache-control": asset.cacheControl }, ...chosen, varies: asset.bodies.compressed !== null }
+}
+
+function send(response: ServerResponse, { status, headers, body, encoding, varies }: Reply): void {
+  response.writeHead(status, {
+    ...headers,
+    "content-length": String(body.length),
+    "x-content-type-options": "nosniff",
+    ...(encoding === "identity" ? {} : { "content-encoding": encoding }),
+    ...(varies ? { vary: "Accept-Encoding" } : {}),
+  })
+  response.end(body)
+}
+
+export function createService(deps: ServiceDeps): Server {
+  return createServer((request, response) => {
+    handle(request, deps).then(
+      answer => send(response, answer),
+      (error: unknown) => {
+        deps.logError(error)
+        send(response, text(500, "Erreur interne"))
+      },
+    )
+  })
+}
