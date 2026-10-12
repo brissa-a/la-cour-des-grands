@@ -10,6 +10,12 @@ test("the area starts below the lowest overlay at the top and ends above the ove
   assert.deepEqual(freeArea(stage, [searchBar, controls, headerAndLegend], { x: 12, y: 4 }), { left: 12, top: 120, right: 1428, bottom: 644 })
 })
 
+test("a stage no wider or taller than its clearances leaves the chart no area", () => {
+  assert.equal(freeArea({ left: 0, top: 0, right: 24, bottom: 900 }, [], { x: 12, y: 4 }), null)
+  assert.equal(freeArea({ left: 0, top: 0, right: 900, bottom: 8 }, [], { x: 12, y: 4 }), null)
+  assert.deepEqual(freeArea({ left: 0, top: 0, right: 25, bottom: 900 }, [], { x: 12, y: 4 }), { left: 12, top: 4, right: 13, bottom: 896 })
+})
+
 test("the stage can be a DOMRect, whose sides are prototype getters that a spread copy would drop", () => {
   class Measured {
     get left() { return 0 }
