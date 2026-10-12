@@ -50,7 +50,7 @@ import type { Source } from "./sources/shapes.ts"
 import { seatsOf } from "./sources/seats.ts"
 import { featuresOf, useFeatureValues } from "./sources/useFeatureValues.ts"
 import type { FeatureCache } from "./sources/values.ts"
-import { DEFAULT_COLOR_FEATURE, PANEL_ORDER } from "./sources/views.ts"
+import { DEFAULT_COLOR_FEATURE, PANEL_ORDER, partNoun } from "./sources/views.ts"
 import type { Param } from "./param.ts"
 import { pushParam, readParam, writeParam, writeParams } from "./url.ts"
 import { HEMICYCLE, readsVote, viewParams, type ParsedView, type View } from "./view/view.ts"
@@ -390,7 +390,13 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
     />
   )
   const legend = legendShown(chrome, colored.reading.source, view.layout) && (
-    <Legend paint={colored.paint} store={preview} selected={ringed} onHover={setHovered} />
+    <Legend
+      paint={colored.paint}
+      store={preview}
+      selected={ringed}
+      onHover={setHovered}
+      excerpt={chrome.kind === "capture" ? { noun: colored.reading.source.kind === "category" ? partNoun(colored.reading.source.key) : "valeurs" } : null}
+    />
   )
   const card = (
     <PreviewCard

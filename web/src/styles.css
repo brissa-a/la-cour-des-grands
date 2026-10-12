@@ -1298,13 +1298,17 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 /* The room is narrower than the preview, so its legend goes beside it and the room keeps the height. */
 [data-chrome="capture"] .legend-beside .stage { flex-direction: row; align-items: center; }
 
-[data-chrome="capture"] .legend-beside .stage-bottom { flex: none; max-width: 42%; padding: 0 12px 0 0; }
+[data-chrome="capture"] .legend-beside .stage-bottom { flex: none; min-width: 0; max-width: 42%; padding: 0 12px 0 0; }
 
-[data-chrome="capture"] .legend-beside .legend:not(.legend-gradient) { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+[data-chrome="capture"] .legend-beside .legend:not(.legend-gradient) { flex-direction: column; flex-wrap: nowrap; align-items: stretch; overflow: hidden; }
 
-[data-chrome="capture"] .legend-beside .legend:has(> li:nth-child(7)) { display: grid; grid-template-columns: repeat(2, auto); }
+[data-chrome="capture"] .legend-beside .legend:not(.legend-excerpt):has(> li:nth-child(7)) { display: grid; grid-template-columns: repeat(2, minmax(0, auto)); }
 
-[data-chrome="capture"] .legend-beside .legend li { white-space: nowrap; }
+[data-chrome="capture"] .legend-beside .legend li { min-width: 0; white-space: nowrap; }
+
+[data-chrome="capture"] .legend-beside .legend-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+.legend .legend-more { padding-left: 20px; color: var(--muted); }
 
 [data-chrome="capture"] .legend-beside .legend-gradient { width: 220px; }
 

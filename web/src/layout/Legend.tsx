@@ -1,4 +1,5 @@
 import type { DeputyId } from "../data/assembly.ts"
+import { captureExcerpt } from "../embed/legendExcerpt.ts"
 import type { Legend as LegendData, Paint } from "../paint/paint.ts"
 import { cardShown, usePreview, type PreviewStore } from "../preview/previewStore.ts"
 import { numberFormat } from "../profile/format.ts"
@@ -8,15 +9,16 @@ type Props = {
   store: PreviewStore
   selected: DeputyId | null
   onHover: (members: readonly DeputyId[] | null) => void
+  excerpt: { readonly noun: string } | null
 }
 
-export function Legend({ paint, store, selected, onHover }: Props) {
+export function Legend({ paint, store, selected, onHover, excerpt }: Props) {
   const { target, card } = usePreview(store)
   const focused = target ?? (cardShown(card, selected) ? card.id : null)
   const { legend } = paint
   switch (legend.kind) {
     case "swatches":
-      return <Swatches legend={legend} focused={focused} selected={selected} onHover={onHover} />
+      return <Swatches legend={legend} focused={focused} selected={selected} onHover={onHover} excerpt={excerpt} />
     case "ramp":
       return <Ramp legend={legend} colorOf={paint.colorOf} focused={focused} selected={selected} />
   }
@@ -24,12 +26,13 @@ export function Legend({ paint, store, selected, onHover }: Props) {
 
 type Focus = { focused: DeputyId | null; selected: DeputyId | null }
 
-function Swatches({ legend, focused, selected, onHover }: Focus & { legend: Extract<LegendData, { kind: "swatches" }>; onHover: Props["onHover"] }) {
+function Swatches({ legend, focused, selected, onHover, excerpt }: Focus & { legend: Extract<LegendData, { kind: "swatches" }>; onHover: Props["onHover"]; excerpt: Props["excerpt"] }) {
   const lit = focused === null ? null : legend.keyOf(focused)
   const chosen = selected === null ? null : legend.keyOf(selected)
+  const { shown, hidden } = excerpt ? captureExcerpt(legend.swatches) : { shown: legend.swatches, hidden: 0 }
   return (
-    <ul className="legend panel" data-obstacle="" onPointerLeave={() => onHover(null)}>
-      {legend.swatches.map(swatch => {
+    <ul className={hidden > 0 ? "legend legend-excerpt panel" : "legend panel"} data-obstacle="" onPointerLeave={() => onHover(null)}>
+      {shown.map(swatch => {
         const classes = [swatch.key === lit && "lit", swatch.key === chosen && "chosen"].filter(Boolean).join(" ")
         return (
           <li key={swatch.key} className={classes || undefined} title={swatch.title} onPointerEnter={() => onHover(swatch.members)}>
@@ -39,6 +42,11 @@ function Swatches({ legend, focused, selected, onHover }: Focus & { legend: Extr
           </li>
         )
       })}
+      {excerpt && hidden > 0 && (
+        <li className="legend-more">
+          + {hidden} autres {excerpt.noun}
+        </li>
+      )}
     </ul>
   )
 }
