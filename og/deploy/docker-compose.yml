@@ -1,39 +1,47 @@
 # Runs on the Dedibox through deploy.sh: docker --context abysshopper compose -f og/deploy/docker-compose.yml.
-# The service name is a DNS alias on the shared edge network: it must be unique on the server.
+# Service names are DNS aliases on the networks they join: they must be unique on the server.
 name: lcdg
+
+x-confined: &confined
+  image: lcdg-og:${LCDG_TAG:-latest}
+  restart: unless-stopped
+  # Reaps the processes Chromium leaves behind when a browser is recycled or crashes.
+  init: true
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
 
 services:
   lcdg-og:
+    <<: *confined
     build:
       context: ../..
       dockerfile: og/deploy/Dockerfile
-    image: lcdg-og:${LCDG_TAG:-latest}
-    restart: unless-stopped
-    # Reaps the processes Chromium leaves behind when a browser is recycled or crashes.
-    init: true
-    read_only: true
-    # Chromium keeps its profile and, with --disable-dev-shm-usage, its shared memory here.
     tmpfs:
-      - /tmp:size=256m
-    # Chromium runs without its own sandbox (Playwright's default): Docker's seccomp profile denies the user
-    # namespaces it needs, and allowing them would take CAP_SYS_ADMIN or a looser profile for the whole container.
-    # The page only ever loads this build, the pinned data and the photos (page.route aborts everything else),
-    # and the container itself confines it: no capabilities, no privilege gain, read-only root, non-root user.
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    mem_limit: 1536m
-    memswap_limit: 1536m
-    cpus: 2
-    pids_limit: 512
+      - /tmp:size=16m
+    mem_limit: 384m
+    memswap_limit: 384m
+    cpus: 1
+    pids_limit: 64
     environment:
       PUBLIC_ORIGIN: https://lcdg.kxv.fr
       PORT: "8080"
+      CHROMIUM_ENDPOINT: ws://lcdg-chromium:3000/capture
     volumes:
       - cache:/app/og/cache
     networks:
       - edge
+      - capture
+    depends_on:
+      lcdg-chromium:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
       interval: 30s
@@ -48,31 +56,63 @@ services:
       - traefik.http.routers.lcdg.entrypoints=websecure
       - traefik.http.routers.lcdg.tls.certresolver=le
       - traefik.http.routers.lcdg.service=lcdg
-      - traefik.http.routers.lcdg.middlewares=lcdg-compress
+      - traefik.http.routers.lcdg.middlewares=lcdg-ratelimit,lcdg-compress
+      # Per client IP, far above what browsers loading the site ask for, even many behind one address.
+      - traefik.http.middlewares.lcdg-ratelimit.ratelimit.average=600
+      - traefik.http.middlewares.lcdg-ratelimit.ratelimit.period=1m
+      - traefik.http.middlewares.lcdg-ratelimit.ratelimit.burst=300
       # The service compresses its own text; this only catches text it would send plain, never the JPEGs.
       - traefik.http.middlewares.lcdg-compress.compress.includedcontenttypes=text/html,text/css,text/javascript,application/json,image/svg+xml,text/plain
+      # Images asked by anything but a link preview robot: below the render rate, per client IP.
       - traefik.http.routers.lcdg-og.rule=Host(`lcdg.kxv.fr`) && PathPrefix(`/og/`)
       - traefik.http.routers.lcdg-og.entrypoints=websecure
       - traefik.http.routers.lcdg-og.tls.certresolver=le
       - traefik.http.routers.lcdg-og.service=lcdg
       - traefik.http.routers.lcdg-og.middlewares=lcdg-og-ratelimit,lcdg-og-inflight
-      # Per client IP and far above what a link preview crawler asks for: the service's render queue and generic
-      # image are the real protection, and crawlers must not be answered 429.
-      - traefik.http.middlewares.lcdg-og-ratelimit.ratelimit.average=120
+      - traefik.http.middlewares.lcdg-og-ratelimit.ratelimit.average=20
       - traefik.http.middlewares.lcdg-og-ratelimit.ratelimit.period=1m
-      - traefik.http.middlewares.lcdg-og-ratelimit.ratelimit.burst=60
-      - traefik.http.middlewares.lcdg-og-inflight.inflightreq.amount=10
+      - traefik.http.middlewares.lcdg-og-ratelimit.ratelimit.burst=20
+      - traefik.http.middlewares.lcdg-og-inflight.inflightreq.amount=3
       # Without a criterion, inFlightReq counts per request host, that is for everyone at once; depth 0 means the client's IP.
       - traefik.http.middlewares.lcdg-og-inflight.inflightreq.sourcecriterion.ipstrategy.depth=0
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: "3"
+      # Link preview robots are never answered 429: the service's render quota per client and its generic image protect the box.
+      # The pattern is og/src/crawlers.ts's, which a test keeps in step.
+      - traefik.http.routers.lcdg-crawlers.rule=Host(`lcdg.kxv.fr`) && HeaderRegexp(`User-Agent`, `facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|Discordbot|WhatsApp|Cardyb|Mastodon|Pleroma|Akkoma|Misskey|TelegramBot|SkypeUriPreview|redditbot|Pinterestbot|Embedly|Iframely|vkShare`)
+      - traefik.http.routers.lcdg-crawlers.priority=1000
+      - traefik.http.routers.lcdg-crawlers.entrypoints=websecure
+      - traefik.http.routers.lcdg-crawlers.tls.certresolver=le
+      - traefik.http.routers.lcdg-crawlers.service=lcdg
+      - traefik.http.routers.lcdg-crawlers.middlewares=lcdg-compress
+
+  # Chromium runs without its own sandbox (Playwright's default): Docker's seccomp profile denies the user namespaces
+  # it needs. So it runs here, on an internal network that reaches nothing but lcdg-og: no Internet, no Traefik, no other project.
+  lcdg-chromium:
+    <<: *confined
+    pull_policy: never
+    # The Playwright server can sit on SIGTERM once browsers have come and gone.
+    stop_grace_period: 5s
+    command: ["node", "og/node_modules/playwright-core/cli.js", "run-server", "--port", "3000", "--host", "0.0.0.0", "--path", "/capture", "--max-clients", "4"]
+    # Chromium keeps its profile and, with --disable-dev-shm-usage, its shared memory here.
+    tmpfs:
+      - /tmp:size=256m
+    mem_limit: 1152m
+    memswap_limit: 1152m
+    cpus: 2
+    pids_limit: 512
+    networks:
+      - capture
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
 
 networks:
   edge:
     external: true
+  capture:
+    internal: true
 
 volumes:
   cache:

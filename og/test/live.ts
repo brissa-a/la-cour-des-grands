@@ -56,18 +56,19 @@ async function jpeg(url: string, cacheControl: string): Promise<{ readonly bytes
   return { bytes: body.length, ms: Math.round(performance.now() - started) }
 }
 
-async function health(): Promise<{ readonly data: unknown; readonly version: string }> {
+async function health(): Promise<{ readonly data: unknown; readonly version: string; readonly render: string }> {
   const response = await fetch(`${ORIGIN}/healthz`)
   assert.equal(response.status, 200)
   const body: unknown = await response.json()
-  assert.ok(typeof body === "object" && body !== null && "data" in body && "version" in body && typeof body.version === "string", "the health check's JSON")
-  return { data: body.data, version: body.version }
+  assert.ok(typeof body === "object" && body !== null && "data" in body && "version" in body && typeof body.version === "string" && "render" in body && typeof body.render === "string", "the health check's JSON")
+  return { data: body.data, version: body.version, render: body.render }
 }
 
-test("the service has loaded a data version", async () => {
-  const { data, version } = await health()
+test("the service has loaded a data version, and names its render", async () => {
+  const { data, version, render } = await health()
   assert.equal(data, "ready")
   assert.match(version, /^[0-9a-f]{40}$/)
+  assert.match(render, /^[0-9a-f]{12}$/)
 })
 
 for (const { name, query } of VIEWS) {
@@ -81,9 +82,10 @@ for (const { name, query } of VIEWS) {
     }
   })
 
-  test(`${name}'s og:image is a 1200x630 JPEG cached for a year`, async t => {
+  test(`${name}'s og:image is a 1200x630 JPEG cached for a year, named by data version and render`, async t => {
     const image = tag(await page(query, CRAWLERS[0]), "og:image")
-    assert.ok(image.startsWith(`${ORIGIN}/og/`) && !image.startsWith(`${ORIGIN}/og/fallback`), image)
+    const { version, render } = await health()
+    assert.ok(image.startsWith(`${ORIGIN}/og/${version}/${render}/`), image)
     const first = await jpeg(image, IMMUTABLE)
     const again = await jpeg(image, IMMUTABLE)
     t.diagnostic(`${image}: ${first.bytes} bytes, ${first.ms} ms then ${again.ms} ms`)
@@ -96,11 +98,22 @@ test("a link not in canonical form is sent to it for good", async () => {
   assert.equal(response.headers.get("location"), "/?vote=VTANR5L17V8427&color=vote")
 })
 
-test("a vote the data does not hold gets the generic image, cached a minute", async () => {
-  assert.equal(tag(await page(UNKNOWN_VOTE, CRAWLERS[0]), "og:image"), `${ORIGIN}/og/fallback.jpg`)
-  const { version } = await health()
+test("a vote the data does not hold keeps its URL but gets the generic image, cached a minute, with the generic view's texts", async () => {
+  const html = await page(UNKNOWN_VOTE, CRAWLERS[0])
+  assert.equal(tag(html, "og:image"), `${ORIGIN}/og/fallback.jpg`)
+  assert.equal(tag(html, "og:url"), pageUrl(UNKNOWN_VOTE))
+  const generic = await page("", CRAWLERS[0])
+  for (const key of ["og:title", "og:description", "og:image:alt"]) assert.equal(tag(html, key), tag(generic, key), key)
+  const { version, render } = await health()
   const hash = createHash("sha256").update(UNKNOWN_VOTE).digest("hex")
-  await jpeg(`${ORIGIN}/og/${version}/${hash}.jpg?${UNKNOWN_VOTE}`, "public, max-age=60")
+  await jpeg(`${ORIGIN}/og/${version}/${render}/${hash}.jpg?${UNKNOWN_VOTE}`, "public, max-age=60")
+  await jpeg(`${ORIGIN}/og/fallback.jpg`, "public, max-age=60")
+})
+
+test("a link with photos keeps them in its og:url and shares the image of the same view without them", async () => {
+  const html = await page("vote=VTANR5L17V8427&color=vote&showPic=true", CRAWLERS[1])
+  assert.equal(tag(html, "og:url"), pageUrl("vote=VTANR5L17V8427&color=vote&showPic=true"))
+  assert.equal(tag(html, "og:image"), tag(await page("vote=VTANR5L17V8427&color=vote", CRAWLERS[1]), "og:image"))
 })
 
 test("a request target over 2 KB is refused", async () => {
@@ -116,4 +129,31 @@ test("a browser gets the site with its script compressed and cached for a year",
   assert.equal(response.status, 200)
   assert.equal(response.headers.get("content-encoding"), "br")
   assert.equal(response.headers.get("cache-control"), IMMUTABLE)
+})
+
+test("a burst of image requests from one link preview robot is never answered 429", async () => {
+  const image = tag(await page("", CRAWLERS[4]), "og:image")
+  const statuses: number[] = []
+  for (let wave = 0; wave < 8; wave++) {
+    const answers = await Promise.all(Array.from({ length: 12 }, () => fetch(image, { headers: { "user-agent": CRAWLERS[4] } })))
+    for (const answer of answers) {
+      statuses.push(answer.status)
+      await answer.arrayBuffer()
+    }
+  }
+  assert.deepEqual([...new Set(statuses)], [200])
+})
+
+// Last: it spends this client's allowance on /og/ for a minute.
+test("a burst of image requests from a browser is limited per client before it reaches the renders", async () => {
+  const image = tag(await page("", CRAWLERS[0]), "og:image")
+  const statuses: number[] = []
+  for (let wave = 0; wave < 4; wave++) {
+    const answers = await Promise.all(Array.from({ length: 10 }, () => fetch(image, { headers: { "user-agent": BROWSER } })))
+    for (const answer of answers) {
+      statuses.push(answer.status)
+      await answer.arrayBuffer()
+    }
+  }
+  assert.ok(statuses.includes(429), statuses.join(" "))
 })

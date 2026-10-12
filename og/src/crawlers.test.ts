@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { isLinkPreviewCrawler } from "./crawlers.ts"
+import { readFileSync } from "node:fs"
+import { isLinkPreviewCrawler, LINK_PREVIEW_AGENT_PATTERN } from "./crawlers.ts"
 
 test("the link preview robots of the networks are recognised by their user agent, browsers and search engines are not", () => {
   for (const agent of [
@@ -24,4 +25,10 @@ test("the link preview robots of the networks are recognised by their user agent
     undefined,
   ])
     assert.equal(isLinkPreviewCrawler(agent), false, agent)
+})
+
+test("Traefik spares from its rate limits exactly the robots the service recognises", () => {
+  const compose = readFileSync(new URL("../deploy/docker-compose.yml", import.meta.url), "utf8")
+  const rules = [...compose.matchAll(/HeaderRegexp\(`User-Agent`, `([^`]*)`\)/g)].map(([, pattern]) => pattern)
+  assert.deepEqual(rules, [LINK_PREVIEW_AGENT_PATTERN])
 })

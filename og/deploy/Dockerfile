@@ -21,9 +21,12 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY web/src web/src
 COPY web/dist web/dist
 COPY og/src og/src
-RUN install -d -o node -g node og/cache
+# A user of its own, whose uid no account on the host shares.
+RUN groupadd --gid 10001 lcdg \
+ && useradd --uid 10001 --gid lcdg --no-create-home --home-dir /tmp --shell /usr/sbin/nologin lcdg \
+ && install -d -o lcdg -g lcdg og/cache
 
-USER node
+USER lcdg
 ENV HOME=/tmp
 EXPOSE 8080
 CMD ["node", "og/src/main.ts"]
