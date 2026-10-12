@@ -5,7 +5,7 @@ import { deputyId } from "../data/deputyId.ts"
 import { VOTE } from "../sources/shapes.ts"
 import { HEMICYCLE, viewParams, VOTE_COLOR } from "../view/view.ts"
 import { voteId } from "../votes/voteId.ts"
-import { embedUrl, fullSiteUrl, legendShown, parseChrome, stageInput, type Chrome } from "./chrome.ts"
+import { chromeParams, embedUrl, fullSiteUrl, legendShown, parseChrome, stageInput, type Chrome } from "./chrome.ts"
 
 const GROUP: CategoryFeature = { kind: "category", key: "deputies/init.csv:group", file: "deputies/init.csv", column: "group", title: "Groupe politique", values: "g" }
 const AGE: NumberFeature = { kind: "number", key: "deputies/init.csv:age", file: "deputies/init.csv", column: "age", title: "Âge" }
@@ -32,6 +32,15 @@ test("clean=true strips the interface, clean=capture strips it for the preview i
   assert.deepEqual(chromeOf("?clean=false&title=true"), FULL)
   assert.deepEqual(chromeOf("?clean=1"), FULL)
   assert.deepEqual(chromeOf("?clean=Capture"), FULL)
+})
+
+test("the parameters written for a chrome read back as that chrome, and the full site writes none", () => {
+  for (const chrome of [FULL, CLEAN, { kind: "clean", title: true } as const, CAPTURE]) {
+    const params = new URLSearchParams()
+    for (const [name, value] of chromeParams(chrome)) if (value !== null) params.append(name, value)
+    assert.deepEqual(chromeOf(params.toString()), chrome)
+  }
+  assert.deepEqual(chromeParams(FULL), [])
 })
 
 test("only the full site pans and zooms, the embed takes taps, and the capture takes no input", () => {

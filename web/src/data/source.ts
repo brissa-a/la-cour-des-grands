@@ -1,8 +1,14 @@
 export type ReadText = (path: string) => Promise<string>
 
-const DATA_BRANCH = "test-v2"
+export const DATA_REPOSITORY = "brissa-a/lcdg-data"
 
-export const PUBLISHED_ROOT = `https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/`
+export const DATA_BRANCH = "test-v2"
+
+export function dataRootAt(ref: string): string {
+  return `https://raw.githubusercontent.com/${DATA_REPOSITORY}/${ref}/v2/`
+}
+
+export const PUBLISHED_ROOT = dataRootAt(DATA_BRANCH)
 
 export function fetchUnder(root: string, fetcher: (url: string) => Promise<Response> = fetch): ReadText {
   return async path => {

@@ -18,8 +18,12 @@ export function sharedParams({ view, deputy, photos }: Shared): readonly Param[]
   return [...viewParams(view, DEFAULT_COLOR_FEATURE), ["deputy", deputy], ["showPic", photos ? "true" : null]]
 }
 
-export function canonicalQuery(read: (name: string) => string | null, known: Known): string {
+export function sharedQuery(shared: Shared): string {
   const query = new URLSearchParams()
-  for (const [name, value] of sharedParams(parseShared(read, known))) if (value !== null) query.append(name, value)
+  for (const [name, value] of sharedParams(shared)) if (value !== null) query.append(name, value)
   return query.toString()
+}
+
+export function canonicalQuery(read: (name: string) => string | null, known: Known): string {
+  return sharedQuery(parseShared(read, known))
 }

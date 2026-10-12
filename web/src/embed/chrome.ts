@@ -15,12 +15,26 @@ export function parseChrome(read: (name: string) => string | null): Chrome {
   return { kind: "full" }
 }
 
+export function chromeParams(chrome: Chrome): readonly Param[] {
+  switch (chrome.kind) {
+    case "full":
+      return []
+    case "clean":
+      return [
+        ["clean", "true"],
+        ["title", chrome.title ? "true" : null],
+      ]
+    case "capture":
+      return [["clean", "capture"]]
+  }
+}
+
 export function fullSiteUrl(page: string, view: readonly Param[], deputy: DeputyId | null): string {
   return pageUrl(page, [...view, ["deputy", deputy]])
 }
 
 export function embedUrl(page: string, view: readonly Param[]): string {
-  return pageUrl(page, [...view, ["clean", "true"]])
+  return pageUrl(page, [...view, ...chromeParams({ kind: "clean", title: false })])
 }
 
 function pageUrl(page: string, params: readonly Param[]): string {
