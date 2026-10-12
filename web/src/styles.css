@@ -241,7 +241,39 @@ a { color: var(--accent); }
 
 .control { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
-.control-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.control-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+
+.embed-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  margin-left: auto;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--cream);
+  font: inherit;
+  cursor: pointer;
+}
+
+.embed-copy:hover { background: var(--line); }
+
+.embed-copy svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+
+.copy-field {
+  min-width: 0;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #161616;
+  color: var(--fg);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.control-row .copy-field { order: 1; flex-basis: 100%; margin-bottom: 4px; }
 
 .icon-button {
   display: grid;
@@ -560,6 +592,8 @@ a { color: var(--accent); }
 .panel-close svg { stroke: var(--fg); stroke-width: 1.8; stroke-linecap: round; }
 
 .panel-copy:hover, .panel-close:hover { background: var(--line); }
+
+.panel-bar .copy-field { flex: 1; margin-right: 8px; }
 
 .portrait {
   position: relative;
@@ -902,7 +936,7 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 .glyph-button:hover { border-color: rgba(239, 232, 218, 0.5); background: rgba(239, 232, 218, 0.14); }
 
 .glyph-button:focus-visible, .side-panel .icon-button:focus-visible, .vote-change:focus-visible, .vote-clear:focus-visible,
-.dock button:focus-visible, .sheet .icon-button:focus-visible, .sheet-bottom input:focus-visible, .vote-screen .icon-button:focus-visible {
+.dock button:focus-visible, .sheet .icon-button:focus-visible, .sheet-bottom input:focus-visible, .vote-screen .icon-button:focus-visible, .embed-copy:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -1169,6 +1203,8 @@ mark { background: none; color: var(--accent); font-weight: 700; }
 
 .sheet-bottom .icon-button { width: 44px; height: 44px; margin: 0; }
 
+.sheet-bottom .embed-copy { height: 44px; padding: 0 10px; font-size: 14px; }
+
 .vote-screen { position: fixed; z-index: 45; inset: 0; display: flex; flex-direction: column; background: #1e1e1e; font-size: 13px; }
 
 .vote-screen-top { flex: none; display: flex; align-items: center; gap: 4px; height: 60px; padding: 0 14px 0 4px; border-bottom: 1px solid var(--line); }
@@ -1217,6 +1253,8 @@ mark { background: none; color: var(--accent); font-weight: 700; }
   .portrait { height: 128px; }
 
   .portrait-photo { width: 104px; height: 104px; }
+
+  .copy-field { height: 44px; font-size: 16px; }
 }
 
 [data-chrome="clean"] .app { position: fixed; inset: 0; display: flex; flex-direction: column; padding: 0; }

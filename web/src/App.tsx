@@ -7,6 +7,8 @@ import { loadCommunes, loadOfficialPages, type Assembly, type DeputyId, type Per
 import type { ColorableFeature } from "./data/features.ts"
 import { viewBoxAttribute } from "./data/viewBox.ts"
 import { fullSiteUrl, legendShown, type Chrome } from "./embed/chrome.ts"
+import { EmbedButton } from "./embed/EmbedButton.tsx"
+import { embedCode, embedTitle } from "./embed/snippet.ts"
 import type { Order, Screen } from "./forms/form.ts"
 import { arrange, FORMS, picksOf } from "./forms/registry.ts"
 import { Stage } from "./layout/Stage.tsx"
@@ -341,6 +343,7 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
       <label className="control">
         <input type="checkbox" checked={showPhotos} onChange={togglePhotos} /> Afficher les photos
       </label>
+      <EmbedButton code={() => embedCode(location.href, urlParams(view, showPhotos), embedTitle(view, chosen))} />
       <ConfigButton open={configOpen} onToggle={toggleConfig} />
     </div>
   )

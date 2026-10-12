@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
+import { CopyButton } from "../copy/CopyButton.tsx"
 import type { Person, Seat } from "../data/assembly.ts"
 import type { Where } from "../forms/form.ts"
 import type { Glyph } from "../glyph/glyph.ts"
 import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
 import type { Colored } from "../paint/registry.ts"
 import { birth, constituencyLong, numberFormat } from "./format.ts"
-
-const COPIED_MS = 1500
 
 type Props = {
   deputy: Person
@@ -39,7 +38,14 @@ export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, t
       {...(open ? { "data-obstacle": "" } : {})}
     >
       <div className="panel-bar">
-        <CopyLink />
+        <CopyButton
+          className="panel-copy"
+          text={() => location.href}
+          label="Copier le lien"
+          done="Lien copié"
+          fieldLabel="Lien de la fiche"
+          icon={<LinkIcon />}
+        />
         <button className="panel-close" onClick={onClose} aria-label="Fermer la fiche" title="Fermer (Échap)">
           <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
             <path d="M5 5 L15 15 M15 5 L5 15" />
@@ -95,26 +101,11 @@ export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, t
   )
 }
 
-function CopyLink() {
-  const [copied, setCopied] = useState(false)
-  useEffect(() => {
-    if (!copied) return
-    const timeout = setTimeout(() => setCopied(false), COPIED_MS)
-    return () => clearTimeout(timeout)
-  }, [copied])
-  const copy = () => {
-    navigator.clipboard.writeText(location.href).then(
-      () => setCopied(true),
-      (error: unknown) => console.error(error),
-    )
-  }
+function LinkIcon() {
   return (
-    <button className="panel-copy" onClick={copy}>
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-        <path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9" />
-      </svg>
-      {copied ? "Lien copié" : "Copier le lien"}
-    </button>
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M6.6 9.4a2.6 2.6 0 0 0 3.7 0l2.4-2.4a2.6 2.6 0 0 0-3.7-3.7l-.9.9M9.4 6.6a2.6 2.6 0 0 0-3.7 0L3.3 9a2.6 2.6 0 0 0 3.7 3.7l.9-.9" />
+    </svg>
   )
 }
 

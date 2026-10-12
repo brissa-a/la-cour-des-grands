@@ -5,7 +5,7 @@ import { deputyId } from "../data/deputyId.ts"
 import { VOTE } from "../sources/shapes.ts"
 import { HEMICYCLE, viewParams, VOTE_COLOR } from "../view/view.ts"
 import { voteId } from "../votes/voteId.ts"
-import { fullSiteUrl, legendShown, parseChrome, type Chrome } from "./chrome.ts"
+import { embedUrl, fullSiteUrl, legendShown, parseChrome, type Chrome } from "./chrome.ts"
 
 const GROUP: CategoryFeature = { kind: "category", key: "deputies/init.csv:group", file: "deputies/init.csv", column: "group", title: "Groupe politique", values: "g" }
 const AGE: NumberFeature = { kind: "number", key: "deputies/init.csv:age", file: "deputies/init.csv", column: "age", title: "Âge" }
@@ -36,6 +36,13 @@ test("a link out of the embed opens the full site on the same view, without the 
   assert.equal(fullSiteUrl(embed, view, null), "https://example.fr/?vote=VTANR5L17V8427&color=vote&chart=deputies%2Finit.csv%3Aage&showPic=true")
   assert.equal(fullSiteUrl(embed, view, deputyId("PA1")), "https://example.fr/?vote=VTANR5L17V8427&color=vote&chart=deputies%2Finit.csv%3Aage&showPic=true&deputy=PA1")
   assert.equal(fullSiteUrl("https://example.fr/carte/?clean=true", viewParams({ scrutin: null, color: { paint: "palette", of: GROUP }, layout: HEMICYCLE }, GROUP.key), null), "https://example.fr/carte/")
+})
+
+test("the embed address opens the same view in the clean chrome, without the vote title line", () => {
+  const view = viewParams({ scrutin: SCRUTIN, color: VOTE_COLOR, layout: HEMICYCLE }, GROUP.key)
+  const src = embedUrl("https://example.fr/?vote=VTANR5L17V8427&color=vote&deputy=PA1&title=true", view)
+  assert.equal(src, "https://example.fr/?vote=VTANR5L17V8427&color=vote&clean=true")
+  assert.deepEqual(chromeOf(new URL(src).search), CLEAN)
 })
 
 test("the legend explains the vote colours in the embed, which has no vote header, unless the layout already names the vote's parts", () => {
