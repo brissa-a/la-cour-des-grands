@@ -66,6 +66,11 @@ test("a scrutin in a link colours by the vote unless only the layout shows it, a
   assert.deepEqual(parse("?vote=nope").view, parse("").view)
 })
 
+test("a vote in a link that is not a scrutin id is dropped from the view and reported, unlike an empty or absent one", () => {
+  for (const search of ["?vote=nope", "?vote=vtanr5l17v8427", "?vote=VTANR5L17V8427%20"]) assert.deepEqual([parse(search).view, parse(search).voteDropped], [parse("").view, true], search)
+  assert.deepEqual([parse("").voteDropped, parse("?vote=").voteDropped, parse("?vote=VTANR5L17V8427").voteDropped], [false, false, false])
+})
+
 test("a view is written with the scrutin first, the default colour and the default form left out, and old links keep their parameter order", () => {
   assert.equal(written(parse("").view), "")
   assert.equal(written({ scrutin: SCRUTIN, color: VOTE_COLOR, layout: { form: "columns", picks: { main: AGE } } }), "vote=VTANR5L17V8427&color=vote&chart=deputies%2Finit.csv%3Aage")

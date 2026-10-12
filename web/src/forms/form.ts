@@ -13,6 +13,8 @@ export type Frame = { readonly area: Rect; readonly px: number; readonly screen:
 
 export type Order = (a: DeputyId, b: DeputyId) => number
 
+export type Framing = { readonly kind: "unmeasured" } | { readonly kind: "cramped" } | { readonly kind: "fitted"; readonly frame: Frame }
+
 export type Framed = { readonly frame: Frame }
 
 export type Target = Framed & { readonly order: Order }

@@ -22,7 +22,7 @@ type Pressed = { readonly state: ViewState; readonly press: Press }
 
 const VIEWED: Press = { kind: "view" }
 
-export function initialState({ view, fallback }: ParsedView): ViewState {
+export function initialState({ view, fallback }: Pick<ParsedView, "view" | "fallback">): ViewState {
   return view.scrutin === null ? { kind: "none", view, fallback, pending: null } : { kind: "chosen", vote: view.scrutin, view, fallback }
 }
 

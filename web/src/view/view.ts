@@ -18,7 +18,7 @@ export type View =
 
 export type PlainView = Extract<View, { readonly scrutin: null }>
 
-export type ParsedView = { readonly view: View; readonly fallback: Plain<ColorChoice> }
+export type ParsedView = { readonly view: View; readonly fallback: Plain<ColorChoice>; readonly voteDropped: boolean }
 
 export const HEMICYCLE: Plain<LayoutChoice> = { form: "hemicycle", picks: { main: SEAT } }
 
@@ -59,7 +59,8 @@ export function parseView(read: (name: string) => string | null, features: reado
   const colorFeature = feature(read("color")) ?? feature(defaultColor)
   const fallback = colorFeature && colorFor(colorFeature)
   if (!fallback) return null
-  const scrutin = voteId(read("vote") ?? "")
+  const asked = read("vote") ?? ""
+  const scrutin = voteId(asked)
   const chart = read("chart")
   const main: Source = (scrutin && chart === VOTE.kind ? VOTE : feature(chart)) ?? SEAT
   const extra: ExtraSources = Object.fromEntries(
@@ -71,7 +72,7 @@ export function parseView(read: (name: string) => string | null, features: reado
   const layout = layoutsOf(main, extra).find(choice => choice.form === read("layout")) ?? defaultLayout(main, extra) ?? HEMICYCLE
   const color = scrutin && (read("color") === VOTE.kind || !readsVote(layout)) ? VOTE_COLOR : fallback
   const view = viewOf(color, layout, scrutin)
-  return view && { view, fallback }
+  return view && { view, fallback, voteDropped: asked !== "" && scrutin === null }
 }
 
 export function viewParams(view: View, defaultColor: FeatureKey): readonly Param[] {

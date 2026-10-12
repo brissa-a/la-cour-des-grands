@@ -1,21 +1,24 @@
 import { useCallback, useLayoutEffect, useState, type RefObject } from "react"
-import type { Frame, Screen } from "../forms/form.ts"
+import type { Frame, Framing, Screen } from "../forms/form.ts"
 import { freeArea } from "./freeArea.ts"
 
 const CLEARANCE_PX = 12
+const UNMEASURED: Framing = { kind: "unmeasured" }
+const CRAMPED: Framing = { kind: "cramped" }
 
 // Measured after every render too, before paint, so an overlay that changes with the data (the vote header) refits the
 // scene in the same frame as the data, instead of a frame later when the resize observer reports it.
-export function useStageFrame(svgRef: RefObject<SVGSVGElement | null>, screen: Screen): Frame | null {
-  const [frame, setFrame] = useState<Frame | null>(null)
+export function useStageFrame(svgRef: RefObject<SVGSVGElement | null>, screen: Screen): Framing {
+  const [framing, setFraming] = useState(UNMEASURED)
   const [svg, setSvg] = useState<SVGSVGElement | null>(null)
 
   const measure = useCallback(() => {
     const current = svgRef.current
     setSvg(current)
     if (!current) return
-    const next = measureFrame(current, overlays(), screen)
-    setFrame(previous => (sameFrame(previous, next) ? previous : next))
+    const frame = measureFrame(current, overlays(), screen)
+    const next: Framing = frame ? { kind: "fitted", frame } : CRAMPED
+    setFraming(previous => (sameFraming(previous, next) ? previous : next))
   }, [svgRef, screen])
 
   useLayoutEffect(measure)
@@ -27,7 +30,7 @@ export function useStageFrame(svgRef: RefObject<SVGSVGElement | null>, screen: S
     return () => observer.disconnect()
   }, [svg, measure])
 
-  return frame
+  return framing
 }
 
 function overlays(): Element[] {
@@ -44,7 +47,11 @@ function measureFrame(svg: SVGSVGElement, overlays: readonly Element[], screen: 
   return { area: { left: topLeft.x, top: topLeft.y, right: bottomRight.x, bottom: bottomRight.y }, px: 1 / toScreen.a, screen }
 }
 
-function sameFrame(a: Frame | null, b: Frame | null): boolean {
-  if (!a || !b) return a === b
+function sameFraming(framing: Framing, next: Framing): boolean {
+  if (framing.kind !== "fitted" || next.kind !== "fitted") return framing.kind === next.kind
+  return sameFrame(framing.frame, next.frame)
+}
+
+function sameFrame(a: Frame, b: Frame): boolean {
   return a.screen === b.screen && a.px === b.px && a.area.left === b.area.left && a.area.top === b.area.top && a.area.right === b.area.right && a.area.bottom === b.area.bottom
 }

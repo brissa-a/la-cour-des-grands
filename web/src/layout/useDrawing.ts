@@ -1,48 +1,47 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { drawingOf, type Drawing, type DrawingFacts } from "./drawing.ts"
-import { settleMs, type MotionPreference } from "./staging.ts"
+import { changeAfter, paintedAfter, photosLoaded, type Change } from "./painted.ts"
+import { settleMs } from "./staging.ts"
 
-type Change = { readonly by: readonly unknown[]; readonly at: number }
+type Photos = { readonly urls: readonly string[]; readonly loaded: Promise<void> }
 
 export function markDrawing(drawing: Drawing): void {
   document.documentElement.dataset.drawing = drawing
 }
 
-export function useDrawing<Color, Layout>(facts: Omit<DrawingFacts<Color, Layout>, "sinceChangeMs" | "fontsPainted">, animatedBy: readonly unknown[]): void {
+export function useDrawing<Color, Layout>(
+  facts: Omit<DrawingFacts<Color, Layout>, "sinceChangeMs" | "painted">,
+  animatedBy: readonly unknown[],
+  photos: readonly string[],
+): void {
   const last = useRef<Change | null>(null)
-  const change = last.current && sameItems(last.current.by, animatedBy) ? last.current : { by: animatedBy, at: performance.now() }
+  const change = changeAfter(last.current, [...animatedBy, photos], performance.now())
   last.current = change
   const [painted, setPainted] = useState<Change | null>(null)
-  const drawing = drawingOf({ ...facts, sinceChangeMs: performance.now() - change.at, fontsPainted: painted === change })
+  const loading = useRef<Photos | null>(null)
+  const drawing = drawingOf({ ...facts, sinceChangeMs: performance.now() - change.at, painted: painted === change })
 
   useLayoutEffect(() => markDrawing(drawing), [drawing])
 
   useEffect(() => {
+    if (loading.current?.urls !== photos) loading.current = { urls: photos, loaded: photosLoaded(photos, decoded) }
     let live = true
-    void paintedAfter(facts.motion, () => live).then(done => {
+    const loaded = Promise.all([document.fonts.ready, loading.current.loaded])
+    void paintedAfter(settleMs(facts.motion), { loaded, nextFrame }, () => live).then(done => {
       if (done) setPainted(change)
     })
     return () => {
       live = false
     }
-  }, [change, facts.motion])
+  }, [change, facts.motion, photos])
 }
 
-// Fonts first: a late swap resizes the overlays, which refits the scene and restarts the wait. Transitions start on the
-// frame after the committed styles apply, and keep time in frame timestamps.
-async function paintedAfter(motion: MotionPreference, live: () => boolean): Promise<boolean> {
-  await document.fonts.ready
-  await nextFrame()
-  let now = await nextFrame()
-  const end = now + settleMs(motion)
-  while (now < end && live()) now = await nextFrame()
-  return live()
+function decoded(url: string): Promise<void> {
+  const image = new Image()
+  image.src = url
+  return image.decode()
 }
 
 function nextFrame(): Promise<number> {
   return new Promise(resolve => requestAnimationFrame(resolve))
-}
-
-function sameItems(a: readonly unknown[], b: readonly unknown[]): boolean {
-  return a.length === b.length && a.every((item, index) => item === b[index])
 }

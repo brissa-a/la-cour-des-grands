@@ -58,6 +58,7 @@ import { VOTES_FILE, type Vote } from "./votes/votes.ts"
 
 const NO_IDS: ReadonlySet<DeputyId> = new Set()
 const NO_FEATURES: readonly ColorableFeature[] = []
+const NO_PHOTOS: readonly string[] = []
 const PANEL_HISTORY_STATE = { panel: true }
 const PHONE = "(max-width: 759px)"
 // Below this width the side panel and the deputy sheet together would leave the drawing under 480 px.
@@ -113,6 +114,7 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
   const [searchResults, setSearchResults] = useState(NO_IDS)
   const [hovered, setHovered] = useState<readonly DeputyId[] | null>(null)
   const [showPhotos, setShowPhotos] = useState(() => readParam("showPic") === "true")
+  const photos = useMemo(() => (showPhotos ? sitting.deputies.flatMap(deputy => (deputy.photo ? [deputy.photo] : [])) : NO_PHOTOS), [showPhotos, sitting])
   const [officialPages, setOfficialPages] = useState<ReadonlyMap<DeputyId, string>>(new Map())
   const [configOpen, setConfigOpen] = useState(false)
   const lookupSources = useMemo(() => createLookupSources(assembly.catalog), [assembly])
@@ -123,13 +125,14 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
   const touchOnly = useMediaQuery(TOUCH_ONLY)
   const crowded = useMediaQuery(CROWDED)
   const motion: MotionPreference = useMediaQuery(REDUCED_MOTION) ? "reduced" : "full"
-  const [voteMissing, setVoteMissing] = useState(false)
+  const [voteMissing, setVoteMissing] = useState(initial.voteDropped)
   const sheetOpen = selected !== null
   const [side, setSide] = useState<Side>(() => besideSheet("open", sheetOpen, crowded))
   const [viewSheet, onViewSheet] = useSheet()
   const svgRef = useRef<SVGSVGElement>(null)
   const searchInput = useRef<HTMLInputElement>(null)
-  const frame = useStageFrame(svgRef, screen)
+  const framing = useStageFrame(svgRef, screen)
+  const frame = framing.kind === "fitted" ? framing.frame : null
 
   const order = useMemo(() => (settled && chosenColored ? rankThenName(chosenColored.paint, sitting) : null), [settled, chosenColored, sitting])
   const arrangement = useMemo(
@@ -143,10 +146,11 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
       valuesFailed: featuresOf([view.color.of, ...picksOf(view.layout)]).some(cache.failed),
       color: { wanted: chosenColored, shown: colored },
       arrangement: { wanted: arrangement, shown: staged.arrangement },
-      measured: frame !== null,
+      framing: framing.kind,
       motion,
     },
     [staged.scene, colored?.paint],
+    photos,
   )
 
   useEffect(() => {
