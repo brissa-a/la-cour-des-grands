@@ -1,14 +1,16 @@
 import type { DeputyId } from "../data/deputyId.ts"
 import { DOT_RADIUS, NO_HOLLOW, type Frame, type Scene } from "../forms/form.ts"
 import { placeHemicycle } from "../forms/hemicycle.ts"
-import type { Arrangement } from "../forms/registry.ts"
+import { placesOf, samePlaces, type Arrangement, type Places } from "../forms/registry.ts"
 import type { Reading } from "../sources/shapes.ts"
 
-export type Staging = { readonly scene: Scene; readonly reading: Reading; readonly arrangement: Arrangement | null }
+export type Staging = { readonly scene: Scene; readonly reading: Reading; readonly arrangement: Arrangement | null; readonly places: Places }
 
 export type Motion = { readonly delay: number; readonly duration: number; readonly easing: string }
 
 export type MotionPreference = "full" | "reduced"
+
+export type Wave = { readonly places: Places; readonly at: number; readonly still: ReadonlySet<DeputyId> }
 
 const STAGGER_GROUP = 40
 const STAGGER_S = 0.012
@@ -22,11 +24,30 @@ const UNMEASURED: Scene = { card: "beside", radius: DOT_RADIUS, snap: 0, dots: n
 
 // Before the stage is measured the room places nobody, or its dots would fly in from an unfitted room to the fitted one.
 export function roomStaging(reading: Reading<"seat">, frame: Frame | null): Staging {
-  return { scene: frame ? placeHemicycle({ main: reading.data.seats }, { frame }) : UNMEASURED, reading, arrangement: null }
+  const inputs = { main: reading.data.seats }
+  return { scene: frame ? placeHemicycle(inputs, { frame }) : UNMEASURED, reading, arrangement: null, places: placesOf("hemicycle", inputs, null) }
 }
 
 export function nextStaging(candidates: readonly (Staging | null)[], room: Staging, drawn: readonly DeputyId[]): Staging {
   return candidates.find(staging => staging !== null && drawn.every(id => staging.scene.dots.has(id))) ?? room
+}
+
+// A refit alone keeps the wave, and in a new wave the dots that do not fly to another seat move with the room, so no dot
+// leaves the room when it refits.
+export function waveFor(last: Wave, places: Places, scenes: { readonly before: Scene; readonly after: Scene }, now: number): Wave {
+  return samePlaces(last.places, places) ? last : { places, at: now, still: unflown(scenes.before, scenes.after) }
+}
+
+export function dotMotion(wave: Wave, id: DeputyId, index: number, now: number, preference: MotionPreference): Motion {
+  return motionOf(wave.still.has(id) ? 0 : index, now - wave.at, preference)
+}
+
+function unflown(before: Scene, after: Scene): ReadonlySet<DeputyId> {
+  const seatOf = (scene: Scene, id: DeputyId) => {
+    const where = scene.where(id)
+    return where?.kind === "seat" ? where.number : null
+  }
+  return new Set([...after.dots.keys()].filter(id => seatOf(after, id) !== null && (!before.dots.has(id) || seatOf(before, id) === seatOf(after, id))))
 }
 
 export function motionOf(index: number, sinceArrangedMs: number, preference: MotionPreference): Motion {

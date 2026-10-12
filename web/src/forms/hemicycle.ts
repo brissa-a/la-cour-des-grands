@@ -3,12 +3,12 @@ import type { ViewBox } from "../data/viewBox.ts"
 import { dots, type Glyph } from "../glyph/glyph.ts"
 import type { Rect } from "../preview/placement.ts"
 import type { Point, Seats } from "../sources/shapes.ts"
-import { DOT_RADIUS, NO_HOLLOW, type Fit, type FormSpec, type Frame, type Scene } from "./form.ts"
+import { DOT_RADIUS, NO_HOLLOW, type Fit, type FormSpec, type Framed, type Scene } from "./form.ts"
 
 const SNAP = 0.6 * 2.75 * DOT_RADIUS
 const ROW_TOLERANCE = 0.025
 
-export function placeHemicycle({ main: seats }: { readonly main: Seats }, { frame }: { readonly frame: Frame }): Scene {
+export function placeHemicycle({ main: seats }: { readonly main: Seats }, { frame }: Framed): Scene {
   const fit = fitted(seats.box, frame.area)
   const { scale, offset } = fit
   return {
@@ -32,7 +32,7 @@ const GLYPH: Glyph = [
   { kind: "block", x: 10.6, y: 17.4, width: 2.8, height: 2.1, round: 0.4, opacity: 1 },
 ]
 
-export const hemicycle: FormSpec<{ readonly main: readonly ["seats"] }> = { label: "Hémicycle", glyph: GLYPH, slots: { main: ["seats"] }, place: placeHemicycle }
+export const hemicycle: FormSpec<{ readonly main: readonly ["seats"] }> = { label: "Hémicycle", glyph: GLYPH, slots: { main: ["seats"] }, ordered: false, place: placeHemicycle }
 
 function fitted(box: ViewBox, area: Rect): Fit {
   const scale = Math.min((area.right - area.left) / box.width, (area.bottom - area.top) / box.height)

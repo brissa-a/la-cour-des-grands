@@ -152,6 +152,7 @@ export const halfRings = defineForm({
     { kind: "stroke", d: "M18.45 14.57A7.6 7.6 0 0 1 19.6 18.6", width: 4.4, opacity: 1 },
   ],
   slots: { main: ["turnout"] },
+  ordered: true,
   place: placeHalfRings,
 })
 

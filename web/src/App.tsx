@@ -368,7 +368,7 @@ export function App({ assembly, features, cache, initial, chrome }: Props) {
       viewBox={viewBoxAttribute(assembly.background.box)}
       deputies={sitting.deputies}
       scene={staged.scene}
-      arrangement={staged.arrangement ?? staged.reading}
+      places={staged.places}
       highlighted={highlighted}
       showPhotos={showPhotos}
       colorOf={colored.paint.colorOf}

@@ -2,10 +2,12 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import { deputyId, type DeputyId } from "../data/deputyId.ts"
 import { parseViewBox } from "../data/viewBox.ts"
-import type { Frame } from "../forms/form.ts"
+import type { Frame, Order } from "../forms/form.ts"
+import { arrange, arrangedPlaces } from "../forms/registry.ts"
 import { readSeats } from "../sources/read.ts"
 import { seatsOf } from "../sources/seats.ts"
-import { motionOf, nextStaging, roomStaging, settleMs, transitionOf, type Staging } from "./staging.ts"
+import { HEMICYCLE } from "../view/view.ts"
+import { dotMotion, motionOf, nextStaging, roomStaging, settleMs, transitionOf, waveFor, type Staging } from "./staging.ts"
 
 const A = deputyId("PA0")
 const B = deputyId("PA1")
@@ -75,4 +77,32 @@ test("the drawing settles when the last dot of the wave lands, and at once under
 
 test("a motion is written as the css transition of its delay, duration and easing, in seconds", () => {
   assert.deepEqual(transitionOf({ delay: 0.12, duration: 0.45, easing: "ease" }), { transitionDelay: "0.12s", transitionDuration: "0.45s", transitionTimingFunction: "ease" })
+})
+
+function seatedAt(seats: Readonly<Record<string, string>>) {
+  const deputies = Object.entries(seats).map(([id, number]) => ({ id: deputyId(id), seat: { number, x: Number(number), y: 0 } }))
+  return readSeats(seatsOf({ deputies, emptySeats: [] }, { box: parseViewBox("0 0 4 1") ?? assert.fail("viewBox"), markup: "" }))
+}
+
+test("a new colour on the hemicycle, or its first arrangement after the room, keeps the wave it is in, so a refit moves the room and every dot with one timing", () => {
+  const seats = seated([A, B])
+  const room = roomStaging(seats, FRAME)
+  const hemicycle = (order: Order) => arrangedPlaces(arrange(HEMICYCLE, () => seats, order) ?? assert.fail("hemicycle"))
+  const wave = { places: room.places, at: 0, still: new Set<DeputyId>() }
+  const scenes = { before: room.scene, after: room.scene }
+  assert.equal(waveFor(wave, hemicycle(() => 0), scenes, 5000), wave)
+  assert.equal(waveFor(wave, hemicycle(() => 1), scenes, 5000), wave)
+  const landed = [0, 1, 39].map(index => dotMotion(wave, A, index, 5000, "full"))
+  assert.deepEqual(landed.slice(1), [landed[0], landed[0]])
+})
+
+test("deputies moving to other seats start a new wave at that moment, while those who keep their seat, or just arrive, move with the room", () => {
+  const before = roomStaging(seatedAt({ PA0: "0", PA1: "1", PA2: "2" }), FRAME)
+  const after = roomStaging(seatedAt({ PA0: "0", PA1: "3", PA3: "2" }), FRAME)
+  const wave = waveFor({ places: before.places, at: 0, still: new Set() }, after.places, { before: before.scene, after: after.scene }, 5000)
+  assert.deepEqual([wave.at, [...wave.still]], [5000, [deputyId("PA0"), deputyId("PA3")]])
+  assert.deepEqual(dotMotion(wave, deputyId("PA0"), 10, 5050, "full"), motionOf(0, 50, "full"))
+  assert.deepEqual(dotMotion(wave, deputyId("PA1"), 10, 5050, "full"), motionOf(10, 50, "full"))
+  const unseated = { ...after.scene, where: () => null }
+  assert.deepEqual([...waveFor(wave, before.places, { before: unseated, after: unseated }, 6000).still], [])
 })

@@ -1,10 +1,11 @@
 import { memo, useEffect, useMemo, useRef, type RefObject } from "react"
 import type { Deputy, DeputyId } from "../data/assembly.ts"
 import type { Scene } from "../forms/form.ts"
+import type { Places } from "../forms/registry.ts"
 import type { Point } from "../preview/placement.ts"
 import { usePreview, type Hit, type PreviewStore } from "../preview/previewStore.ts"
 import { Marks } from "./Marks.tsx"
-import { motionOf, transitionOf, type Motion, type MotionPreference } from "./staging.ts"
+import { dotMotion, motionOf, transitionOf, waveFor, type Motion, type MotionPreference, type Wave } from "./staging.ts"
 import { FixedSvg } from "./FixedSvg.tsx"
 import { PanZoomSvg, type PointerHandlers } from "./PanZoomSvg.tsx"
 
@@ -20,6 +21,7 @@ const FOCUS_SCALE = 1.35
 const HOLLOW_STROKE = 0.36
 const LAYOUT_PAUSE_MS = 1400
 const RESIZE_PAUSE_MS = 250
+const NO_DEPUTIES: ReadonlySet<DeputyId> = new Set()
 
 type Placed = { id: DeputyId; point: Point; motion: Motion }
 
@@ -28,7 +30,7 @@ type Props = {
   viewBox: string
   deputies: readonly Deputy[]
   scene: Scene
-  arrangement: object
+  places: Places
   highlighted: ReadonlySet<DeputyId>
   showPhotos: boolean
   colorOf: (id: DeputyId) => string
@@ -39,22 +41,24 @@ type Props = {
   onTap: (hit: Hit | null, pointerType: string) => void
 }
 
-export function Stage({ svgRef, viewBox, deputies, scene, arrangement, highlighted, showPhotos, colorOf, store, selected, zoomable, motion, onTap }: Props) {
+export function Stage({ svgRef, viewBox, deputies, scene, places, highlighted, showPhotos, colorOf, store, selected, zoomable, motion, onTap }: Props) {
   const { radius, snap } = scene
   const dotsRef = useRef<SVGGElement>(null)
   const hovered = useRef<DeputyId | null>(null)
   const pointerType = useRef("mouse")
-  const arranged = useRef({ arrangement, at: -Infinity })
-  if (arranged.current.arrangement !== arrangement) arranged.current = { arrangement, at: performance.now() }
+  const wave = useRef<Wave>({ places, at: -Infinity, still: NO_DEPUTIES })
+  const lastScene = useRef(scene)
+  wave.current = waveFor(wave.current, places, { before: lastScene.current, after: scene }, performance.now())
+  lastScene.current = scene
 
   const { placed, roomMotion } = useMemo(() => {
-    const since = performance.now() - arranged.current.at
+    const now = performance.now()
     return {
       placed: deputies.flatMap((deputy, index): Placed[] => {
         const point = scene.dots.get(deputy.id)
-        return point ? [{ id: deputy.id, point, motion: motionOf(index, since, motion) }] : []
+        return point ? [{ id: deputy.id, point, motion: dotMotion(wave.current, deputy.id, index, now, motion) }] : []
       }),
-      roomMotion: motionOf(0, since, motion),
+      roomMotion: motionOf(0, now - wave.current.at, motion),
     }
   }, [deputies, scene, motion])
   const placedById = useMemo(() => new Map(placed.map(p => [p.id, p])), [placed])

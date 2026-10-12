@@ -9,8 +9,8 @@ import { paintParts } from "../paint/palette.ts"
 import { readSeats } from "../sources/read.ts"
 import { seatsOf } from "../sources/seats.ts"
 import { MISSING, OFFERS, SEAT, VOTE, type Categories, type Numbers, type Parts, type Reading, type Seats, type Shape } from "../sources/shapes.ts"
-import { defineForm, type Frame, type Scene } from "./form.ts"
-import { arrange, FORMS, LAYOUTS, layOut, layoutsOf, type ExtraSources, type FormName } from "./registry.ts"
+import { defineForm, type Frame, type Order, type Scene, type Target } from "./form.ts"
+import { arrange, arrangedPlaces, FORMS, LAYOUTS, layOut, layoutsOf, samePlaces, type ExtraSources, type FormName } from "./registry.ts"
 
 const FRAMES: Readonly<Record<string, Frame>> = {
   wide: { area: { left: -1.18, top: -0.887, right: 1.18, bottom: -0.04 }, px: 1 / 600, screen: "desktop" },
@@ -193,19 +193,39 @@ test("a layout is arranged from its choice's own sources, each read once and onl
   assert.equal(arrange(columnsOfAge, () => room().reading, order), null)
 })
 
+test("a new order leaves the hemicycle's places as they were, since each deputy keeps their seat, and changes those of the forms that sort by it", () => {
+  const placesOf = (sample: Sample, form: FormName, order: Order) => {
+    const choice = layoutsOf(sample.reading.source).find(layout => layout.form === form) ?? assert.fail(form)
+    return arrangedPlaces(arrange(choice, () => sample.reading, order) ?? assert.fail(form))
+  }
+  const byName: Order = () => 0
+  const byRank: Order = () => 1
+  const seats = room()
+  assert.ok(samePlaces(placesOf(seats, "hemicycle", byName), placesOf(seats, "hemicycle", byRank)))
+  assert.ok(!samePlaces(placesOf(seats, "hemicycle", byName), placesOf(room(), "hemicycle", byName)))
+  const ballot = vote([3, 2, 1])
+  for (const form of ["columns", "halfRings"] as const) {
+    assert.ok(samePlaces(placesOf(ballot, form, byName), placesOf(ballot, form, byName)), form)
+    assert.ok(!samePlaces(placesOf(ballot, form, byName), placesOf(ballot, form, byRank)), form)
+  }
+  assert.ok(!samePlaces(placesOf(ballot, "columns", byName), placesOf(ballot, "halfRings", byName)))
+})
+
 const GLYPH: Glyph = [{ kind: "dot", x: 12, y: 12, r: 2 }]
 
 export const probes = [
   // @ts-expect-error a form computed from values whose place reads seats
-  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, place: ({ main }: { main: Seats }) => placed(main) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, ordered: true, place: ({ main }: { main: Seats }) => placed(main) }),
   // @ts-expect-error a form computed from values drawing the room from a plain string
-  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, place: () => ({ ...placed(null), marks: [{ kind: "room", room: "<g/>", empty: [], radius: 1, fit: { scale: 1, offset: { x: 0, y: 0 } } }] }) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, ordered: true, place: () => ({ ...placed(null), marks: [{ kind: "room", room: "<g/>", empty: [], radius: 1, fit: { scale: 1, offset: { x: 0, y: 0 } } }] }) }),
   // @ts-expect-error a form computed from values that also takes the seats, to draw the room
-  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal", "seats"] }, place: () => placed(null) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal", "seats"] }, ordered: true, place: () => placed(null) }),
   // @ts-expect-error a scene without reading lines
-  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, place: () => ({ card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], where: () => null }) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, ordered: true, place: () => ({ card: "above", radius: 1, snap: 1, dots: new Map(), hollow: new Set(), marks: [], where: () => null }) }),
   // @ts-expect-error a second slot read in a shape it does not take
-  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["numbers"], y: ["numbers"] }, place: ({ main, y }: { main: Numbers; y: Parts }) => placed([main, y]) }),
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["numbers"], y: ["numbers"] }, ordered: true, place: ({ main, y }: { main: Numbers; y: Parts }) => placed([main, y]) }),
+  // @ts-expect-error a form that declares its places free of the order reads the order
+  defineForm({ label: "x", glyph: GLYPH, slots: { main: ["nominal"] }, ordered: false, place: (_inputs, target: Target) => placed(target.order) }),
   // @ts-expect-error a palette over bins, which carry no colour
   definePaint({ label: "x", glyph: GLYPH, shapes: ["nominal", "ordinal"], paint: paintParts }),
 ]

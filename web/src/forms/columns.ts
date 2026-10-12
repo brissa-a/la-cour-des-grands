@@ -129,5 +129,6 @@ export const columns = defineForm({
   label: "Colonnes",
   glyph: dots(1.55, [[5.5, 20], [5.5, 16.4], [5.5, 12.8], [5.5, 9.2], [5.5, 5.6], [12, 20], [12, 16.4], [12, 12.8], [18.5, 20], [18.5, 16.4], [18.5, 12.8], [18.5, 9.2]]),
   slots: { main: ["nominal", "ordinal"] },
+  ordered: true,
   place: placeColumns,
 })

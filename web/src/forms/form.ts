@@ -13,7 +13,9 @@ export type Frame = { readonly area: Rect; readonly px: number; readonly screen:
 
 export type Order = (a: DeputyId, b: DeputyId) => number
 
-export type Target = { readonly frame: Frame; readonly order: Order }
+export type Framed = { readonly frame: Frame }
+
+export type Target = Framed & { readonly order: Order }
 
 export type CardPolicy = "beside" | "above"
 
@@ -63,12 +65,11 @@ export type Slots<S extends Shape = Shape> = { readonly main: Shapes<S> } & { re
 
 export type Inputs<X extends Slots> = { readonly [K in keyof X]: Data[ShapeIn<X[K]>] }
 
-export type FormSpec<X extends Slots> = {
-  readonly label: string
-  readonly glyph: Glyph
-  readonly slots: X
-  readonly place: (inputs: Inputs<X>, target: Target) => Scene
-}
+type Placer<X extends Slots> =
+  | { readonly ordered: true; readonly place: (inputs: Inputs<X>, target: Target) => Scene }
+  | { readonly ordered: false; readonly place: (inputs: Inputs<X>, target: Framed) => Scene }
+
+export type FormSpec<X extends Slots> = { readonly label: string; readonly glyph: Glyph; readonly slots: X } & Placer<X>
 
 export function defineForm<const X extends Slots<Exclude<Shape, "seats">>>(spec: FormSpec<X>): FormSpec<X> {
   return spec

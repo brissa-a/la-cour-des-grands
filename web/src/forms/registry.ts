@@ -96,6 +96,20 @@ export function layOut<F extends FormName>({ form, inputs, order }: Arrangement<
   return REGISTRY[form].place(inputs, { frame, order })
 }
 
+export type Places = { readonly form: FormName; readonly inputs: readonly unknown[]; readonly order: Order | null }
+
+export function placesOf<F extends FormName>(form: F, inputs: Inputs<SlotsOf<F>>, order: Order | null): Places {
+  return { form, inputs: Object.values(inputs), order: REGISTRY[form].ordered ? order : null }
+}
+
+export function arrangedPlaces<F extends FormName>({ form, inputs, order }: Arrangement<F>): Places {
+  return placesOf(form, inputs, order)
+}
+
+export function samePlaces(a: Places, b: Places): boolean {
+  return a.form === b.form && a.order === b.order && a.inputs.every((input, index) => input === b.inputs[index])
+}
+
 function pick<S extends Shape>(shapes: readonly S[], data: Partial<Pick<Data, S>>): Data[S] | undefined {
   for (const shape of shapes) {
     const input = data[shape]
