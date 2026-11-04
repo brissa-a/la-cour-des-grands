@@ -7,7 +7,7 @@
 set -euo pipefail
 
 readonly CONTEXT=abysshopper
-readonly ORIGIN=https://lcdg.kxv.fr
+readonly ORIGIN=https://cour-des-grands.fr
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 root=$(cd "$here/../.." && pwd)

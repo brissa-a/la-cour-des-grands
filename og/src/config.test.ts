@@ -13,11 +13,11 @@ test("the public origin the tags are built on is an https origin, or http on loo
     assert.equal(publicOrigin(text), null, text)
 })
 
-test("the configuration defaults to lcdg.kxv.fr on port 8080 with the front built next door, and refuses a bad origin or port", () => {
-  assert.deepEqual(readConfig({}, "/app/og"), { port: 8080, origin: "https://lcdg.kxv.fr", dist: "/app/web/dist", cacheDir: "/app/og/cache", browser: { kind: "launch" } })
-  assert.deepEqual(readConfig({ PORT: "3000", PUBLIC_ORIGIN: "https://cour-des-grands.fr", DIST_DIR: "/srv/dist", CACHE_DIR: "/var/cache/og", CHROMIUM_ENDPOINT: "ws://lcdg-chromium:3000/" }, "/app/og"), {
+test("the configuration defaults to cour-des-grands.fr on port 8080 with the front built next door, and refuses a bad origin or port", () => {
+  assert.deepEqual(readConfig({}, "/app/og"), { port: 8080, origin: "https://cour-des-grands.fr", dist: "/app/web/dist", cacheDir: "/app/og/cache", browser: { kind: "launch" } })
+  assert.deepEqual(readConfig({ PORT: "3000", PUBLIC_ORIGIN: "https://lcdg.kxv.fr", DIST_DIR: "/srv/dist", CACHE_DIR: "/var/cache/og", CHROMIUM_ENDPOINT: "ws://lcdg-chromium:3000/" }, "/app/og"), {
     port: 3000,
-    origin: "https://cour-des-grands.fr",
+    origin: "https://lcdg.kxv.fr",
     dist: "/srv/dist",
     cacheDir: "/var/cache/og",
     browser: { kind: "connect", endpoint: "ws://lcdg-chromium:3000/" },

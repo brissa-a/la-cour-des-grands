@@ -14,7 +14,7 @@ npm start
 | Variable | Default | |
 |---|---|---|
 | `PORT` | `8080` | |
-| `PUBLIC_ORIGIN` | `https://lcdg.kxv.fr` | origin written in `og:url`, `og:image` and `<link rel="canonical">`; never taken from the request |
+| `PUBLIC_ORIGIN` | `https://cour-des-grands.fr` | origin written in `og:url`, `og:image` and `<link rel="canonical">`; never taken from the request |
 | `DIST_DIR` | `../web/dist` | the built front |
 | `CACHE_DIR` | `cache` | images per data version and render, the generic image, the last data version |
 | `CHROMIUM_ENDPOINT` | empty | `ws://` address of a Playwright `run-server` holding Chromium; empty launches Chromium in this process |
@@ -33,7 +33,7 @@ Renders: 2 at a time, 12 s each at most; a request waits 8 s for its image, then
 
 ## Checks
 
-`npm run check`, `npm run lint`, `npm test`, `npm run test:integration` (needs the front built, Chromium and the network), `npm run test:live` (the deployed site as crawlers see it; `LIVE_ORIGIN` defaults to `https://lcdg.kxv.fr`), `npm run mutate` (on a scratch copy of `web/` and `og/`: it runs in place).
+`npm run check`, `npm run lint`, `npm test`, `npm run test:integration` (needs the front built, Chromium and the network), `npm run test:live` (the deployed site as crawlers see it; `LIVE_ORIGIN` defaults to `https://cour-des-grands.fr`), `npm run mutate` (on a scratch copy of `web/` and `og/`: it runs in place).
 
 ## Deploy
 
