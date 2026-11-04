@@ -1,0 +1,28 @@
+{
+  "name": "lcdg-og",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "check": "tsc && tsc -p tsconfig.page.json",
+    "test": "node --test 'src/**/*.test.ts'",
+    "test:integration": "node --test 'test/**/*.test.ts'",
+    "test:live": "node --test test/live.ts",
+    "lint": "oxlint --disable-nested-config --ignore-path=.gitignore && node ../web/lint/checkDirectives.ts",
+    "mutate": "stryker run"
+  },
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/tap-runner": "10.0.0",
+    "@types/node": "24.19.0",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,0 +1,97 @@
+import assert from "node:assert/strict"
+import { test } from "node:test"
+import { deputyId } from "../data/deputyId.ts"
+import { parseViewBox } from "../data/viewBox.ts"
+import { step } from "../preview/neighbours.ts"
+import type { Rect } from "../preview/placement.ts"
+import { seatsOf } from "../sources/seats.ts"
+import { DOT_RADIUS, type Frame } from "./form.ts"
+import { placeHemicycle } from "./hemicycle.ts"
+
+const arc = (radius: number, degrees: number) => {
+  const angle = (degrees * Math.PI) / 180
+  return { x: radius * Math.cos(angle), y: -radius * Math.sin(angle) }
+}
+
+const over = (area: Rect, bleed = 0): { readonly frame: Frame } => ({ frame: { area, bleed, px: 0.002, screen: "desktop" } })
+
+function lines(seats: Record<string, { x: number; y: number }>) {
+  const deputies = Object.entries(seats).map(([id, point], i) => ({ id: deputyId(id), seat: { number: String(i), ...point } }))
+  const box = parseViewBox("-1.1 -1.1 2.2 1.5") ?? assert.fail("viewBox")
+  return placeHemicycle({ main: seatsOf({ deputies, emptySeats: [] }, { box, markup: "" }) }, over({ left: 0, top: 0, right: 0.66, bottom: 0.45 })).lines
+}
+
+const id = deputyId
+
+test("hemicycle neighbours follow the row, left towards the left wing", () => {
+  const rows = lines({ a: arc(0.5, 30), b: arc(0.5, 40), c: arc(0.5, 50), outer: arc(0.56, 41), near: arc(0.52, 45) })
+  assert.equal(step(rows, id("b"), "left"), id("near"))
+  assert.equal(step(rows, id("near"), "left"), id("c"))
+  assert.equal(step(rows, id("b"), "right"), id("a"))
+  assert.equal(step(rows, id("c"), "left"), null)
+  assert.equal(step(rows, id("outer"), "left"), null)
+})
+
+test("seats on the bottom row step along their own wing", () => {
+  const rows = lines({ leftEnd: { x: -0.375, y: 0 }, leftNext: arc(0.375, 172), rightEnd: { x: 0.375, y: 0.001 }, rightNext: arc(0.375, 8) })
+  assert.equal(step(rows, id("leftEnd"), "left"), null)
+  assert.equal(step(rows, id("leftEnd"), "right"), id("leftNext"))
+  assert.equal(step(rows, id("rightEnd"), "right"), null)
+  assert.equal(step(rows, id("rightEnd"), "left"), id("rightNext"))
+})
+
+const BOX = parseViewBox("-3 -3 4 2") ?? assert.fail("viewBox")
+
+test("the hemicycle fits its room's box to the free area, filling the tighter side and centred on the other, room, empty seats and hub through the same fit", () => {
+  const empty = { number: "2", x: 0.1, y: -2.5 }
+  const seats = seatsOf({ deputies: [{ id: id("a"), seat: { number: "1", x: -0.5, y: -1.5 } }], emptySeats: [empty] }, { box: BOX, markup: "<path/>" })
+  const wide = placeHemicycle({ main: seats }, over({ left: 1, top: 1, right: 17, bottom: 5 }))
+  assert.deepEqual(wide.dots.get(id("a")), { x: 10, y: 4 })
+  assert.deepEqual(wide.marks, [{ kind: "room", room: "<path/>", empty: [empty], radius: 0.019, fit: { scale: 2, offset: { x: 11, y: 7 } } }])
+  assert.deepEqual(wide.where(id("a")), { kind: "seat", number: "1" })
+  const own = placeHemicycle({ main: seats }, over({ left: -3, top: -3, right: 1, bottom: -1 })).hub ?? assert.fail("no hub")
+  assert.deepEqual(wide.hub, { box: { left: 11 + 2 * own.box.left, top: 7 + 2 * own.box.top, right: 11 + 2 * own.box.right, bottom: 7 + 2 * own.box.bottom }, size: 26 * 0.002 })
+  const tall = placeHemicycle({ main: seats }, over({ left: 1, top: 1, right: 5, bottom: 17 }))
+  assert.deepEqual(tall.dots.get(id("a")), { x: 3.5, y: 9.5 })
+})
+
+test("the hub is centred on the room's axis, inside its box and above its base line, where the tribune stands", () => {
+  const box = parseViewBox("-1.1 -1.1 2.2 1.5") ?? assert.fail("viewBox")
+  const seats = seatsOf({ deputies: [], emptySeats: [] }, { box, markup: "" })
+  const { hub } = placeHemicycle({ main: seats }, over({ left: -1.1, top: -1.1, right: 1.1, bottom: 0.4 }))
+  assert.ok(hub)
+  assert.equal(hub.box.left, -hub.box.right)
+  assert.ok(hub.box.left >= box.x && hub.box.top >= box.y && hub.box.left < hub.box.right && hub.box.top < hub.box.bottom && hub.box.bottom < 0, JSON.stringify(hub.box))
+})
+
+test("over a cover, the hemicycle grows until its tribune's foot meets the area's bottom, and lets only its floor run past, no further than the cover", () => {
+  const box = parseViewBox("-1.1 -1.1 2.2 1.5") ?? assert.fail("viewBox")
+  const seats = seatsOf({ deputies: [{ id: id("low"), seat: { number: "1", x: -0.9, y: 0 } }], emptySeats: [] }, { box, markup: "" })
+  const area = { left: -10, top: 0, right: 10, bottom: 1.36 }
+  const placed = (bleed: number) => {
+    const scene = placeHemicycle({ main: seats }, over(area, bleed))
+    const room = scene.marks.find(mark => mark.kind === "room") ?? assert.fail("no room")
+    const { scale, offset } = room.fit
+    const rounded = (value: number) => Math.round(value * 1e9) / 1e9 + 0
+    const at = (y: number) => rounded(offset.y + scale * y)
+    return { scale: rounded(scale), top: at(box.y), foot: at(0.26), bottom: at(box.y + box.height), seat: scene.dots.get(id("low"))?.y ?? assert.fail("no seat") }
+  }
+  const kept = placed(0)
+  assert.deepEqual([kept.top, kept.bottom], [area.top, area.bottom])
+  const ample = placed(1)
+  assert.deepEqual([ample.scale, ample.top, ample.foot, ample.bottom], [1, area.top, area.bottom, 1.5])
+  assert.ok(ample.seat + DOT_RADIUS < area.bottom)
+  const short = placed(0.07)
+  assert.ok(short.scale > kept.scale && short.scale < ample.scale, JSON.stringify(short))
+  assert.deepEqual([short.top, short.bottom], [area.top, 1.43])
+})
+
+test("hemicycle dots and their pointer reach keep the size tuned at the room's own scale, and scale with the fit", () => {
+  const seats = seatsOf({ deputies: [], emptySeats: [] }, { box: BOX, markup: "" })
+  const reach = (area: Rect) => {
+    const { radius, snap } = placeHemicycle({ main: seats }, over(area))
+    return { radius: Math.round(radius * 1e6) / 1e6, snap: Math.round(snap * 1e6) / 1e6 }
+  }
+  assert.deepEqual(reach({ left: -3, top: -3, right: 1, bottom: -1 }), { radius: 0.019, snap: 0.03135 })
+  assert.deepEqual(reach({ left: 1, top: 1, right: 17, bottom: 5 }), { radius: 0.038, snap: 0.0627 })
+})
