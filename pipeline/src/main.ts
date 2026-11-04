@@ -1,7 +1,7 @@
 import { catalog } from "./core/catalog.ts";
 import { OUTPUT_DIR } from "./core/csv.ts";
 import type { Job } from "./core/job.ts";
-import { PUBLISHED_BRANCH, publish } from "./core/publish.ts";
+import { PUBLISHED_BRANCH, publishPhotosThenData } from "./core/publish.ts";
 import { communeConstituencyTable, constituencyContours, electoralRollFiles } from "./jobs/address/published.ts";
 import { communes } from "./jobs/communes.ts";
 import { hemicycle } from "./jobs/hemicycle.ts";
@@ -28,10 +28,10 @@ const files = [
 const all = catalog(files);
 
 const publications = options.pushToRemote
-  ? [
-      publish({ repository: PHOTOS_REPOSITORY, from: PHOTOS_OUTPUT_DIR, after: { photos } }),
-      publish({ repository: DATA_REPOSITORY, from: OUTPUT_DIR, after: { all } }),
-    ]
+  ? publishPhotosThenData(
+      { repository: PHOTOS_REPOSITORY, from: PHOTOS_OUTPUT_DIR, after: { photos } },
+      { repository: DATA_REPOSITORY, from: OUTPUT_DIR, after: { all } },
+    )
   : [];
 
 const jobs: Job<unknown>[] = [photos, ...files, all, ...publications];

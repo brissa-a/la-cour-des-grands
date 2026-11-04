@@ -16,11 +16,24 @@ const exists = (path: string) =>
     () => false,
   );
 
-export function publish(definition: {
+export type Publication = {
   repository: string;
   from: string;
   after: Dependencies;
-}): Job<void> {
+};
+
+export type Publisher = (publication: Publication) => Job<void>;
+
+export function publishPhotosThenData(
+  photos: Publication,
+  data: Publication,
+  publisher: Publisher = publishToMain,
+): [photos: Job<void>, data: Job<void>] {
+  const photosPublication = publisher(photos);
+  return [photosPublication, publisher({ ...data, after: { ...data.after, photosPublication } })];
+}
+
+function publishToMain(definition: Publication): Job<void> {
   const { repository } = definition;
   const dir = `cache/remotes/${repository.replace("/", "-")}`;
   return job({
