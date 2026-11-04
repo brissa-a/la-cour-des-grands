@@ -49,6 +49,11 @@ test("a link in another order, with defaults, unknown parameters or an empty que
   }
 })
 
+test("a v1 link is sent in one redirect to the v2 view it showed, which is then served", () => {
+  assert.deepEqual(answer("layout=perage&color=age&showPic=true"), { kind: "redirect", location: "/?color=deputies%2Finit.csv%3Aage&chart=deputies%2Finit.csv%3Aage&showPic=true" })
+  assert.equal(tag(page("color=deputies%2Finit.csv%3Aage&chart=deputies%2Finit.csv%3Aage&showPic=true"), "og:url"), "https://lcdg.kxv.fr/?color=deputies%2Finit.csv%3Aage&amp;chart=deputies%2Finit.csv%3Aage&amp;showPic=true")
+})
+
 test("an embed or capture link keeps its switch, while its tags point at the full site's view", () => {
   const html = page("vote=VTANR5L17V242&color=vote&clean=true&title=true")
   assert.equal(tag(html, "og:url"), "https://lcdg.kxv.fr/?vote=VTANR5L17V242&amp;color=vote")

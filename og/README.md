@@ -21,7 +21,7 @@ npm start
 
 ## Routes
 
-- `/?<view>`: the page. A query not in canonical form answers 301 to it; a request target over 2 KB answers 414. A link to a scrutin the data does not hold keeps its URL but gets the generic image and the generic view's texts.
+- `/?<view>`: the page. A query not in canonical form answers 301 to it; a link of the first site (`?layout=perage&color=sexe`) answers 301 to the view it showed, or to the default view when the v2 cannot show it; a request target over 2 KB answers 414. A link to a scrutin the data does not hold keeps its URL but gets the generic image and the generic view's texts.
 - `/og/<data version>/<render>/<sha256 of the image query>.jpg?<image query>`: the view's image, immutable. The image query is the page's canonical query without `showPic`: images never show photos. The render is 12 hex digits of a sha256 of `index.html` and the capture settings, so a new front build gets new image addresses; an address of an older render or data version answers 302 to the current one. A failed, slow or refused render gets the generic image with `max-age=60`; the service never answers 429.
 - `/og/fallback.jpg`: the generic image, the default view of the current data version, drawn again at each new version.
 - `/healthz`: JSON status, always 200 while the process serves: data version, render, renders running and waiting, failures in a row and seconds since the last image drawn.

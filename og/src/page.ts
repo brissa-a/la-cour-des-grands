@@ -2,6 +2,7 @@ import { chromeParams, parseChrome, type Chrome } from "../../web/src/embed/chro
 import { metaTexts } from "../../web/src/share/texts.ts"
 import { canonicalView, drawable, FALLBACK_PATH, imagePath, type CanonicalQuery, type CanonicalView, type RenderId } from "./canonical.ts"
 import type { PublicOrigin } from "./config.ts"
+import { legacyParams } from "./legacy.ts"
 import type { Release, Releases } from "./releases.ts"
 import { pageHtml, type PageTemplate } from "./tags.ts"
 
@@ -23,7 +24,7 @@ function withChrome(query: CanonicalQuery, chrome: Chrome): string {
 
 export function answerPage(rawQuery: string | null, releases: Releases, { template, origin, render }: PageSite): PageAnswer {
   if (releases.kind === "starting") return { kind: "page", html: template.plain, prerender: null }
-  const params = new URLSearchParams(rawQuery ?? "")
+  const params = legacyParams(new URLSearchParams(rawQuery ?? ""))
   const release = releases.current
   const view = canonicalView(params, release.data)
   const target = withChrome(view.query, parseChrome(name => params.get(name)))
