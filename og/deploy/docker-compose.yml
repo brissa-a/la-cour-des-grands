@@ -83,6 +83,40 @@ services:
       - traefik.http.routers.lcdg-crawlers.tls.certresolver=le
       - traefik.http.routers.lcdg-crawlers.service=lcdg
       - traefik.http.routers.lcdg-crawlers.middlewares=lcdg-compress
+      # cour-des-grands.fr, served alongside lcdg.kxv.fr ahead of its DNS switch: certified by DNS-01, which needs no record pointing here.
+      # Every router names both domains: one that does not orders a second certificate, for its own host alone.
+      - traefik.http.routers.lcdg-apex.rule=Host(`cour-des-grands.fr`)
+      - traefik.http.routers.lcdg-apex.entrypoints=websecure
+      - traefik.http.routers.lcdg-apex.tls.certresolver=ledns
+      - traefik.http.routers.lcdg-apex.tls.domains[0].main=cour-des-grands.fr
+      - traefik.http.routers.lcdg-apex.tls.domains[0].sans=www.cour-des-grands.fr
+      - traefik.http.routers.lcdg-apex.service=lcdg
+      - traefik.http.routers.lcdg-apex.middlewares=lcdg-ratelimit,lcdg-compress
+      - traefik.http.routers.lcdg-apex-og.rule=Host(`cour-des-grands.fr`) && PathPrefix(`/og/`)
+      - traefik.http.routers.lcdg-apex-og.entrypoints=websecure
+      - traefik.http.routers.lcdg-apex-og.tls.certresolver=ledns
+      - traefik.http.routers.lcdg-apex-og.tls.domains[0].main=cour-des-grands.fr
+      - traefik.http.routers.lcdg-apex-og.tls.domains[0].sans=www.cour-des-grands.fr
+      - traefik.http.routers.lcdg-apex-og.service=lcdg
+      - traefik.http.routers.lcdg-apex-og.middlewares=lcdg-og-ratelimit,lcdg-og-inflight
+      - traefik.http.routers.lcdg-apex-crawlers.rule=Host(`cour-des-grands.fr`) && HeaderRegexp(`User-Agent`, `facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|Discordbot|WhatsApp|Cardyb|Mastodon|Pleroma|Akkoma|Misskey|TelegramBot|SkypeUriPreview|redditbot|Pinterestbot|Embedly|Iframely|vkShare`)
+      - traefik.http.routers.lcdg-apex-crawlers.priority=1000
+      - traefik.http.routers.lcdg-apex-crawlers.entrypoints=websecure
+      - traefik.http.routers.lcdg-apex-crawlers.tls.certresolver=ledns
+      - traefik.http.routers.lcdg-apex-crawlers.tls.domains[0].main=cour-des-grands.fr
+      - traefik.http.routers.lcdg-apex-crawlers.tls.domains[0].sans=www.cour-des-grands.fr
+      - traefik.http.routers.lcdg-apex-crawlers.service=lcdg
+      - traefik.http.routers.lcdg-apex-crawlers.middlewares=lcdg-compress
+      - traefik.http.routers.lcdg-www.rule=Host(`www.cour-des-grands.fr`)
+      - traefik.http.routers.lcdg-www.entrypoints=websecure
+      - traefik.http.routers.lcdg-www.tls.certresolver=ledns
+      - traefik.http.routers.lcdg-www.tls.domains[0].main=cour-des-grands.fr
+      - traefik.http.routers.lcdg-www.tls.domains[0].sans=www.cour-des-grands.fr
+      - traefik.http.routers.lcdg-www.service=lcdg
+      - traefik.http.routers.lcdg-www.middlewares=lcdg-www-redirect
+      - traefik.http.middlewares.lcdg-www-redirect.redirectregex.regex=^https?://[^/]+/(.*)
+      - traefik.http.middlewares.lcdg-www-redirect.redirectregex.replacement=https://cour-des-grands.fr/$${1}
+      - traefik.http.middlewares.lcdg-www-redirect.redirectregex.permanent=true
 
   # Chromium runs without its own sandbox (Playwright's default): Docker's seccomp profile denies the user namespaces
   # it needs. So it runs here, on an internal network that reaches nothing but lcdg-og: no Internet, no Traefik, no other project.

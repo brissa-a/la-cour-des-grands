@@ -27,8 +27,16 @@ test("the link preview robots of the networks are recognised by their user agent
     assert.equal(isLinkPreviewCrawler(agent), false, agent)
 })
 
-test("Traefik spares from its rate limits exactly the robots the service recognises", () => {
+test("Traefik spares from its rate limits exactly the robots the service recognises, on every host whose pages it limits", () => {
   const compose = readFileSync(new URL("../deploy/docker-compose.yml", import.meta.url), "utf8")
-  const rules = [...compose.matchAll(/HeaderRegexp\(`User-Agent`, `([^`]*)`\)/g)].map(([, pattern]) => pattern)
-  assert.deepEqual(rules, [LINK_PREVIEW_AGENT_PATTERN])
+  const label = (router: string, key: string) => new RegExp(`routers\\.${router}\\.${key}=(.*)`).exec(compose)?.[1]
+  const routers = [...new Set([...compose.matchAll(/traefik\.http\.routers\.([^.]+)\./g)].map(([, name]) => name ?? ""))]
+  const limitedHosts = routers.filter(router => label(router, "middlewares")?.split(",").includes("lcdg-ratelimit")).map(router => label(router, "rule"))
+  const crawlers = routers.flatMap(router => {
+    const [, host, pattern] = /^(Host\(`[^`]*`\)) && HeaderRegexp\(`User-Agent`, `([^`]*)`\)$/.exec(label(router, "rule") ?? "") ?? []
+    return host === undefined ? [] : [{ host, pattern }]
+  })
+  assert.deepEqual(new Set(crawlers.map(({ host }) => host)), new Set(limitedHosts))
+  assert.equal(crawlers.length, limitedHosts.length)
+  for (const { pattern } of crawlers) assert.equal(pattern, LINK_PREVIEW_AGENT_PATTERN)
 })
