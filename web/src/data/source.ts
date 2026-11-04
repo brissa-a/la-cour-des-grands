@@ -2,7 +2,7 @@ export type ReadText = (path: string) => Promise<string>
 
 export const DATA_REPOSITORY = "brissa-a/lcdg-data"
 
-export const DATA_BRANCH = "test-v2"
+export const DATA_BRANCH = "main"
 
 export function dataRootAt(ref: string): string {
   return `https://raw.githubusercontent.com/${DATA_REPOSITORY}/${ref}/v2/`

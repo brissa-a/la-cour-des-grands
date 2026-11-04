@@ -27,7 +27,7 @@ npm start
 - `/healthz`: JSON status, always 200 while the process serves: data version, render, renders running and waiting, failures in a row and seconds since the last image drawn.
 - Any other path: a file of the build by its exact path.
 
-The data version is the commit SHA of the `test-v2` branch of `brissa-a/lcdg-data`, checked every 5 minutes; the capture browser reads the data pinned to that commit, and nothing else.
+The data version is the commit SHA of the `main` branch of `brissa-a/lcdg-data`, checked every 5 minutes; the capture browser reads the data pinned to that commit, and nothing else.
 
 Renders: 2 at a time, 12 s each at most; a request waits 8 s for its image, then gets the generic one while its render goes on. Each client (the `X-Real-Ip` Traefik sets) has a share of 2 renders, running or waiting; past it, its renders wait in a second line, which moves only when the first is empty: a robot asking for many new images at once gets them all drawn, none ahead of another client's. Each line holds 12. A robot fetching a page has its image drawn ahead only if a render slot is idle.
 

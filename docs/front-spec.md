@@ -16,7 +16,7 @@ The current site (cour-des-grands.fr, Firebase) stays online and keeps reading `
 - **Category values tables.** A `category` feature points to a values table, `<entity>/values/<column>.csv`, one row per possible value in display order: `value` (the code written in data files), `label_fr`, and optional columns such as `short_fr` (groups) or `color`. Several files with the same kind of value share one table (e.g. `deputies/values/vote_position.csv` for every vote file). The catalog only links to it: `"values": "<path>"`.
 - **Dedicated views over a generic fallback.** Every known feature, identified by (file, column), may get a dedicated view (color, legend, chart, profile row). Anything without one, user imports included, uses the generic view of its type.
 - **Colors.** A values table has a `color` column only for official colors (groups) or colors deliberately chosen for that data. Otherwise colors are front style: palettes for categories, gradients for numbers. In an import, a `<column>_color` column gives the color of `<column>`; on conflict the first row wins and the conflict is reported in "Mes données".
-- **Data branch** is a single constant (`test-v2` for now). In development only, `VITE_DATA_ROOT` may point to a local pipeline output (see increment 4).
+- **Data branch** is a single constant (`main`). In development only, `VITE_DATA_ROOT` may point to a local pipeline output (see increment 4).
 
 ## Increment 1 — hemicycle by group
 

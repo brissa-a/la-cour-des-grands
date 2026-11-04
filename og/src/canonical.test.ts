@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { test } from "node:test"
+import { DATA_BRANCH } from "../../web/src/data/source.ts"
 import { drawable, imageKey, imagePath, parseImagePath, renderId } from "./canonical.ts"
 import { DATA, NEW as V2, RENDER, SHA as V1, viewOf as view } from "./fixture.test.ts"
 
@@ -51,7 +52,7 @@ test("an image path reads back as its version, render and hash, and anything els
     `/og/${V1}/${hash}.jpg`,
     `/og/${V1}/${RENDER}/x/${hash}.jpg`,
     `/og/${V1.toUpperCase()}/${RENDER}/${hash}.jpg`,
-    `/og/test-v2/${RENDER}/${hash}.jpg`,
+    `/og/${DATA_BRANCH}/${RENDER}/${hash}.jpg`,
     `/og/../${V1}/${RENDER}/${hash}.jpg`,
     `/og/${V1}/${RENDER}/${hash}.jpg/`,
     `/og/fallback.jpg`,
