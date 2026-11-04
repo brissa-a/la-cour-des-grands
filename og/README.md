@@ -44,7 +44,8 @@ Two containers of the compose project `lcdg`, one image: `lcdg-og` (Node, on Tra
 ```sh
 compose="docker --context abysshopper compose -f og/deploy/docker-compose.yml"
 docker --context abysshopper image ls lcdg-og     # the tags deployed so far
-LCDG_TAG=<tag> $compose up -d --no-build          # roll back to one of them, deployed with this compose file
+t=<tag>; git show $t:og/deploy/docker-compose.yml > /tmp/lcdg-$t.yml   # roll back to one of them, with the compose file of its commit:
+LCDG_TAG=$t docker --context abysshopper compose -f /tmp/lcdg-$t.yml up -d --no-build --wait   # routes and PUBLIC_ORIGIN are not in the image
 $compose logs --tail 50 lcdg-og                   # one JSON line per render
 $compose down                                     # stop and remove the service; the image cache volume stays
 ```

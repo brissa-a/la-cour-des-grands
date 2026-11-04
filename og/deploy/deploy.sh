@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds the front here, then builds and (re)starts the preview service on the Dedibox, then checks it from outside.
 #   og/deploy/deploy.sh
-# Roll back to an earlier image:  LCDG_TAG=<tag> docker --context abysshopper compose -f og/deploy/docker-compose.yml up -d --no-build
+# Roll back to an earlier deploy, with the compose file of the commit its tag names: routes and PUBLIC_ORIGIN are not in the image.
+#   git show <tag>:og/deploy/docker-compose.yml > /tmp/lcdg-<tag>.yml && LCDG_TAG=<tag> docker --context abysshopper compose -f /tmp/lcdg-<tag>.yml up -d --no-build --wait
 # Remove the service:             docker --context abysshopper compose -f og/deploy/docker-compose.yml down
 set -euo pipefail
 
