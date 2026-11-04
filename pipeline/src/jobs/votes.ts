@@ -4,9 +4,10 @@ import { category, csv, generatedCsvs, type GeneratedFile } from "../core/csv.ts
 import { labelledValues } from "../core/values.ts";
 import { entity } from "../core/entity.ts";
 import { job } from "../core/job.ts";
+import { type JsonRecord, fieldOf, oneOrMany, optionalText, parseJson, record, text } from "../core/json.ts";
 import { source } from "../core/source.ts";
 import { type IsoDate, isoDate } from "../core/types.ts";
-import { type Deputy, type DeputyId, deputy } from "./deputies.ts";
+import { type DeputyId, type SeatNumber, deputy, deputyId, inOfficeOn, seatNumber } from "./deputies.ts";
 
 const scrutins = source({
   name: "scrutins.zip",
@@ -15,6 +16,12 @@ const scrutins = source({
 });
 
 export type VoteId = string & { readonly __brand: "VoteId" };
+
+export function voteId(value: string): VoteId {
+  if (!/^VTANR5L\d+V\d+$/.test(value)) throw new Error(`Invalid vote id: ${value}`);
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the format test above proves a vote id
+  return value as VoteId;
+}
 
 type Position = "for" | "against" | "abstain" | "not_voting" | "absent";
 type CastPosition = Exclude<Position, "absent">;
@@ -29,9 +36,10 @@ type Kind = (typeof KIND_BY_AN_LABEL)[keyof typeof KIND_BY_AN_LABEL];
 const RESULT_BY_AN_CODE = { adopté: "adopted", rejeté: "rejected" } as const;
 type Result = (typeof RESULT_BY_AN_CODE)[keyof typeof RESULT_BY_AN_CODE];
 
-function decode<const M extends Record<string, string>>(mapping: M, raw: string, what: string): M[keyof M] {
-  if (!Object.hasOwn(mapping, raw)) throw new Error(`Unknown ${what}: ${raw}`);
-  return mapping[raw as keyof M];
+function decode<V extends string>(mapping: Readonly<Record<string, V>>, raw: string, what: string): V {
+  const value = Object.hasOwn(mapping, raw) ? mapping[raw] : undefined;
+  if (value === undefined) throw new Error(`Unknown ${what}: ${raw}`);
+  return value;
 }
 
 export type Ballot = {
@@ -45,38 +53,13 @@ export type Ballot = {
   bill: string | null;
   file: string;
   positions: Map<DeputyId, CastPosition>;
-};
-
-type RawVoters = { votant: { acteurRef: string } | { acteurRef: string }[] } | null;
-
-type RawScrutin = {
-  uid: string;
-  numero: string;
-  dateScrutin: string;
-  titre: string;
-  typeVote: { libelleTypeVote: string };
-  sort: { code: string };
-  ventilationVotes: {
-    organe: {
-      groupes: {
-        groupe: RawGroupVote | RawGroupVote[];
-      };
-    };
-  };
-};
-
-type RawGroupVote = {
-  vote: {
-    decompteNominatif: { pours: RawVoters; contres: RawVoters; abstentions: RawVoters; nonVotants: RawVoters };
-  };
+  seats: Map<DeputyId, SeatNumber>;
 };
 
 const RAW_POSITIONS = { pours: "for", contres: "against", abstentions: "abstain", nonVotants: "not_voting" } as const;
 
 const MAX_VOTES_IN_SHARED_FILE = 5;
 const OTHER_VOTES_FILE = "votes/other.csv";
-
-const asList = <T>(x: T | T[] | null | undefined): T[] => (x == null ? [] : Array.isArray(x) ? x : [x]);
 
 const normalize = (text: string) => text.replaceAll("’", "'").replace(/\s+/g, " ").trim();
 
@@ -104,28 +87,38 @@ function slug(text: string): string {
   return full.slice(0, MAX_SLUG_LENGTH + 1).replace(/-[^-]*$/, "");
 }
 
-function parse(raw: RawScrutin): Omit<Ballot, "file"> {
+const child = (parent: JsonRecord, key: string, what: string): JsonRecord => record(parent[key], `${what} ${key}`);
+
+export function parseBallot(raw: JsonRecord): Omit<Ballot, "file"> {
+  const id = voteId(text(raw.uid, "vote uid"));
   const positions = new Map<DeputyId, CastPosition>();
-  for (const group of asList(raw.ventilationVotes.organe.groupes.groupe)) {
-    const nominal = group.vote.decompteNominatif;
+  const seats = new Map<DeputyId, SeatNumber>();
+  const groups = child(child(child(raw, "ventilationVotes", id), "organe", id), "groupes", id).groupe;
+  for (const group of oneOrMany(groups)) {
+    const nominal = child(child(record(group, `${id} groupe`), "vote", id), "decompteNominatif", id);
     for (const [rawPosition, position] of Object.entries(RAW_POSITIONS)) {
-      for (const voter of asList(nominal[rawPosition as keyof typeof RAW_POSITIONS]?.votant)) {
-        positions.set(voter.acteurRef as DeputyId, position);
+      for (const rawVoter of oneOrMany(fieldOf(nominal[rawPosition], "votant"))) {
+        const voter = record(rawVoter, `${id} votant`);
+        const voterId = deputyId(text(voter.acteurRef, `${id} acteurRef`));
+        positions.set(voterId, position);
+        const seat = optionalText(voter.numPlace, `${id} numPlace`);
+        if (seat !== null) seats.set(voterId, seatNumber(seat));
       }
     }
   }
-  const title = normalize(raw.titre);
-  const kind = decode(KIND_BY_AN_LABEL, raw.typeVote.libelleTypeVote, "vote kind");
+  const title = normalize(text(raw.titre, `${id} titre`));
+  const kind = decode(KIND_BY_AN_LABEL, text(child(raw, "typeVote", id).libelleTypeVote, `${id} libelleTypeVote`), "vote kind");
   return {
-    id: raw.uid as VoteId,
-    number: Number(raw.numero),
-    date: isoDate(raw.dateScrutin),
+    id,
+    number: Number(text(raw.numero, `${id} numero`)),
+    date: isoDate(text(raw.dateScrutin, `${id} dateScrutin`)),
     title,
     kind,
-    result: decode(RESULT_BY_AN_CODE, raw.sort.code, "vote result"),
+    result: decode(RESULT_BY_AN_CODE, text(child(raw, "sort", id).code, `${id} sort code`), "vote result"),
     major: isMajor(title, kind),
     bill: billOf(title),
     positions,
+    seats,
   };
 }
 
@@ -134,25 +127,24 @@ export const ballots = job({
   dependencies: { scrutins },
   run({ scrutins }): Ballot[] {
     const files = unzipSync(scrutins, { filter: (f) => f.name.endsWith(".json") });
-    const parsed = Object.values(files)
-      .map((content) => parse((JSON.parse(strFromU8(content)) as { scrutin: RawScrutin }).scrutin))
+    const parsed = Object.entries(files)
+      .map(([name, content]) => parseBallot(record(record(parseJson(strFromU8(content)), name).scrutin, `${name}: scrutin`)))
       .sort((a, b) => a.number - b.number);
 
     const votesByBill = Map.groupBy(parsed, (b) => b.bill?.toLowerCase() ?? null);
-    const fileByBill = new Map<string | null, string>();
+    const filed: Ballot[] = [];
     const usedFiles = new Set<string>();
     for (const [bill, votes] of votesByBill) {
-      if (bill === null || votes.length <= MAX_VOTES_IN_SHARED_FILE) {
-        fileByBill.set(bill, OTHER_VOTES_FILE);
-        continue;
+      let file = OTHER_VOTES_FILE;
+      if (bill !== null && votes.length > MAX_VOTES_IN_SHARED_FILE) {
+        const base = slug(bill);
+        file = `votes/${base}.csv`;
+        for (let n = 2; usedFiles.has(file); n++) file = `votes/${base}-${n}.csv`;
+        usedFiles.add(file);
       }
-      const base = slug(bill);
-      let file = `votes/${base}.csv`;
-      for (let n = 2; usedFiles.has(file); n++) file = `votes/${base}-${n}.csv`;
-      usedFiles.add(file);
-      fileByBill.set(bill, file);
+      filed.push(...votes.map((b) => ({ ...b, file })));
     }
-    return parsed.map((b) => ({ ...b, file: fileByBill.get(b.bill?.toLowerCase() ?? null)! }));
+    return filed.sort((a, b) => a.number - b.number);
   },
 });
 
@@ -210,11 +202,6 @@ export const votesCatalog = csv({
   }),
 });
 
-function inOfficeOn(d: Deputy, date: IsoDate): boolean {
-  return d.mandates.some((m) => m.start <= date && (m.end === null || m.end >= date));
-}
-
-
 function positionFiles(name: string, files: (ballots: Ballot[]) => GeneratedFile<Ballot>[]) {
   return generatedCsvs({
     name,
@@ -223,7 +210,7 @@ function positionFiles(name: string, files: (ballots: Ballot[]) => GeneratedFile
     dependencies: {},
     feature: category("Position de vote", votePositions),
     files,
-    value: (d, ballot) => ballot.positions.get(d.id) ?? (inOfficeOn(d, ballot.date) ? "absent" : null),
+    value: (d, ballot) => ballot.positions.get(d.id) ?? (inOfficeOn(d.mandates, ballot.date) ? "absent" : null),
     gzipBudget: 150_000,
   });
 }

@@ -1,9 +1,11 @@
 import { strFromU8, unzipSync } from "fflate";
 import type { HexColor } from "../core/values.ts";
 import { entity } from "../core/entity.ts";
+import { type JsonRecord, fieldOf, isRecord, oneOrMany, optionalText, parseJson, record, text } from "../core/json.ts";
 import { job } from "../core/job.ts";
 import { source } from "../core/source.ts";
 import { type IsoDate, isoDate } from "../core/types.ts";
+import { type ConstituencyCode, constituencyCode } from "./address/codes.ts";
 
 const LEGISLATURE = "17";
 
@@ -17,10 +19,17 @@ export type DeputyId = string & { readonly __brand: "DeputyId" };
 
 export function deputyId(value: string): DeputyId {
   if (!/^PA\d+$/.test(value)) throw new Error(`Invalid deputy id: ${value}`);
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the format test above proves a deputy id
   return value as DeputyId;
 }
 
-export type ConstituencyCode = string & { readonly __brand: "ConstituencyCode" };
+export type SeatNumber = number & { readonly __brand: "SeatNumber" };
+
+export function seatNumber(value: string): SeatNumber {
+  if (!/^\d{1,4}$/.test(value)) throw new Error(`Invalid seat number: ${value}`);
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- brand constructor: the format test above proves a seat number, read without its zero padding
+  return Number(value) as SeatNumber;
+}
 
 export const REGIONS = [
   "Auvergne-Rhône-Alpes",
@@ -50,7 +59,7 @@ export const REGIONS = [
 ] as const;
 export type Region = (typeof REGIONS)[number];
 
-function region(raw: string | undefined): Region {
+function region(raw: string | null): Region {
   const found = REGIONS.find((r) => r === raw);
   if (found === undefined) throw new Error(`Unknown region: ${raw}`);
   return found;
@@ -65,7 +74,7 @@ export type Mandate = {
   department: string;
   departmentNumber: string;
   constituencyNumber: string;
-  seat: string | null;
+  seat: SeatNumber | null;
 };
 
 export type Group = {
@@ -85,70 +94,66 @@ export type Deputy = {
 };
 
 export const inOffice = (d: Deputy) => d.mandates.some((m) => m.end === null);
-export const lastMandate = (d: Deputy) => d.mandates.at(-1)!;
+export const inOfficeOn = (mandates: readonly Mandate[], date: IsoDate) =>
+  mandates.some((m) => m.start <= date && (m.end === null || m.end >= date));
 
-type RawMandate = {
-  typeOrgane: string;
-  legislature?: string | null;
-  dateDebut: string;
-  dateFin?: string | null;
-  organes: { organeRef: string };
-  election?: { lieu?: { region?: string; departement?: string; numDepartement?: string; numCirco?: string } } | null;
-  mandature?: { placeHemicycle?: string | null; causeFin?: string | null } | null;
-};
+export function lastMandate(d: Deputy): Mandate {
+  const [first, ...others] = d.mandates;
+  return others.at(-1) ?? first;
+}
 
-type RawActor = {
-  uid: { "#text": string };
-  etatCivil: {
-    ident: { civ: string; nom: string; prenom: string };
-    infoNaissance?: { dateNais?: string | null } | null;
-  };
-  mandats?: { mandat: RawMandate | RawMandate[] } | null;
-};
-
-type RawOrgan = {
-  uid: string;
-  codeType: string;
-  legislature?: string | null;
-  libelle: string;
-  libelleAbrev: string;
-  couleurAssociee?: string | null;
-};
-
-const asList = <T>(x: T | T[] | null | undefined): T[] => (x == null ? [] : Array.isArray(x) ? x : [x]);
 const nonEmpty = (x: unknown): string | null => (typeof x === "string" && x !== "" ? x : null);
 const optionalDate = (x: unknown): IsoDate | null => {
   const value = nonEmpty(x);
   return value === null ? null : isoDate(value);
 };
 
+const optionalSeat = (x: unknown): SeatNumber | null => {
+  const value = nonEmpty(x);
+  return value === null ? null : seatNumber(value);
+};
+
 function hexColor(raw: unknown): HexColor | null {
   const value = nonEmpty(raw);
   if (value === null) return null;
   if (!/^#[0-9a-f]{6}$/i.test(value)) throw new Error(`Invalid color: ${value}`);
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- the one constructor of HexColor: the format test above proves a #rrggbb color
   return value as HexColor;
 }
 
-function mandate(raw: RawMandate): Mandate {
-  const place = raw.election?.lieu ?? {};
-  const departmentNumber = place.numDepartement ?? "";
-  const constituencyNumber = place.numCirco ?? "";
+export function mandate(raw: JsonRecord): Mandate {
+  const lieu = fieldOf(raw.election, "lieu");
+  const place = isRecord(lieu) ? lieu : {};
+  const departmentNumber = optionalText(place.numDepartement, "mandate numDepartement") ?? "";
+  const constituencyNumber = optionalText(place.numCirco, "mandate numCirco") ?? "";
+  // dateDebut is the election date, shared by the substitutes and by a mandate resumed after government.
+  const tookOffice = nonEmpty(fieldOf(raw.mandature, "datePriseFonction"));
+  if (tookOffice === null) throw new Error(`Mandate ${text(raw.uid, "mandate uid")} has no datePriseFonction`);
   return {
-    start: isoDate(raw.dateDebut),
+    start: isoDate(tookOffice),
     end: optionalDate(raw.dateFin),
-    endReason: nonEmpty(raw.mandature?.causeFin),
-    constituency: `${departmentNumber}-${constituencyNumber}` as ConstituencyCode,
-    region: region(place.region),
-    department: place.departement ?? "",
+    endReason: nonEmpty(fieldOf(raw.mandature, "causeFin")),
+    constituency: constituencyCode(`${departmentNumber}-${constituencyNumber}`),
+    region: region(optionalText(place.region, "mandate region")),
+    department: optionalText(place.departement, "mandate departement") ?? "",
     departmentNumber,
     constituencyNumber,
-    seat: nonEmpty(raw.mandature?.placeHemicycle),
+    seat: optionalSeat(fieldOf(raw.mandature, "placeHemicycle")),
   };
 }
 
 function civility(raw: string): Deputy["civility"] {
   if (raw === "M." || raw === "Mme") return raw;
   throw new Error(`Unexpected civility: ${raw}`);
+}
+
+type GroupMandate = { group: Group; end: string };
+
+function groupMandate(raw: JsonRecord, groups: ReadonlyMap<string, Group>): GroupMandate[] {
+  if (raw.typeOrgane !== "GP") return [];
+  const ref = record(raw.organes, "mandate organes").organeRef;
+  const group = typeof ref === "string" ? groups.get(ref) : undefined;
+  return group === undefined ? [] : [{ group, end: optionalText(raw.dateFin, "mandate dateFin") ?? "9999" }];
 }
 
 export const deputies = job({
@@ -159,43 +164,45 @@ export const deputies = job({
       filter: (f) => (f.name.includes("/acteur/") || f.name.includes("/organe/")) && f.name.endsWith(".json"),
     });
     const groups = new Map<string, Group>();
-    const rawActors: RawActor[] = [];
+    const actorRecords: { name: string; actor: JsonRecord }[] = [];
     for (const [name, content] of Object.entries(files)) {
-      const parsed = JSON.parse(strFromU8(content));
+      const parsed = record(parseJson(strFromU8(content)), name);
       if (name.includes("/organe/")) {
-        const organ = parsed.organe as RawOrgan;
+        const organ = record(parsed.organe, `${name}: organe`);
         if (organ.codeType === "GP" && organ.legislature === LEGISLATURE) {
-          groups.set(organ.uid, {
-            name: organ.libelle,
-            shortName: organ.libelleAbrev,
+          groups.set(text(organ.uid, `${name}: uid`), {
+            name: text(organ.libelle, `${name}: libelle`),
+            shortName: text(organ.libelleAbrev, `${name}: libelleAbrev`),
             color: hexColor(organ.couleurAssociee),
           });
         }
       } else {
-        rawActors.push(parsed.acteur as RawActor);
+        actorRecords.push({ name, actor: record(parsed.acteur, `${name}: acteur`) });
       }
     }
 
     const result: Deputy[] = [];
-    for (const actor of rawActors) {
-      const rawMandates = asList(actor.mandats?.mandat);
+    for (const { name, actor } of actorRecords) {
+      const rawMandates = oneOrMany(fieldOf(actor.mandats, "mandat")).map((m) => record(m, `${name}: mandat`));
       const [first, ...others] = rawMandates
         .filter((m) => m.typeOrgane === "ASSEMBLEE" && m.legislature === LEGISLATURE)
         .map(mandate)
         .sort((a, b) => a.start.localeCompare(b.start));
       if (first === undefined) continue;
-      const lastGroupMandate = rawMandates
-        .filter((m) => m.typeOrgane === "GP" && groups.has(m.organes.organeRef))
-        .sort((a, b) => (a.dateFin ?? "9999").localeCompare(b.dateFin ?? "9999"))
+      const lastGroup = rawMandates
+        .flatMap((m) => groupMandate(m, groups))
+        .sort((a, b) => a.end.localeCompare(b.end))
         .at(-1);
+      const etatCivil = record(actor.etatCivil, `${name}: etatCivil`);
+      const ident = record(etatCivil.ident, `${name}: ident`);
       result.push({
-        id: deputyId(actor.uid["#text"]),
-        civility: civility(actor.etatCivil.ident.civ),
-        lastName: actor.etatCivil.ident.nom,
-        firstName: actor.etatCivil.ident.prenom,
-        birthDate: optionalDate(actor.etatCivil.infoNaissance?.dateNais),
+        id: deputyId(text(record(actor.uid, `${name}: uid`)["#text"], `${name}: uid`)),
+        civility: civility(text(ident.civ, `${name}: civ`)),
+        lastName: text(ident.nom, `${name}: nom`),
+        firstName: text(ident.prenom, `${name}: prenom`),
+        birthDate: optionalDate(fieldOf(etatCivil.infoNaissance, "dateNais")),
         mandates: [first, ...others],
-        group: lastGroupMandate ? groups.get(lastGroupMandate.organes.organeRef)! : null,
+        group: lastGroup?.group ?? null,
       });
     }
     return result.sort((a, b) => a.id.localeCompare(b.id));

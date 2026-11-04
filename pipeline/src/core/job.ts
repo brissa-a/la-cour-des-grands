@@ -13,6 +13,7 @@ export async function resolve<D extends Dependencies>(dependencies: D): Promise<
   const entries = await Promise.all(
     Object.entries(dependencies).map(async ([key, dependency]) => [key, await dependency.result()]),
   );
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- the one constructor of Results<D>: each entry pairs a key of D with the result of that key's job, which TypeScript cannot track through Object.fromEntries
   return Object.fromEntries(entries) as Results<D>;
 }
 

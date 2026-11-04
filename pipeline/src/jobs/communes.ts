@@ -1,8 +1,9 @@
 import { strFromU8 } from "fflate";
 import { csv } from "../core/csv.ts";
 import { job } from "../core/job.ts";
+import { list, optionalText, parseJson, record } from "../core/json.ts";
 import { source } from "../core/source.ts";
-import { type DeputyId, deputy } from "./deputies.ts";
+import { type DeputyId, deputy, deputyId } from "./deputies.ts";
 
 const deputiesPageData = source({
   name: "get-deputes-data.json",
@@ -10,17 +11,18 @@ const deputiesPageData = source({
   maxAgeHours: 24,
 });
 
-type RawEntry = { actUid: string | null; communes: string | null };
-
 const communesByDeputy = job({
   name: "communes by deputy",
   dependencies: { deputiesPageData },
   run({ deputiesPageData }): Map<DeputyId, string[]> {
-    const { data } = JSON.parse(strFromU8(deputiesPageData)) as { data: RawEntry[] };
+    const { data } = record(parseJson(strFromU8(deputiesPageData)), "deputies page data");
     return new Map(
-      data.flatMap(({ actUid, communes }) =>
-        actUid && communes ? [[actUid as DeputyId, communes.split(",").map((c) => c.trim())]] : [],
-      ),
+      list(data, "deputies page data").flatMap((raw): [DeputyId, string[]][] => {
+        const entry = record(raw, "deputies page entry");
+        const actUid = optionalText(entry.actUid, "actUid");
+        const communes = optionalText(entry.communes, "communes");
+        return actUid && communes ? [[deputyId(actUid), communes.split(",").map((c) => c.trim())]] : [];
+      }),
     );
   },
 });

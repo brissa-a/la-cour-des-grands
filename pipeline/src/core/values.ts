@@ -43,8 +43,8 @@ export function valueTable<const V extends string, const D extends Dependencies>
 export const fixedValues = <const V extends string>(path: string, rows: readonly ValueRow<V>[]): ValueTable<V> =>
   valueTable({ path, dependencies: {}, rows: () => rows });
 
-export const labelledValues = <V extends string>(path: string, labels: { [K in V]: string }): ValueTable<V> =>
-  fixedValues(
-    path,
-    (Object.entries(labels) as [V, string][]).map(([value, label_fr]) => ({ value, label_fr })),
-  );
+export function labelledValues<V extends string>(path: string, labels: { [K in V]: string }): ValueTable<V> {
+  const rows: ValueRow<V>[] = [];
+  for (const value in labels) rows.push({ value, label_fr: labels[value] });
+  return fixedValues(path, rows);
+}

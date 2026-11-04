@@ -1,12 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { IsoDate } from "../core/types.ts";
-import type { DeputyId } from "../jobs/deputies.ts";
-import type { Model } from "./bria.ts";
+import { parseJson, record, text } from "../core/json.ts";
+import { type IsoDate, isoDate } from "../core/types.ts";
+import { type DeputyId, deputyId } from "../jobs/deputies.ts";
 import { REGISTRY_PATH } from "./paths.ts";
 
 export type Cutout = {
-  model: Model;
+  model: string;
   date: IsoDate;
   originalSha256: string;
 };
@@ -14,8 +14,20 @@ export type Cutout = {
 export type Registry = Map<DeputyId, Cutout>;
 
 export async function loadRegistry(): Promise<Registry> {
-  const text = await readFile(REGISTRY_PATH, "utf8").catch(() => "{}");
-  return new Map(Object.entries(JSON.parse(text) as Record<DeputyId, Cutout>)) as Registry;
+  const content = await readFile(REGISTRY_PATH, "utf8").catch(() => "{}");
+  return new Map(
+    Object.entries(record(parseJson(content), REGISTRY_PATH)).map(([id, value]): [DeputyId, Cutout] => {
+      const cutout = record(value, `${REGISTRY_PATH} ${id}`);
+      return [
+        deputyId(id),
+        {
+          model: text(cutout.model, `${REGISTRY_PATH} ${id} model`),
+          date: isoDate(text(cutout.date, `${REGISTRY_PATH} ${id} date`)),
+          originalSha256: text(cutout.originalSha256, `${REGISTRY_PATH} ${id} originalSha256`),
+        },
+      ];
+    }),
+  );
 }
 
 export async function saveRegistry(registry: Registry): Promise<void> {
