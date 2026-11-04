@@ -3,7 +3,7 @@ import { createHash } from "node:crypto"
 import { test } from "node:test"
 import { jpegSize } from "./jpeg.ts"
 
-const ORIGIN = process.env["LIVE_ORIGIN"] ?? "https://lcdg.kxv.fr"
+const ORIGIN = process.env["LIVE_ORIGIN"] ?? "https://cour-des-grands.fr"
 
 const CRAWLERS = [
   "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",

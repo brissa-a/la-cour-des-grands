@@ -30,8 +30,8 @@ export function browserSource(endpoint: string | undefined): BrowserSource | nul
 }
 
 export function readConfig(env: Readonly<Record<string, string | undefined>>, here: string): Config {
-  const origin = publicOrigin(env["PUBLIC_ORIGIN"] ?? "https://lcdg.kxv.fr")
-  if (origin === null) throw new Error("PUBLIC_ORIGIN must be an https origin such as https://lcdg.kxv.fr")
+  const origin = publicOrigin(env["PUBLIC_ORIGIN"] ?? "https://cour-des-grands.fr")
+  if (origin === null) throw new Error("PUBLIC_ORIGIN must be an https origin such as https://cour-des-grands.fr")
   const port = Number(env["PORT"] ?? "8080")
   if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("PORT must be a TCP port number")
   const browser = browserSource(env["CHROMIUM_ENDPOINT"])

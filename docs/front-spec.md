@@ -6,7 +6,7 @@ Status: increment 1 done (PR #3), increment 2 in progress (2a and 2b done), incr
 
 Replace the current front (`react-app/`, Create React App, React 17, Material-UI 4) with a new one that reads the v2 data published by `pipeline/` under `v2/` in [brissa-a/lcdg-data](https://github.com/brissa-a/lcdg-data).
 
-The current site (cour-des-grands.fr, Firebase) stays online and keeps reading `deputes.json` and `scrutins.json`, which must not change. The new front is published separately on Scaleway Object Storage until it can replace the old one.
+The new front serves cour-des-grands.fr from the Dedibox, through `og/`; lcdg.kxv.fr, its first address, redirects there. The first site (Firebase) stays a fallback until its certificates expire, and keeps reading `deputes.json` and `scrutins.json`, which must not change until it is removed.
 
 ## Decisions
 
@@ -246,5 +246,4 @@ The same line can go in `web/.env.development.local`, which git ignores.
 
 - User imports (IndexedDB, "Mes données").
 - Feature types shared with `pipeline/` so a renamed column breaks the front build.
-- Switch cour-des-grands.fr to the new front.
 - Constituencies of French citizens abroad: a country → `099-n` table, checked by hand against the Code électoral.
