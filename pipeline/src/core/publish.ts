@@ -4,7 +4,8 @@ import { promisify } from "node:util";
 import { type Dependencies, type Job, job } from "./job.ts";
 import { today } from "./types.ts";
 
-const PUBLISHED_FOLDER = "v2";
+export const PUBLISHED_FOLDER = "v2";
+export const PUBLISHED_BRANCH = "main";
 
 const run = promisify(execFile);
 const git = (dir: string, ...args: string[]) => run("git", ["-C", dir, ...args]);
@@ -18,13 +19,12 @@ const exists = (path: string) =>
 export function publish(definition: {
   repository: string;
   from: string;
-  branch: string;
   after: Dependencies;
 }): Job<void> {
-  const { repository, branch } = definition;
+  const { repository } = definition;
   const dir = `cache/remotes/${repository.replace("/", "-")}`;
   return job({
-    name: `publish ${repository}@${branch}`,
+    name: `publish ${repository}@${PUBLISHED_BRANCH}`,
     dependencies: definition.after,
     async run() {
       if (!(await exists(`${dir}/.git`))) {
@@ -33,11 +33,7 @@ export function publish(definition: {
         await git(dir, "sparse-checkout", "set", "--no-cone", `/${PUBLISHED_FOLDER}/`);
       }
       await git(dir, "fetch", "--prune", "origin");
-      const remoteBranchExists = await git(dir, "rev-parse", "--verify", "--quiet", `origin/${branch}`).then(
-        () => true,
-        () => false,
-      );
-      await git(dir, "checkout", "--force", "-B", branch, remoteBranchExists ? `origin/${branch}` : "origin/HEAD");
+      await git(dir, "checkout", "--force", "-B", PUBLISHED_BRANCH, `origin/${PUBLISHED_BRANCH}`);
 
       await rm(`${dir}/${PUBLISHED_FOLDER}`, { recursive: true, force: true });
       await cp(definition.from, `${dir}/${PUBLISHED_FOLDER}`, { recursive: true });
@@ -47,11 +43,11 @@ export function publish(definition: {
         () => false,
       );
       if (unchanged) {
-        console.log(`  ${repository}@${branch}: already up to date`);
+        console.log(`  ${repository}@${PUBLISHED_BRANCH}: already up to date`);
         return;
       }
       await git(dir, "commit", "--quiet", "-m", `Update ${PUBLISHED_FOLDER} data (${today()})`);
-      await git(dir, "push", "--quiet", "origin", branch);
+      await git(dir, "push", "--quiet", "origin", PUBLISHED_BRANCH);
     },
   });
 }

@@ -2,34 +2,24 @@ import { parseArgs } from "node:util";
 
 export type Options = {
   job: string | undefined;
-  publishTo: { branch: string } | null;
+  pushToRemote: boolean;
   skipNewCutouts: boolean;
 };
 
-function parse(): Options {
+export function parseOptions(args: string[]): Options {
   const { values, positionals } = parseArgs({
+    args,
     allowPositionals: true,
     options: {
       "push-to-remote": { type: "boolean", default: false },
-      branch: { type: "string" },
       "skip-new-cutouts": { type: "boolean", default: false },
     },
   });
-  const branch = values.branch;
-  if (values["push-to-remote"] && branch === undefined) {
-    throw new Error("--push-to-remote requires --branch <name> (use --branch main to publish for real)");
-  }
-  if (!values["push-to-remote"] && branch !== undefined) {
-    throw new Error("--branch is only used with --push-to-remote");
-  }
   return {
     job: positionals[0],
-    publishTo: branch === undefined ? null : { branch },
+    pushToRemote: values["push-to-remote"],
     skipNewCutouts: values["skip-new-cutouts"],
   };
 }
 
-export const options = parse();
-
-export const DEFAULT_BRANCH = "main";
-export const targetBranch = options.publishTo?.branch ?? DEFAULT_BRANCH;
+export const options = parseOptions(process.argv.slice(2));

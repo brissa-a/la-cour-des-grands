@@ -1,7 +1,7 @@
 import { catalog } from "./core/catalog.ts";
 import { OUTPUT_DIR } from "./core/csv.ts";
 import type { Job } from "./core/job.ts";
-import { publish } from "./core/publish.ts";
+import { PUBLISHED_BRANCH, publish } from "./core/publish.ts";
 import { communes } from "./jobs/communes.ts";
 import { hemicycle } from "./jobs/hemicycle.ts";
 import { init } from "./jobs/init.ts";
@@ -15,10 +15,10 @@ const DATA_REPOSITORY = "brissa-a/lcdg-data";
 const files = [init, hemicycle, communes, links, votesCatalog, majorVotes, votesByBill];
 const all = catalog(files);
 
-const publications = options.publishTo
+const publications = options.pushToRemote
   ? [
-      publish({ repository: PHOTOS_REPOSITORY, from: PHOTOS_OUTPUT_DIR, branch: options.publishTo.branch, after: { photos } }),
-      publish({ repository: DATA_REPOSITORY, from: OUTPUT_DIR, branch: options.publishTo.branch, after: { all } }),
+      publish({ repository: PHOTOS_REPOSITORY, from: PHOTOS_OUTPUT_DIR, after: { photos } }),
+      publish({ repository: DATA_REPOSITORY, from: OUTPUT_DIR, after: { all } }),
     ]
   : [];
 
@@ -29,4 +29,4 @@ if (target === undefined) {
   process.exit(1);
 }
 await Promise.all(target === null ? [all, ...publications].map((j) => j.result()) : [target.result()]);
-if (options.publishTo === null) console.log("Local run only: nothing was pushed (use --push-to-remote --branch <name> to publish).");
+if (!options.pushToRemote) console.log(`Local run only: nothing was pushed (use --push-to-remote to publish to ${PUBLISHED_BRANCH}).`);

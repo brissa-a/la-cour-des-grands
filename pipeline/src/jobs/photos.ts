@@ -1,8 +1,9 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { job } from "../core/job.ts";
+import { PUBLISHED_BRANCH, PUBLISHED_FOLDER } from "../core/publish.ts";
 import { today } from "../core/types.ts";
 import { MODEL, backgroundRemover, briaModel } from "../photos/bria.ts";
-import { options, targetBranch } from "../options.ts";
+import { options } from "../options.ts";
 import { type OfficialPhoto, officialPhoto } from "../photos/officialPhoto.ts";
 import { PHOTOS_OUTPUT_DIR, cutoutPath } from "../photos/paths.ts";
 import { loadRegistry, saveRegistry } from "../photos/registry.ts";
@@ -10,7 +11,7 @@ import { type Deputy, type DeputyId, deputies, inOffice } from "./deputies.ts";
 
 export { PHOTOS_OUTPUT_DIR };
 export const PHOTOS_REPOSITORY = "brissa-a/lcdg-nobg";
-export const PHOTOS_BASE_URL = `https://raw.githubusercontent.com/${PHOTOS_REPOSITORY}/${targetBranch}/v2`;
+export const PHOTOS_BASE_URL = `https://raw.githubusercontent.com/${PHOTOS_REPOSITORY}/${PUBLISHED_BRANCH}/${PUBLISHED_FOLDER}`;
 const PARALLEL_DOWNLOADS = 8;
 const PROGRESS_INTERVAL = 25;
 
