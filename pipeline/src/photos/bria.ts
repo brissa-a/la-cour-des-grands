@@ -17,11 +17,18 @@ const CHANNELS = [
   { mean: 0.406, std: 0.225 },
 ] as const;
 const QUIET = 3;
+// The CPUs the container gets on the box.
+const THREADS = 2;
 
 export type BackgroundRemover = (jpeg: string) => Promise<Buffer>;
 
 export async function backgroundRemover(modelPath: string): Promise<BackgroundRemover> {
-  const session = await ort.InferenceSession.create(modelPath, { logSeverityLevel: QUIET });
+  const session = await ort.InferenceSession.create(modelPath, {
+    logSeverityLevel: QUIET,
+    intraOpNumThreads: THREADS,
+    interOpNumThreads: 1,
+    executionMode: "sequential",
+  });
   return async (jpeg) => {
     const { data: original, info } = await sharp(jpeg).removeAlpha().toColourspace("srgb").raw().toBuffer({ resolveWithObject: true });
     const { width, height } = info;

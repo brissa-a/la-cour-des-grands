@@ -1,9 +1,15 @@
 import { makeDirectory, replaceAtomically } from "./files.ts";
 import { describeRefusal } from "./guards.ts";
 import { type DataRoot, layout } from "./paths.ts";
+import type { CutoutReport } from "../photos/cutouts.ts";
 import type { Outcome } from "./publish.ts";
 
-export type RunResult = Outcome | { readonly status: "failed"; readonly error: string };
+// cutouts is null for a run that computed none: --publish-rejected.
+export type Built = Outcome & { readonly cutouts: CutoutReport | null };
+
+type Failed = { readonly status: "failed"; readonly error: string };
+
+export type RunResult = Built | Failed;
 
 export const EXIT_FAILED = 1;
 export const EXIT_REJECTED = 3;
@@ -12,7 +18,7 @@ export const EXIT_PUBLISHED_WITH_WARNING = 5;
 
 export type ExitCode = 0 | typeof EXIT_FAILED | typeof EXIT_REJECTED | typeof EXIT_LOCKED | typeof EXIT_PUBLISHED_WITH_WARNING;
 
-export function exitCode(result: RunResult): ExitCode {
+export function exitCode(result: Outcome | Failed): ExitCode {
   switch (result.status) {
     case "published":
       return result.warning === null ? 0 : EXIT_PUBLISHED_WITH_WARNING;
@@ -37,10 +43,21 @@ export function summary(result: RunResult, startedAt: Date, finishedAt: Date) {
         counts: result.counts,
         refusals: (result.override?.refusals ?? []).map(describeRefusal),
         warning: result.warning,
+        cutouts: result.cutouts,
         error: null,
       };
     case "unchanged":
-      return { ...run, version: result.version, previousVersion: result.version, forced: false, counts: result.counts, refusals: [], warning: null, error: null };
+      return {
+        ...run,
+        version: result.version,
+        previousVersion: result.version,
+        forced: false,
+        counts: result.counts,
+        refusals: [],
+        warning: null,
+        cutouts: result.cutouts,
+        error: null,
+      };
     case "rejected":
       return {
         ...run,
@@ -50,10 +67,11 @@ export function summary(result: RunResult, startedAt: Date, finishedAt: Date) {
         counts: result.counts,
         refusals: result.refusals.map(describeRefusal),
         warning: result.warning,
+        cutouts: result.cutouts,
         error: null,
       };
     case "failed":
-      return { ...run, version: null, previousVersion: null, forced: false, counts: null, refusals: [], warning: null, error: result.error };
+      return { ...run, version: null, previousVersion: null, forced: false, counts: null, refusals: [], warning: null, cutouts: null, error: result.error };
   }
 }
 

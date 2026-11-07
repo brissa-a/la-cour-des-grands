@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import type { DeputyId } from "../jobs/deputies.ts";
-import { ORIGINALS_DIR } from "./paths.ts";
+import { PHOTO_FILES } from "./paths.ts";
 
 const MAX_AGE_HOURS = 24;
 
@@ -17,7 +17,7 @@ export function officialPhotoUrl(id: DeputyId): string {
 const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
 export async function officialPhoto(id: DeputyId): Promise<OfficialPhoto | "missing"> {
-  const path = `${ORIGINALS_DIR}/${id}.jpg`;
+  const path = `${PHOTO_FILES.originals}/${id}.jpg`;
   const age = await stat(path).then(
     (s) => Date.now() - s.mtimeMs,
     () => Infinity,
@@ -32,7 +32,7 @@ export async function officialPhoto(id: DeputyId): Promise<OfficialPhoto | "miss
     return age === Infinity ? "missing" : previous();
   }
   const bytes = new Uint8Array(await response.arrayBuffer());
-  await mkdir(ORIGINALS_DIR, { recursive: true });
+  await mkdir(PHOTO_FILES.originals, { recursive: true });
   await writeFile(path, bytes);
   return { path, sha256: sha256(bytes) };
 }

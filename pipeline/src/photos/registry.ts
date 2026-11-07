@@ -1,37 +1,51 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
-import { parseJson, record, text } from "../core/json.ts";
+import { readFile } from "node:fs/promises";
+import { type JsonRecord, parseJson, record, text } from "../core/json.ts";
 import { type IsoDate, isoDate } from "../core/types.ts";
 import { type DeputyId, deputyId } from "../jobs/deputies.ts";
-import { REGISTRY_PATH } from "./paths.ts";
+import { isMissing, replaceAtomically } from "../publication/files.ts";
 
 export type Cutout = {
-  model: string;
-  date: IsoDate;
-  originalSha256: string;
+  readonly model: string;
+  readonly date: IsoDate;
+  readonly originalSha256: string;
+};
+
+export type Failure = {
+  readonly model: string;
+  readonly failedOn: IsoDate;
+  readonly originalSha256: string;
+  readonly reason: string;
 };
 
 export type Registry = Map<DeputyId, Cutout>;
+export type Failures = Map<DeputyId, Failure>;
 
-export async function loadRegistry(): Promise<Registry> {
-  const content = await readFile(REGISTRY_PATH, "utf8").catch(() => "{}");
+async function entries<T>(path: string, entry: (fields: JsonRecord, what: string) => T): Promise<Map<DeputyId, T>> {
+  const content = await readFile(path, "utf8").catch((error: unknown) => {
+    if (isMissing(error)) return "{}";
+    throw error;
+  });
   return new Map(
-    Object.entries(record(parseJson(content), REGISTRY_PATH)).map(([id, value]): [DeputyId, Cutout] => {
-      const cutout = record(value, `${REGISTRY_PATH} ${id}`);
-      return [
-        deputyId(id),
-        {
-          model: text(cutout.model, `${REGISTRY_PATH} ${id} model`),
-          date: isoDate(text(cutout.date, `${REGISTRY_PATH} ${id} date`)),
-          originalSha256: text(cutout.originalSha256, `${REGISTRY_PATH} ${id} originalSha256`),
-        },
-      ];
-    }),
+    Object.entries(record(parseJson(content), path)).map(([id, value]): [DeputyId, T] => [deputyId(id), entry(record(value, `${path} ${id}`), `${path} ${id}`)]),
   );
 }
 
-export async function saveRegistry(registry: Registry): Promise<void> {
-  const sorted = Object.fromEntries([...registry].sort(([a], [b]) => a.localeCompare(b)));
-  await mkdir(dirname(REGISTRY_PATH), { recursive: true });
-  await writeFile(REGISTRY_PATH, JSON.stringify(sorted, null, 1) + "\n");
+export const loadRegistry = (path: string): Promise<Registry> =>
+  entries(path, (fields, what) => ({
+    model: text(fields.model, `${what} model`),
+    date: isoDate(text(fields.date, `${what} date`)),
+    originalSha256: text(fields.originalSha256, `${what} originalSha256`),
+  }));
+
+export const loadFailures = (path: string): Promise<Failures> =>
+  entries(path, (fields, what) => ({
+    model: text(fields.model, `${what} model`),
+    failedOn: isoDate(text(fields.failedOn, `${what} failedOn`)),
+    originalSha256: text(fields.originalSha256, `${what} originalSha256`),
+    reason: text(fields.reason, `${what} reason`),
+  }));
+
+export async function save(path: string, entries: ReadonlyMap<DeputyId, Cutout | Failure>): Promise<void> {
+  const sorted = Object.fromEntries([...entries].sort(([a], [b]) => a.localeCompare(b)));
+  await replaceAtomically(path, JSON.stringify(sorted, null, 1) + "\n");
 }

@@ -2,8 +2,8 @@ import { stat } from "node:fs/promises";
 import { describeRefusal } from "./guards.ts";
 import { type Lock, type LockOwner, acquireLock } from "./lock.ts";
 import type { DataRoot } from "./paths.ts";
-import { type Outcome, reasonOf } from "./publish.ts";
-import { EXIT_FAILED, EXIT_LOCKED, type ExitCode, type RunResult, exitCode, recordRun } from "./runs.ts";
+import { reasonOf } from "./publish.ts";
+import { type Built, EXIT_FAILED, EXIT_LOCKED, type ExitCode, type RunResult, exitCode, recordRun } from "./runs.ts";
 import type { DataVersion } from "./version.ts";
 
 export type Log = { readonly log: (line: string) => void; readonly error: (message: unknown) => void };
@@ -11,7 +11,7 @@ export type Log = { readonly log: (line: string) => void; readonly error: (messa
 export type RunPlan = {
   readonly root: DataRoot;
   readonly owner: LockOwner;
-  readonly build: () => Promise<Outcome>;
+  readonly build: () => Promise<Built>;
   readonly mirror: ((version: DataVersion) => Promise<void>) | null;
   readonly now: () => Date;
   readonly whileLocked: (lock: Lock) => void;

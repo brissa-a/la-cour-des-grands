@@ -1,4 +1,5 @@
 import { EXIT_LOCKED, EXIT_PUBLISHED_WITH_WARNING, EXIT_REJECTED } from "../publication/runs.ts";
+import type { CutoutReport } from "../photos/cutouts.ts";
 import type { LastRun, RunCounts } from "./lastRun.ts";
 import type { Notification } from "./ntfy.ts";
 
@@ -33,19 +34,43 @@ export function tail(output: string, maxLines = MAX_STDERR_LINES, maxBytes = MAX
 
 const figures = ({ deputies, votes }: RunCounts) => `${deputies} deputies, ${votes} votes`;
 
-function done(run: LastRun & { readonly status: "published" | "unchanged" }): Notification {
-  if (run.status === "unchanged")
-    return { topic: "done", priority: 2, title: "Data unchanged", body: `${run.version} is still the current version (${figures(run.counts)}).`, tags: ["white_check_mark"] };
-  const lines = [
-    `Version ${run.version} (${figures(run.counts)}).`,
-    run.previousVersion === null ? "First version of the data root." : `Previous version ${run.previousVersion}.`,
-    ...(run.forced ? ["Forced over the guards' refusals:", ...run.refusals.map((r) => `- ${r}`)] : []),
-    ...(run.warning === null ? [] : [`Warning: ${run.warning}`]),
+const MAX_LISTED_CUTOUTS = 5;
+
+function cutoutLines(cutouts: CutoutReport | null): string[] {
+  if (cutouts === null || (cutouts.failed.length === 0 && cutouts.waiting === 0)) return [];
+  const { failed, waiting } = cutouts;
+  return [
+    `Cutouts: ${failed.length} failed, ${waiting} still waiting. Until theirs is done, these deputies keep their previous cutout, or the official photo.`,
+    ...failed.slice(0, MAX_LISTED_CUTOUTS).map(({ id, reason }) => `- ${id}: ${reason}`),
+    ...(failed.length > MAX_LISTED_CUTOUTS ? [`- and ${failed.length - MAX_LISTED_CUTOUTS} more, listed in .runs/last.json`] : []),
   ];
-  const title = run.counts.newVotes === null ? "Data published" : `Data published: ${run.counts.newVotes} new votes`;
-  return run.warning === null
-    ? { topic: "done", priority: 2, title, body: lines.join("\n"), tags: ["white_check_mark"] }
-    : { topic: "done", priority: 3, title: `${title}, old versions not pruned`, body: lines.join("\n"), tags: ["warning"] };
+}
+
+function done(run: LastRun & { readonly status: "published" | "unchanged" }): Notification {
+  const failedCutouts = run.cutouts?.failed.length ?? 0;
+  const published = run.status === "published";
+  const pruned = !published || run.warning === null;
+  const titled = [
+    published ? (run.counts.newVotes === null ? "Data published" : `Data published: ${run.counts.newVotes} new votes`) : "Data unchanged",
+    ...(pruned ? [] : ["old versions not pruned"]),
+    ...(failedCutouts === 0 ? [] : [`cutouts failed: ${failedCutouts}`]),
+  ];
+  const lines = published
+    ? [
+        `Version ${run.version} (${figures(run.counts)}).`,
+        run.previousVersion === null ? "First version of the data root." : `Previous version ${run.previousVersion}.`,
+        ...(run.forced ? ["Forced over the guards' refusals:", ...run.refusals.map((r) => `- ${r}`)] : []),
+        ...(run.warning === null ? [] : [`Warning: ${run.warning}`]),
+      ]
+    : [`${run.version} is still the current version (${figures(run.counts)}).`];
+  const quiet = pruned && failedCutouts === 0;
+  return {
+    topic: "done",
+    priority: quiet ? 2 : 3,
+    title: titled.join(", "),
+    body: [...lines, ...cutoutLines(run.cutouts)].join("\n"),
+    tags: [quiet ? "white_check_mark" : "warning"],
+  };
 }
 
 function rejected(run: LastRun & { readonly status: "rejected" }): Notification {
@@ -57,6 +82,7 @@ function rejected(run: LastRun & { readonly status: "rejected" }): Notification 
       `Candidate ${run.version} (${figures(run.counts)}) was set aside, ${run.previousVersion ?? "no version"} stays current:`,
       ...run.refusals.map((r) => `- ${r}`),
       ...(run.warning === null ? [] : [`Warning: ${run.warning}`]),
+      ...cutoutLines(run.cutouts),
       `Once inspected, publish it with: ${IN_CONTAINER} node src/scheduled/main.ts run --publish-rejected ${run.version}`,
     ].join("\n"),
     tags: ["no_entry"],

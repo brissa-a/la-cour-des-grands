@@ -22,9 +22,9 @@ function plan(root: DataRoot, build: () => Promise<Outcome>, overrides: Partial<
     plan: {
       root,
       owner: OWNER,
-      build: () => {
+      build: async () => {
         recorded.built++;
-        return build();
+        return { ...(await build()), cutouts: null };
       },
       mirror: (v) => {
         recorded.mirrored.push(v);

@@ -71,7 +71,7 @@ export const init = csv({
     group: category("Groupe politique", groups),
   },
   row: (d, { photos }) => ({
-    photo: photos.has(d.id) ? publishedPhotoPath(d.id) : null,
+    photo: photos.published.has(d.id) ? publishedPhotoPath(d.id) : null,
     last_name: d.lastName,
     first_name: d.firstName,
     civility: d.civility,

@@ -13,8 +13,9 @@ import { options } from "./argv.ts";
 import type { Lock } from "./publication/lock.ts";
 import { mirror } from "./publication/mirror.ts";
 import { layout, snapshotPath } from "./publication/paths.ts";
-import { type Outcome, publish, publishRejected } from "./publication/publish.ts";
+import { publish, publishRejected } from "./publication/publish.ts";
 import { runOnce } from "./publication/run.ts";
+import type { Built } from "./publication/runs.ts";
 import { snapshotSources } from "./publication/sources.ts";
 
 const files = [
@@ -47,10 +48,11 @@ const root = options.dataRoot;
 const counted = { deputies: snapshotPath(init.name), votes: snapshotPath(votesCatalog.name) };
 const now = () => new Date();
 
-async function build(): Promise<Outcome> {
-  if (options.publishRejected !== null) return publishRejected(root, options.publishRejected, counted, now);
+async function build(): Promise<Built> {
+  if (options.publishRejected !== null) return { ...(await publishRejected(root, options.publishRejected, counted, now)), cutouts: null };
   await all.result();
-  return publish({ root, sources: await snapshotSources(OUTPUT_DIR, await photos.result()), counted, now });
+  const { published, cutouts } = await photos.result();
+  return { ...(await publish({ root, sources: await snapshotSources(OUTPUT_DIR, published), counted, now })), cutouts };
 }
 
 function releaseOnInterrupt(lock: Lock): void {

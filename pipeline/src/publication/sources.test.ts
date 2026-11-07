@@ -6,11 +6,17 @@ import { snapshotPath } from "./paths.ts";
 import { standard, temporaryDir, writeSnapshot } from "./snapshots.fixture.ts";
 import { snapshotSources } from "./sources.ts";
 
-test("a snapshot takes the files of the catalog and the given deputies' photos, never a stale file of the output folder", async () => {
+test("a snapshot takes the files of the catalog and each given deputy's photo from its own file, never a stale file of the output folder", async () => {
   const output = await temporaryDir();
   await writeSnapshot(output, standard());
   await writeFile(`${output}/stale.csv`, "left by an older run\n");
-  const sources = await snapshotSources(output, new Set([deputyId("PA2"), deputyId("PA1")]));
+  const sources = await snapshotSources(
+    output,
+    new Map([
+      [deputyId("PA2"), "output/photos/uncut/PA2.webp"],
+      [deputyId("PA1"), "output/photos/PA1.webp"],
+    ]),
+  );
   assert.deepEqual(
     sources,
     new Map([
@@ -19,7 +25,7 @@ test("a snapshot takes the files of the catalog and the given deputies' photos, 
       [snapshotPath("deputies/values/civility.csv"), `${output}/deputies/values/civility.csv`],
       [snapshotPath("votes/votes.csv"), `${output}/votes/votes.csv`],
       [snapshotPath("photos/PA1.webp"), "output/photos/PA1.webp"],
-      [snapshotPath("photos/PA2.webp"), "output/photos/PA2.webp"],
+      [snapshotPath("photos/PA2.webp"), "output/photos/uncut/PA2.webp"],
     ]),
   );
 });

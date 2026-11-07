@@ -13,13 +13,24 @@ npm run pipeline -- --data-root /path/to/data-root   # or LCDG_DATA_ROOT=/path/t
 |---|---|
 | `--data-root <dir>` | Data root to publish to. Falls back to `LCDG_DATA_ROOT`, then to `/data`. The directory must exist. |
 | `<job>` | Runs one job (e.g. `photos`, `deputies/init.csv`) into `output/` and publishes nothing. |
-| `--skip-new-cutouts` | Leaves out the photos that still need a cutout instead of computing it. |
+| `--skip-new-cutouts` | Computes no cutout: each photo waiting for one keeps its previous cutout, or the official photo (see [Photos](#photos)). |
 | `--publish-rejected <version>` | Publishes a snapshot the guards refused, as is, once you have inspected it. Runs no job. Never used by the scheduled run. |
 | `--push-to-remote` | After a run that publishes or finds nothing new, mirrors the current snapshot, photos included, to `v2/` on `main` of [brissa-a/lcdg-data](https://github.com/brissa-a/lcdg-data). Refused (exit 1, after `last.json`) while `https://cour-des-grands.fr/data/v2/current.json` names no version: a site that still reads its data from that repository cannot resolve the snapshot's relative photo paths. |
 
-State kept between runs, next to the code: `cache/` (downloads, refreshed after 24 hours) and `output/photos/` (cutouts and `registry.json`; losing it means cutting out every photo again). `output/v2/` is the working copy of the last build: only the files its `catalog.json` lists are published.
+State kept between runs, next to the code: `cache/` (downloads, refreshed after 24 hours) and `output/photos/` (cutouts, `registry.json`, `failures.json`, and `uncut/`, the official photos as webp; losing it means cutting out every photo again). `output/v2/` is the working copy of the last build: only the files its `catalog.json` lists are published.
 
 A run holds `<root>/v2/.lock` from start to end, since two runs would share `cache/` and `output/` as well as the data root: a run started meanwhile exits with 4 and changes nothing. The lock is released on exit, on `SIGINT` and on `SIGTERM`; after a `SIGKILL` or an out-of-memory kill it stays, its content names the process that held it, and the next runs exit with 4 until it is deleted by hand. A single-job run takes no lock.
+
+## Photos
+
+The `photos` job downloads each deputy's official photo (`output/photos/originals/`, refreshed after 24 hours), then cuts out the ones whose cutout is missing or was made from another photo or model, with [BRIA RMBG 2.0](https://huggingface.co/briaai/RMBG-2.0) on the CPU, deputies in office first. A cutout never stops the data from being published:
+
+- each cutout runs in a process of its own (`src/photos/cutoutChild.ts`), killed after 10 minutes: when the kernel kills it for memory, the run goes on;
+- a run starts no new cutout after 30 minutes of them; the photos left wait for the next run;
+- a photo whose cutout failed is tried again after 7 days, or as soon as its official photo or the model changes (`failures.json`);
+- until its cutout is done, a deputy keeps the previous cutout, or gets the official photo as is, background included, as webp (`uncut/`): the site shows it as it would a cutout. A photo that cannot be read at all is left out.
+
+`last.json` counts the cutouts that failed during the run, and the photos still waiting.
 
 ## Data root
 
@@ -94,11 +105,12 @@ Every run writes `<root>/v2/.runs/last.json`:
  "counts": { "deputies": 654, "votes": 9759, "newVotes": 3 },
  "refusals": ["one sentence per refusal"],
  "warning": null,
+ "cutouts": { "failed": [{ "id": "PA1008", "reason": "killed by SIGKILL, most likely for lack of memory" }], "waiting": 2 },
  "error": null
 }
 ```
 
-`counts` is `null` on failure, and `newVotes` is `null` when there was no previous version. `warning` names a retention that failed after the publication or the refusal was settled. `forced` is `true` for a `--publish-rejected` run, whose `refusals` are those it overrode. When the data root is not a directory, the run exits with 1 and writes nothing. A `--push-to-remote` mirror that fails exits with 1 after `last.json` has recorded the publication.
+`counts` and `cutouts` are `null` on failure, and `cutouts` for a `--publish-rejected` run, which computes none. `cutouts.waiting` counts the photos still without a cutout of their current photo, besides those that failed. `newVotes` is `null` when there was no previous version. `warning` names a retention that failed after the publication or the refusal was settled. `forced` is `true` for a `--publish-rejected` run, whose `refusals` are those it overrode. When the data root is not a directory, the run exits with 1 and writes nothing. A `--push-to-remote` mirror that fails exits with 1 after `last.json` has recorded the publication.
 
 ## On the Dedibox
 
@@ -113,13 +125,14 @@ The service `lcdg-pipeline` of og's compose project (`og/deploy/docker-compose.y
 
 | Outcome | Topic | Priority |
 |---|---|---|
-| Published or unchanged: version, counts, new votes | `lcdg_pipeline-done` | 2 (low) |
+| Published or unchanged: version, counts, new votes, the photos still waiting for a cutout | `lcdg_pipeline-done` | 2 (low) |
+| Published or unchanged, but cutouts failed: how many, the first five with their reason | `lcdg_pipeline-done` | 3 |
 | Published, old versions not pruned (exit 5) | `lcdg_pipeline-done` | 3 |
 | Refused by the guards (exit 3): each refusal from `last.json`, the command that publishes the candidate anyway | `lcdg_pipeline-rejected` | 4 (high) |
 | Another run holds the lock (exit 4): its holder, the command that frees it | `lcdg_pipeline-locked` | 3 |
 | Any other end: failure recorded in `last.json`, exit without a fresh `last.json`, a kill (out of memory when cgroup v2's `memory.events` counted one), with the end of the error output | `lcdg_pipeline-failed` | 4 (high) |
 
-The pipeline never gets `NTFY_TOKEN`. A run's `last.json` counts only when it started after the run did. When the pipeline is killed, a lock that names that very process on this host is deleted: nobody else can hold it. A notification ntfy does not take is tried again after 10 s and 60 s, unless ntfy refuses it (4xx but 429), then logged; the run's exit code stays the pipeline's.
+The pipeline never gets `NTFY_TOKEN`. A run's `last.json` counts only when it started after the run did. Once the pipeline has ended, however it ended, a lock that names that very process on this host is deleted: nobody else can hold it. A notification ntfy does not take is tried again after 10 s and 60 s, unless ntfy refuses it (4xx but 429), then logged; the run's exit code stays the pipeline's.
 
 ## Development
 
