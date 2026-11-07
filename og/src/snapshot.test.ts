@@ -6,7 +6,7 @@ import { after, test } from "node:test"
 import { snapshotPath, type SnapshotPath } from "../../web/src/data/snapshotPath.ts"
 import { dataVersion } from "../../web/src/data/version.ts"
 import { given, NEW as OTHER, SHA as VERSION } from "./fixture.test.ts"
-import { dataAddress, keptVersions, readPointer, readSnapshotFile, snapshotReader } from "./snapshot.ts"
+import { dataAddress, keptVersions, modifiedAt, readPointer, readSnapshotFile, snapshotReader } from "./snapshot.ts"
 
 const scratch = await mkdtemp(join(tmpdir(), "og-snapshot-"))
 after(() => rm(scratch, { recursive: true, force: true }))
@@ -124,6 +124,18 @@ test("a data root without v2/ keeps no version, and one whose v2/ the service ma
   await chmod(join(locked, "v2"), 0o000)
   await assert.rejects(keptVersions(locked), /EACCES/)
   await chmod(join(locked, "v2"), 0o755)
+})
+
+test("a version folder the pipeline moves away while the versions are listed reads as absent, and a date the service may not read is an error", async () => {
+  const root = await dataRoot("vanishing")
+  const folder = join(root, "v2", VERSION)
+  await mkdir(folder, { recursive: true })
+  await utimes(folder, new Date("2026-11-05T04:00:00.000Z"), new Date("2026-11-05T04:00:00.000Z"))
+  assert.deepEqual(await modifiedAt(folder), new Date("2026-11-05T04:00:00.000Z"))
+  assert.equal(await modifiedAt(join(root, "v2", ABSENT)), null)
+  await chmod(join(root, "v2"), 0o000)
+  await assert.rejects(modifiedAt(folder), /EACCES/)
+  await chmod(join(root, "v2"), 0o755)
 })
 
 test("a file of a version is read by its path, a photo linked to the store included", async () => {

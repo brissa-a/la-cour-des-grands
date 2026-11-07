@@ -55,7 +55,16 @@ export async function readPointer(root: string): Promise<PointerCheck> {
   return { kind: "found", version, pointer }
 }
 
-// The pipeline dates a version's folder with its publication, and prunes the oldest first.
+export async function modifiedAt(path: string): Promise<Date | null> {
+  try {
+    return (await stat(path)).mtime
+  } catch (error) {
+    if (missing(error)) return null
+    throw error
+  }
+}
+
+// The pipeline dates a version's folder with its publication, and prunes the oldest first by moving it out of v2/ before deleting it.
 export async function keptVersions(root: string): Promise<readonly Pointed[]> {
   const folder = join(root, DATA_FORMAT)
   const entries = await readdir(folder, { withFileTypes: true }).catch((error: unknown) => {
@@ -65,10 +74,13 @@ export async function keptVersions(root: string): Promise<readonly Pointed[]> {
   const dated = await Promise.all(
     entries.flatMap(entry => {
       const version = entry.isDirectory() ? dataVersion(entry.name) : null
-      return version === null ? [] : [stat(join(folder, entry.name)).then(stats => ({ version, publishedAt: stats.mtime }))]
+      return version === null ? [] : [modifiedAt(join(folder, entry.name)).then(publishedAt => (publishedAt === null ? [] : [{ version, publishedAt }]))]
     }),
   )
-  return dated.toSorted((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).map(({ version, publishedAt }) => ({ version, pointer: `${JSON.stringify({ version, publishedAt: publishedAt.toISOString() })}\n` }))
+  return dated
+    .flat()
+    .toSorted((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+    .map(({ version, publishedAt }) => ({ version, pointer: `${JSON.stringify({ version, publishedAt: publishedAt.toISOString() })}\n` }))
 }
 
 // A snapshot holds regular files and folders only: a link anywhere below the root, even one that stays inside, is not followed.
