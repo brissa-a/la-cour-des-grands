@@ -4,7 +4,7 @@ import { mkdir, readFile, utimes, writeFile } from "node:fs/promises";
 import { test } from "node:test";
 import { deputyId } from "../jobs/deputies.ts";
 import { temporaryDir } from "../publication/snapshots.fixture.ts";
-import { type PhotoSource, officialPhoto, officialPhotoUrl } from "./officialPhoto.ts";
+import { type PhotoSource, officialPhoto } from "./officialPhoto.ts";
 
 const ID = deputyId("PA1008");
 const PREVIOUS = "previous photo";
@@ -51,7 +51,7 @@ test("a photo older than a day, or never downloaded, is downloaded from the Asse
     const { source: refreshed, requested, warnings } = await source(serve(NEW), previous);
     assert.deepEqual(await officialPhoto(ID, refreshed), { path: `${refreshed.originals}/${ID}.jpg`, sha256: sha256(NEW) });
     assert.equal(await readFile(`${refreshed.originals}/${ID}.jpg`, "utf8"), NEW);
-    assert.deepEqual([requested, warnings], [[officialPhotoUrl(ID)], []]);
+    assert.deepEqual([requested, warnings], [["https://www.assemblee-nationale.fr/dyn/static/tribun/17/photos/carre/1008.jpg"], []]);
   }
 });
 

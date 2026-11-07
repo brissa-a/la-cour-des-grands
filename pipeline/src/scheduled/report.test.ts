@@ -207,5 +207,6 @@ test("the end of the error output keeps its last lines within the size an alert 
   assert.equal(tail("aaaa\nbbbb\ncccc", 12, 9), "bbbb\ncccc");
   assert.equal(tail("aaaa\nbbbb\ncccc", 12, 8), "cccc");
   assert.equal(tail("ab\uFFFDcd", 12, 6), "b\uFFFDcd");
+  assert.equal(tail("\uFFFDab", 12, 5), "\uFFFDab");
   assert.equal(tail(""), "");
 });

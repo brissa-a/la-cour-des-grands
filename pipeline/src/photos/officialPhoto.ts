@@ -18,7 +18,7 @@ export type PhotoSource = {
 
 type Download = { readonly kind: "downloaded"; readonly bytes: Uint8Array } | { readonly kind: "gone" } | { readonly kind: "unavailable"; readonly reason: string };
 
-export function officialPhotoUrl(id: DeputyId): string {
+function officialPhotoUrl(id: DeputyId): string {
   return `https://www.assemblee-nationale.fr/dyn/static/tribun/17/photos/carre/${id.slice(2)}.jpg`;
 }
 

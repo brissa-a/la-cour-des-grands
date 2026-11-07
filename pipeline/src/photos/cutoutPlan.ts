@@ -16,17 +16,18 @@ export type CutoutSettings = {
   readonly files: PhotoFiles;
   readonly processes: Children;
   readonly today: IsoDate;
+  readonly clockMs: () => number;
   readonly log: (line: string) => void;
 };
 
-export function cutoutPlan({ skipNewCutouts, modelPath, files, processes, today, log }: CutoutSettings): CutoutPlan {
-  const started = performance.now();
+export function cutoutPlan({ skipNewCutouts, modelPath, files, processes, today, clockMs, log }: CutoutSettings): CutoutPlan {
+  const started = clockMs();
   return {
     files,
     model: MODEL,
     cutOut: (original, cutout) => processes.run({ file: process.execPath, args: [CUTOUT_CHILD, modelPath, original, cutout], timeoutMs: CUTOUT_TIMEOUT_MS }),
     budgetMs: skipNewCutouts ? 0 : CUTOUT_BUDGET_MS,
-    elapsedMs: () => performance.now() - started,
+    elapsedMs: () => clockMs() - started,
     today,
     log,
   };

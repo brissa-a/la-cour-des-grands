@@ -37,6 +37,7 @@ export const photos = job({
       files: PHOTO_FILES,
       processes: cutoutProcesses,
       today: today(),
+      clockMs: () => performance.now(),
       log: (line) => console.log(line),
     });
     return choosePhotos(downloaded.flat(), plan);

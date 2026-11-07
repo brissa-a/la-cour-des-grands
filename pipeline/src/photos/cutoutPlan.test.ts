@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 import sharp from "sharp";
 import { isoDate } from "../core/types.ts";
 import { deputyId } from "../jobs/deputies.ts";
@@ -35,7 +34,14 @@ async function waitingPhoto(): Promise<{ files: PhotoFiles; candidate: Candidate
   return { files, candidate: { id: ID, inOffice: true, original: { path, sha256 } }, unreadableModel };
 }
 
-const settings = (files: PhotoFiles, modelPath: string, processes: Children, lines: string[]) => ({ modelPath, files, processes, today: isoDate("2026-11-07"), log: (line: string) => lines.push(line) });
+const settings = (files: PhotoFiles, modelPath: string, processes: Children, lines: string[], clockMs = () => performance.now()) => ({
+  modelPath,
+  files,
+  processes,
+  today: isoDate("2026-11-07"),
+  clockMs,
+  log: (line: string) => lines.push(line),
+});
 
 test("the cutout process refuses to run without its model, original and cutout, and says how to call it", async () => {
   assert.deepEqual(await children().run({ file: process.execPath, args: [CUTOUT_CHILD], timeoutMs: 30_000 }), {
@@ -53,9 +59,13 @@ test("a run cuts out the photos waiting in a cutout process, whose failure leave
   assert.deepEqual([...choice.published], [[ID, files.uncut(ID)]]);
   assert.deepEqual(await Promise.all([present(files.cutout(ID)), present(`${files.cutout(ID)}.partial`)]), [false, false]);
   assert.equal(lines[0], "  1 photos to cut out with bria-rmbg, for 30 min at most");
-  const before = plan.elapsedMs();
-  await sleep(50);
-  assert.ok(plan.elapsedMs() - before >= 45, "the budget is spent as time goes by");
+});
+
+test("the cutout budget counts the time since the plan was made", () => {
+  let now = 5_000;
+  const plan = cutoutPlan({ skipNewCutouts: false, ...settings(photoFiles("unused"), "model.onnx", children(), [], () => now) });
+  now = 5_600;
+  assert.equal(plan.elapsedMs(), 600);
 });
 
 test("--skip-new-cutouts starts no cutout process: the photos waiting keep the official photo", async () => {
