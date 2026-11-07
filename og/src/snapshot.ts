@@ -1,5 +1,5 @@
 import { constants } from "node:fs"
-import { open, readdir, realpath, stat } from "node:fs/promises"
+import { open, readdir, realpath, stat, type FileHandle } from "node:fs/promises"
 import { extname, join } from "node:path"
 import { isRecord } from "../../web/src/data/json.ts"
 import { snapshotPath, type SnapshotPath } from "../../web/src/data/snapshotPath.ts"
@@ -30,6 +30,8 @@ export type Pointed = { readonly version: DataVersion; readonly pointer: string 
 
 export type PointerCheck = ({ readonly kind: "found" } & Pointed) | { readonly kind: "failed"; readonly reason: string }
 
+export type OpenedFile = { readonly handle: FileHandle; readonly size: number }
+
 const MISSING: ReadonlySet<unknown> = new Set(["ENOENT", "ENOTDIR", "ELOOP"])
 
 export function dataFile(text: string): DataFile | null {
@@ -50,12 +52,24 @@ export function dataAddress(pathname: string): DataAddress | null {
   return version && file && { kind: "file", version, file }
 }
 
-async function readRegularFile(file: string): Promise<Buffer | null> {
+async function openRegularFile(file: string): Promise<OpenedFile | null> {
   const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW)
+  let opened: OpenedFile | null = null
   try {
-    return (await handle.stat()).isFile() ? await handle.readFile() : null
+    const stats = await handle.stat()
+    if (stats.isFile()) opened = { handle, size: stats.size }
+    return opened
   } finally {
-    await handle.close()
+    if (opened === null) await handle.close()
+  }
+}
+
+async function readOpened(opened: OpenedFile | null): Promise<Buffer | null> {
+  if (opened === null) return null
+  try {
+    return await opened.handle.readFile()
+  } finally {
+    await opened.handle.close()
   }
 }
 
@@ -66,7 +80,7 @@ function missing(error: unknown): boolean {
 export async function readPointer(root: string): Promise<PointerCheck> {
   let pointer: string
   try {
-    const content = await readRegularFile(join(root, DATA_FORMAT, POINTER_FILE))
+    const content = await readOpened(await openRegularFile(join(root, DATA_FORMAT, POINTER_FILE)))
     if (content === null) return { kind: "failed", reason: `${POINTER_FILE} is not a file` }
     pointer = content.toString("utf8")
   } catch (error) {
@@ -106,15 +120,19 @@ export async function keptVersions(root: string): Promise<readonly Pointed[]> {
 }
 
 // A snapshot holds regular files and folders only: a link anywhere below the root, even one that stays inside, is not followed.
-export async function readSnapshotFile(root: string, version: DataVersion, path: SnapshotPath): Promise<Buffer | null> {
+export async function openSnapshotFile(root: string, version: DataVersion, path: SnapshotPath): Promise<OpenedFile | null> {
   try {
     const file = join(await realpath(root), DATA_FORMAT, version, path)
     if ((await realpath(file)) !== file) return null
-    return await readRegularFile(file)
+    return await openRegularFile(file)
   } catch (error) {
     if (missing(error)) return null
     throw error
   }
+}
+
+export async function readSnapshotFile(root: string, version: DataVersion, path: SnapshotPath): Promise<Buffer | null> {
+  return readOpened(await openSnapshotFile(root, version, path))
 }
 
 export function snapshotReader(root: string, version: DataVersion): ReadText {

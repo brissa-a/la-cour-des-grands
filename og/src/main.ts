@@ -17,7 +17,7 @@ import { dataRootSource } from "./snapshot.ts"
 import { parseTemplate } from "./tags.ts"
 
 const CACHE_MAX_BYTES = 2 * 1024 ** 3
-const COMPRESSED_DATA_MAX_BYTES = 32 * 1024 ** 2
+const COMPRESSED_DATA = { keptBytes: 32 * 1024 ** 2, compressions: 2 } as const
 // The pipeline replaces the pointer by a rename, which ends a watch on the file; reading a local file every 30 s costs nothing.
 const POINTER_POLL_MS = 30_000
 const REQUEST_WAIT_MS = 8_000
@@ -41,8 +41,8 @@ const currentVersion = () => {
 }
 
 const cache = await openDiskCache(join(config.cacheDir, "images"), CACHE_MAX_BYTES, render, currentVersion)
-const data = createDataFiles(config.dataRoot, COMPRESSED_DATA_MAX_BYTES)
-const renderer = createRenderer(site, data, config.browser)
+const data = createDataFiles(config.dataRoot, COMPRESSED_DATA)
+const renderer = createRenderer(site, data.read, config.browser)
 const queue = renderQueue<Buffer>(QUEUE)
 const images = createImages({ releases: () => state(), cache, queue, render: renderer.render, renderId: render, waitMs: REQUEST_WAIT_MS, log: line => log("render", line), now: () => performance.now() })
 const fallback = createFallback({

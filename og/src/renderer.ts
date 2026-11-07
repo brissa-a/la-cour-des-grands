@@ -4,7 +4,7 @@ import { recycler } from "./browsers.ts"
 import type { ImageQuery } from "./canonical.ts"
 import { CAPTURE_SETTINGS, capturePointer, captureRoute, captureUrl } from "./capture.ts"
 import type { BrowserSource } from "./config.ts"
-import type { DataFiles } from "./dataFiles.ts"
+import type { ReadDataFile } from "./dataFiles.ts"
 import { siteFile, type StaticSite } from "./site.ts"
 
 export type CaptureTarget = { readonly version: DataVersion; readonly query: ImageQuery }
@@ -31,7 +31,7 @@ export function openBrowser(source: BrowserSource): Promise<Browser> {
   }
 }
 
-export function createRenderer(site: StaticSite, data: DataFiles, source: BrowserSource): Renderer {
+export function createRenderer(site: StaticSite, read: ReadDataFile, source: BrowserSource): Renderer {
   const browsers = recycler<Browser>({
     launch: async lost => {
       const browser = await openBrowser(source)
@@ -43,12 +43,12 @@ export function createRenderer(site: StaticSite, data: DataFiles, source: Browse
   })
   return {
     render: (target, signal) =>
-      browsers.use(browser => withCapturePage(browser, target, site, data, signal, page => page.screenshot({ type: "jpeg", quality: CAPTURE_SETTINGS.jpegQuality, timeout: NAVIGATION_TIMEOUT_MS }))),
+      browsers.use(browser => withCapturePage(browser, target, site, read, signal, page => page.screenshot({ type: "jpeg", quality: CAPTURE_SETTINGS.jpegQuality, timeout: NAVIGATION_TIMEOUT_MS }))),
     close: browsers.close,
   }
 }
 
-export async function withCapturePage<T>(browser: Browser, target: CaptureTarget, site: StaticSite, data: DataFiles, signal: AbortSignal, use: (page: Page) => Promise<T>): Promise<T> {
+export async function withCapturePage<T>(browser: Browser, target: CaptureTarget, site: StaticSite, read: ReadDataFile, signal: AbortSignal, use: (page: Page) => Promise<T>): Promise<T> {
   signal.throwIfAborted()
   const context = await browser.newContext({
     viewport: { width: CAPTURE_SETTINGS.width, height: CAPTURE_SETTINGS.height },
@@ -61,7 +61,7 @@ export async function withCapturePage<T>(browser: Browser, target: CaptureTarget
   const abandon = () => void context.close()
   signal.addEventListener("abort", abandon, { once: true })
   try {
-    await context.route("**/*", route => answer(route, target.version, site, data).catch(() => undefined))
+    await context.route("**/*", route => answer(route, target.version, site, read).catch(() => undefined))
     await context.routeWebSocket(/./, socket => socket.close())
     const page = await context.newPage()
     await page.goto(captureUrl(target.query), { waitUntil: "commit", timeout: NAVIGATION_TIMEOUT_MS })
@@ -75,7 +75,7 @@ export async function withCapturePage<T>(browser: Browser, target: CaptureTarget
   }
 }
 
-async function answer(route: Route, version: DataVersion, site: StaticSite, data: DataFiles): Promise<void> {
+async function answer(route: Route, version: DataVersion, site: StaticSite, read: ReadDataFile): Promise<void> {
   const target = captureRoute(route.request().url(), version)
   switch (target.kind) {
     case "site": {
@@ -85,8 +85,8 @@ async function answer(route: Route, version: DataVersion, site: StaticSite, data
     case "pointer":
       return route.fulfill({ status: 200, headers: { "content-type": "application/json" }, body: capturePointer(version) })
     case "data": {
-      const file = await data.get(version, target.file, "identity").catch(() => null)
-      return file === null ? route.fulfill({ status: 404 }) : route.fulfill({ status: 200, headers: { "content-type": file.type }, body: file.body })
+      const body = await read(version, target.file).catch(() => null)
+      return body === null ? route.fulfill({ status: 404 }) : route.fulfill({ status: 200, headers: { "content-type": target.file.type.type }, body })
     }
     case "blocked":
       return route.abort("blockedbyclient")

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
-import { copyFile, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises"
+import { copyFile, mkdir, mkdtemp, rm, symlink, truncate, writeFile } from "node:fs/promises"
 import { request, type IncomingHttpHeaders } from "node:http"
+import type { Socket } from "node:net"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { after, test } from "node:test"
@@ -8,7 +9,7 @@ import { brotliDecompressSync, gunzipSync } from "node:zlib"
 import { renderId, viewHash } from "./canonical.ts"
 import { createDataFiles } from "./dataFiles.ts"
 import { openDiskCache, type DiskCache } from "./disk.ts"
-import { DATA, NEW as CURRENT, OLD as OLDER, ORIGIN, RENDER, viewOf } from "./fixture.test.ts"
+import { DATA, eventually, NEW as CURRENT, OLD as OLDER, openDescriptorsOn, ORIGIN, RENDER, viewOf } from "./fixture.test.ts"
 import { createImages, type Images, type RenderLine } from "./images.ts"
 import { renderQueue, type QueueLimits, type RenderQueue } from "./queue.ts"
 import type { Release, Releases } from "./releases.ts"
@@ -48,6 +49,11 @@ await writeFile(join(DATA_ROOT, "v2", ".store", "0".repeat(64)), "stored")
 await writeFile(join(DATA_ROOT, "v2", ".runs", "last.json"), "{}")
 await symlink(join(scratch, "secret.txt"), join(SNAPSHOT, "secret.csv"))
 await symlink(scratch, join(SNAPSHOT, "outside"))
+const LARGE = Buffer.from(Array.from({ length: 3 * 1024 ** 2 + 7 }, (_, index) => (index * 7919) % 251))
+await writeFile(join(SNAPSHOT, "votes", "large.csv"), LARGE)
+const HUGE_BYTES = 4 * 1024 ** 3
+await writeFile(join(SNAPSHOT, "votes", "huge.csv"), "")
+await truncate(join(SNAPSHOT, "votes", "huge.csv"), HUGE_BYTES)
 
 const CURRENT_RELEASE: Release = { version: CURRENT, data: DATA }
 const READY: Releases = { kind: "ready", current: CURRENT_RELEASE, previous: { version: OLDER, data: DATA } }
@@ -67,7 +73,16 @@ type Options = {
   readonly disk?: "works" | "full"
 }
 
-type Running = { readonly port: number; readonly renders: CaptureTarget[]; readonly lines: RenderLine[]; readonly errors: unknown[]; readonly images: Images; readonly queue: RenderQueue<Buffer>; readonly advance: (ms: number) => void }
+type Running = {
+  readonly port: number
+  readonly renders: CaptureTarget[]
+  readonly lines: RenderLine[]
+  readonly errors: unknown[]
+  readonly images: Images
+  readonly queue: RenderQueue<Buffer>
+  readonly sockets: Socket[]
+  readonly advance: (ms: number) => void
+}
 
 const LIMITS: QueueLimits = { concurrency: 1, capacity: 4, perClient: 4, timeoutMs: 12_000 }
 
@@ -107,12 +122,14 @@ async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_00
     page: { template: parseTemplate(SITE.index), origin: ORIGIN, render: RENDER },
     releases,
     pointer: () => pointer,
-    data: createDataFiles(DATA_ROOT, 1_000_000),
+    data: createDataFiles(DATA_ROOT, { keptBytes: 1_000_000, compressions: 2 }),
     images,
     fallback: () => fallback,
     health: () => ({ status: "ok" }),
     logError: error => errors.push(error),
   })
+  const sockets: Socket[] = []
+  server.on("connection", (socket: Socket) => sockets.push(socket))
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve))
   after(() => {
     for (const release of hanging) release()
@@ -127,6 +144,7 @@ async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_00
     errors,
     images,
     queue,
+    sockets,
     advance: ms => {
       clock += ms
     },
@@ -141,6 +159,19 @@ function raw(port: number, path: string, method = "GET", headers: Readonly<Recor
       const chunks: Buffer[] = []
       response.on("data", (chunk: Buffer) => chunks.push(chunk))
       response.on("end", () => resolve({ status: response.statusCode ?? 0, headers: response.headers, body: Buffer.concat(chunks) }))
+    })
+    sent.on("error", reject)
+    sent.end()
+  })
+}
+
+function firstChunk(port: number, path: string): Promise<{ readonly status: number; readonly headers: IncomingHttpHeaders; readonly chunk: Buffer }> {
+  return new Promise((resolve, reject) => {
+    const sent = request({ host: "127.0.0.1", port, path, agent: false }, response => {
+      response.once("data", (chunk: Buffer) => {
+        resolve({ status: response.statusCode ?? 0, headers: response.headers, chunk })
+        response.destroy()
+      })
     })
     sent.on("error", reject)
     sent.end()
@@ -484,4 +515,22 @@ test("no path under /data/v2/ leaves the version's folder: climbs, encoded climb
     assert.deepEqual([answer.status, answer.headers["access-control-allow-origin"], answer.body.toString()], [404, "*", "Fichier introuvable\n"], path)
   }
   for (const path of ["/data/v1/catalog.json", "/data/secret.txt", "/data"]) assert.deepEqual([(await raw(drawing.port, path)).status], [404], path)
+})
+
+test("a data file sent plain goes out from the disk as it is read, byte for byte, its file closed once sent or abandoned", { timeout: 20_000 }, async () => {
+  const large = await raw(drawing.port, `/data/v2/${CURRENT}/votes/large.csv`)
+  assert.deepEqual([large.status, large.headers["content-length"], large.headers["content-encoding"]], [200, String(LARGE.length), undefined])
+  assert.ok(large.body.equals(LARGE))
+  const huge = await firstChunk(drawing.port, `/data/v2/${CURRENT}/votes/huge.csv`)
+  assert.deepEqual([huge.status, huge.headers["content-length"], huge.chunk.length > 0, huge.chunk.every(byte => byte === 0)], [200, String(HUGE_BYTES), true, true])
+  await eventually(async () => (await openDescriptorsOn(join(SNAPSHOT, "votes", "large.csv"))) + (await openDescriptorsOn(join(SNAPSHOT, "votes", "huge.csv"))) === 0, "both files closed")
+})
+
+test("a connection takes no more of an answer once 16 KB of it wait for a slow client", async () => {
+  const running = await startService()
+  await raw(running.port, `/data/v2/${CURRENT}/votes/votes.csv`)
+  assert.deepEqual(
+    running.sockets.map(socket => socket.writableHighWaterMark),
+    [16 * 1024],
+  )
 })

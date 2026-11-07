@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http"
+import { pipeline } from "node:stream/promises"
 import { DATA_PATH } from "../../web/src/data/source.ts"
 import { POINTER_FILE } from "../../web/src/data/version.ts"
 import { FALLBACK_PATH, parseImagePath } from "./canonical.ts"
@@ -9,7 +10,7 @@ import type { ImageAnswer, Images } from "./images.ts"
 import { answerPage, type PageSite } from "./page.ts"
 import type { Releases } from "./releases.ts"
 import { bodyFor, encoded, fileType, PAGE_TYPE, preferredEncoding, type Encoding, type StaticSite } from "./site.ts"
-import { dataAddress } from "./snapshot.ts"
+import { dataAddress, type OpenedFile } from "./snapshot.ts"
 
 export type ServiceDeps = {
   readonly site: StaticSite
@@ -26,7 +27,7 @@ export type ServiceDeps = {
 type Reply = {
   readonly status: number
   readonly headers: Readonly<Record<string, string>>
-  readonly body: Buffer
+  readonly body: Buffer | OpenedFile
   readonly encoding: Encoding
   readonly varies: boolean
 }
@@ -44,6 +45,8 @@ const POINTER_CACHE = "public, max-age=60"
 const DATA_HEADERS = { "access-control-allow-origin": "*", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" }
 const JPEG = "image/jpeg"
 const RETRY_AFTER_S = "30"
+// What a download holds in memory, file read ahead and socket queue, while its client is slow: Traefik lets one address keep 1500 open on /data/.
+const STREAM_CHUNK_BYTES = 16 * 1024
 
 function reply(status: number, headers: Readonly<Record<string, string>>, body: Buffer): Reply {
   return { status, headers, body, encoding: "identity", varies: false }
@@ -132,16 +135,17 @@ async function file(url: URL, encoding: Encoding, client: ClientId, deps: Servic
 function send(response: ServerResponse, { status, headers, body, encoding, varies }: Reply): void {
   response.writeHead(status, {
     ...headers,
-    "content-length": String(body.length),
+    "content-length": String(Buffer.isBuffer(body) ? body.length : body.size),
     "x-content-type-options": "nosniff",
     ...(encoding === "identity" ? {} : { "content-encoding": encoding }),
     ...(varies ? { vary: "Accept-Encoding" } : {}),
   })
-  response.end(body)
+  if (Buffer.isBuffer(body)) response.end(body)
+  else pipeline(body.handle.createReadStream({ highWaterMark: STREAM_CHUNK_BYTES }), response).catch(() => undefined)
 }
 
 export function createService(deps: ServiceDeps): Server {
-  return createServer((request, response) => {
+  return createServer({ highWaterMark: STREAM_CHUNK_BYTES }, (request, response) => {
     handle(request, deps).then(
       answer => send(response, answer),
       (error: unknown) => {

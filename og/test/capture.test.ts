@@ -6,7 +6,7 @@ import { loadShareData } from "../../web/src/share/data.ts"
 import { canonicalView } from "../src/canonical.ts"
 import { CAPTURE_SETTINGS } from "../src/capture.ts"
 import type { BrowserSource } from "../src/config.ts"
-import { createDataFiles, type DataFiles } from "../src/dataFiles.ts"
+import { createDataFiles, type ReadDataFile } from "../src/dataFiles.ts"
 import { given } from "../src/fixture.test.ts"
 import { createRenderer, openBrowser, withCapturePage } from "../src/renderer.ts"
 import { loadSite } from "../src/site.ts"
@@ -16,7 +16,7 @@ import { jpegSize } from "./jpeg.ts"
 
 const site = await loadSite(new URL("../../web/dist/", import.meta.url).pathname)
 const data = await loadShareData(snapshotReader(DATA_ROOT, VERSION))
-const files = createDataFiles(DATA_ROOT, 64 * 1024 ** 2)
+const readData = createDataFiles(DATA_ROOT, { keptBytes: 64 * 1024 ** 2, compressions: 2 }).read
 const LOCAL: BrowserSource = { kind: "launch" }
 
 const VIEWS = [
@@ -51,7 +51,7 @@ test("every capture keeps its legend inside the part of the image X shows, clear
   t.after(() => browser.close())
   for (const search of VIEWS) {
     const { image } = canonicalView(new URLSearchParams(search), data)
-    const layout = await withCapturePage(browser, { version: VERSION, query: image }, site, files, AbortSignal.timeout(30_000), page =>
+    const layout = await withCapturePage(browser, { version: VERSION, query: image }, site, readData, AbortSignal.timeout(30_000), page =>
       page.evaluate((): Layout => {
         const boxOf = (element: Element): Box => {
           const { left, top, right, bottom } = element.getBoundingClientRect()
@@ -136,7 +136,7 @@ test("a vote's outcome stands in large type in the hollow of an arc, clear of ev
   t.after(() => browser.close())
   for (const [search, outcome] of OUTCOMES) {
     const { image } = canonicalView(new URLSearchParams(search), data)
-    const caption = await withCapturePage(browser, { version: VERSION, query: image }, site, files, AbortSignal.timeout(30_000), page =>
+    const caption = await withCapturePage(browser, { version: VERSION, query: image }, site, readData, AbortSignal.timeout(30_000), page =>
       page.evaluate((): Caption | null => {
         const boxOf = (element: Element): Box => {
           const { left, top, right, bottom } = element.getBoundingClientRect()
@@ -171,11 +171,9 @@ test("a vote's outcome stands in large type in the hollow of an arc, clear of ev
 test("a capture draws the data version it is pinned to, not the one the data root names, and asks for no other", { timeout: 60_000 }, async t => {
   const pinned = given(dataVersion("f".repeat(40)), "pinned version")
   const asked = new Set<string>()
-  const anyVersion: DataFiles = {
-    get: (version, path, accepted) => {
-      asked.add(version)
-      return files.get(VERSION, path, accepted)
-    },
+  const anyVersion: ReadDataFile = (version, path) => {
+    asked.add(version)
+    return readData(VERSION, path)
   }
   const browser = await openBrowser(LOCAL)
   t.after(() => browser.close())
@@ -192,7 +190,7 @@ test("a Chromium in another container, reached through a Playwright server, draw
       server.once("error", reject)
     })
     const remote: BrowserSource = { kind: "connect", endpoint }
-    const renderer = createRenderer(site, files, remote)
+    const renderer = createRenderer(site, readData, remote)
     try {
       const jpeg = await renderer.render({ version: VERSION, query: canonicalView(new URLSearchParams("deputy=PA720892"), data).image }, AbortSignal.timeout(30_000))
       assert.deepEqual(jpegSize(jpeg), { width: 1200, height: 630 })

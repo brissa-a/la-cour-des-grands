@@ -5,8 +5,8 @@ import { join } from "node:path"
 import { after, test } from "node:test"
 import { snapshotPath, type SnapshotPath } from "../../web/src/data/snapshotPath.ts"
 import { dataVersion } from "../../web/src/data/version.ts"
-import { given, NEW as OTHER, SHA as VERSION } from "./fixture.test.ts"
-import { dataAddress, dataFile, keptVersions, modifiedAt, readPointer, readSnapshotFile, snapshotReader } from "./snapshot.ts"
+import { given, NEW as OTHER, openDescriptorsOn, SHA as VERSION } from "./fixture.test.ts"
+import { dataAddress, dataFile, keptVersions, modifiedAt, openSnapshotFile, readPointer, readSnapshotFile, snapshotReader } from "./snapshot.ts"
 
 const scratch = await mkdtemp(join(tmpdir(), "og-snapshot-"))
 after(() => rm(scratch, { recursive: true, force: true }))
@@ -167,6 +167,19 @@ test("a missing file or version, a folder, or a symbolic link anywhere below the
   assert.equal(await read(ROOT, "secret.txt", OTHER), null)
   assert.equal(await read(ROOT, "catalog.json", ABSENT), null)
   assert.equal(await read(join(scratch, "nowhere"), "catalog.json"), null)
+})
+
+test("a file of a version is opened with its size, and reading it, or opening a folder, a link or a missing file, leaves nothing open", async () => {
+  const opened = given(await openSnapshotFile(ROOT, VERSION, path("votes/votes.csv")), "votes.csv")
+  try {
+    assert.deepEqual([opened.size, (await opened.handle.readFile()).toString()], [20, "vote_id\nVTANR5L17V1\n"])
+  } finally {
+    await opened.handle.close()
+  }
+  for (const name of ["votes", "inside.json", "outside.txt", "missing.csv"]) assert.equal(await openSnapshotFile(ROOT, VERSION, path(name)), null, name)
+  assert.equal(await read(ROOT, "photos"), null)
+  assert.equal(await read(ROOT, "votes/votes.csv"), "vote_id\nVTANR5L17V1\n")
+  assert.deepEqual(await Promise.all([join(ROOT, "v2", VERSION, "votes"), join(ROOT, "v2", VERSION, "photos"), join(ROOT, "v2", VERSION, "votes", "votes.csv")].map(openDescriptorsOn)), [0, 0, 0])
 })
 
 test("a file the service may not read is an error, not a missing file", async () => {

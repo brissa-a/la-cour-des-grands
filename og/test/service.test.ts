@@ -7,7 +7,7 @@ import { chromium } from "playwright-core"
 import { loadShareData } from "../../web/src/share/data.ts"
 import { renderId } from "../src/canonical.ts"
 import { CAPTURE_SETTINGS } from "../src/capture.ts"
-import { createDataFiles, type DataFiles } from "../src/dataFiles.ts"
+import { createDataFiles, type DataFiles, type ReadDataFile } from "../src/dataFiles.ts"
 import { openDiskCache } from "../src/disk.ts"
 import { given, ORIGIN } from "../src/fixture.test.ts"
 import { createImages, type RenderLine } from "../src/images.ts"
@@ -26,11 +26,11 @@ const site = await loadSite(new URL("../../web/dist/", import.meta.url).pathname
 const render = renderId(site.index, CAPTURE_SETTINGS)
 const releases: Releases = { kind: "ready", current: { version: VERSION, data: await loadShareData(snapshotReader(DATA_ROOT, VERSION)) }, previous: null }
 const GENERIC = Buffer.from("generic image")
-const FILES = createDataFiles(DATA_ROOT, 64 * 1024 ** 2)
+const FILES = createDataFiles(DATA_ROOT, { keptBytes: 64 * 1024 ** 2, compressions: 2 })
 
 type Running = { readonly local: string; readonly lines: RenderLine[]; readonly close: () => Promise<void> }
 
-async function startService(captured: DataFiles = FILES, served: DataFiles = FILES): Promise<Running> {
+async function startService(captured: ReadDataFile = FILES.read, served: DataFiles = FILES): Promise<Running> {
   const renderer: Renderer = createRenderer(site, captured, { kind: "launch" })
   const lines: RenderLine[] = []
   const images = createImages({
@@ -107,11 +107,9 @@ test("the real service draws a page's preview with Chromium from the local build
 
 test("a capture page that reports an error, as when the data answers 404, is never kept: the network gets the generic image for a minute", { timeout: 60_000 }, async t => {
   const asked: string[] = []
-  const missing: DataFiles = {
-    get: (version, file) => {
-      asked.push(`${version}/${file.path}`)
-      return Promise.resolve(null)
-    },
+  const missing: ReadDataFile = (version, file) => {
+    asked.push(`${version}/${file.path}`)
+    return Promise.resolve(null)
   }
   const running = await startService(missing)
   t.after(running.close)
@@ -153,7 +151,7 @@ test("an SVG of a data version opened in a browser runs none of its scripts nor 
   await mkdir(join(root, "v2", VERSION, "seats"), { recursive: true })
   const mark = (by: string) => `document.documentElement.setAttribute('data-ran', '${by}')`
   await writeFile(join(root, "v2", VERSION, "seats", "hemicycle.svg"), `<svg xmlns="http://www.w3.org/2000/svg"><script>${mark("script")}</script><image href="missing.webp" onerror="${mark("handler")}"/><rect width="10" height="10" onload="${mark("onload")}"/></svg>`)
-  const running = await startService(FILES, createDataFiles(root, 1024 ** 2))
+  const running = await startService(FILES.read, createDataFiles(root, { keptBytes: 1024 ** 2, compressions: 2 }))
   t.after(running.close)
   const browser = await chromium.launch()
   t.after(() => browser.close())
