@@ -23,7 +23,7 @@ A run holds `<root>/v2/.lock` from start to end, since two runs would share `cac
 
 ## Photos
 
-The `photos` job downloads each deputy's official photo (`output/photos/originals/`, refreshed after 24 hours), then cuts out the ones whose cutout is missing or was made from another photo or model, with [BRIA RMBG 2.0](https://huggingface.co/briaai/RMBG-2.0) on the CPU, deputies in office first. A cutout never stops the data from being published:
+The `photos` job downloads each deputy's official photo (`output/photos/originals/`, refreshed after 24 hours; when the Assemblée nationale cannot serve it, the previous one is kept, and a deputy without one gets no photo), then cuts out the ones whose cutout is missing or was made from another photo or model, with [BRIA RMBG 2.0](https://huggingface.co/briaai/RMBG-2.0) on the CPU, deputies in office first. A cutout never stops the data from being published:
 
 - each cutout runs in a process of its own (`src/photos/cutoutChild.ts`), killed after 10 minutes: when the kernel kills it for memory, the run goes on;
 - a run starts no new cutout after 30 minutes of them; the photos left wait for the next run;

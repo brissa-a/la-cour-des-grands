@@ -25,8 +25,9 @@ export const photos = job({
   name: "photos",
   dependencies: { deputies, briaModel },
   async run({ deputies, briaModel }): Promise<PhotoChoice> {
+    const source = { originals: PHOTO_FILES.originals, fetch: (url: string) => fetch(url), warn: (line: string) => console.warn(line) };
     const downloaded = await inBatches(deputies, PARALLEL_DOWNLOADS, async (deputy): Promise<Candidate[]> => {
-      const original = await officialPhoto(deputy.id);
+      const original = await officialPhoto(deputy.id, source);
       return original === "missing" ? [] : [{ id: deputy.id, inOffice: inOffice(deputy), original }];
     });
     if (options.skipNewCutouts) console.log("  no cutout computed (--skip-new-cutouts)");
