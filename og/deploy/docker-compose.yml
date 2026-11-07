@@ -146,11 +146,41 @@ services:
       start_period: 10s
       retries: 3
 
+  # Builds the data every night into lcdg-data, which lcdg-og serves, and tells Alexis's phone how it went (ntfy, user lcdg_pipeline).
+  # Its own image and network: the Internet for its downloads and ntfy, nothing of Traefik's or of the capture.
+  lcdg-pipeline:
+    <<: *confined
+    image: lcdg-pipeline:${LCDG_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: pipeline/deploy/Dockerfile
+    # On SIGTERM the scheduler waits for the run in progress, about a minute without new cutouts.
+    stop_grace_period: 10m
+    tmpfs:
+      - /tmp:size=64m
+    # A run without new cutouts peaks at 1.6 GB; cutting out photos with bria peaked at 5.5 GB on a Mac and was never measured here.
+    mem_limit: 8g
+    memswap_limit: 8g
+    cpus: 2
+    # A quarter of the default weight: whenever the CPU is short, every other container goes first.
+    cpu_shares: 256
+    pids_limit: 256
+    environment:
+      LCDG_DATA_ROOT: /data
+      NTFY_TOKEN: ${NTFY_TOKEN:?the token of the ntfy user lcdg_pipeline, which og/deploy/deploy.sh reads from ~/.config/ntfy/lcdg_pipeline-token}
+    volumes:
+      - data:/data
+      - pipeline-cache:/app/pipeline/cache
+      - pipeline-output:/app/pipeline/output
+    networks:
+      - pipeline
+
 networks:
   edge:
     external: true
   capture:
     internal: true
+  pipeline:
 
 volumes:
   cache:
@@ -158,3 +188,7 @@ volumes:
   data:
     name: lcdg-data
     external: true
+  # Downloads, the bria model among them, some 3 GB: lost, they are downloaded again.
+  pipeline-cache:
+  # The photos' cutouts and their registry.json: lost, every photo is cut out again, hours of CPU.
+  pipeline-output:
