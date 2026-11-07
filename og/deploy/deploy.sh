@@ -4,6 +4,7 @@
 # (re)starts it, then checks it from outside.
 #   og/deploy/deploy.sh
 #   LCDG_PHOTOS_FROM=<pipeline checkout>/output/photos og/deploy/deploy.sh   first deploy: cutouts made elsewhere, spared to the box
+#   LCDG_CUTOUTS_ON_BOX=1 og/deploy/deploy.sh   first deploy without them: the nightly runs then cut out some 650 photos on the box
 #   LCDG_ALLOW_OLDER_VERSION=1 og/deploy/deploy.sh   deploy a service that serves an older kept version than the one current.json names
 # Roll back to an earlier deploy, with the compose file of the commit its tag names: routes and PUBLIC_ORIGIN are not in the image.
 #   git show <tag>:og/deploy/docker-compose.yml > /tmp/lcdg-<tag>.yml && LCDG_TAG=<tag> docker --context abysshopper compose -f /tmp/lcdg-<tag>.yml up -d --no-build --wait --remove-orphans
@@ -29,9 +30,6 @@ if [[ ! -r $NTFY_TOKEN_FILE ]]; then
   echo "No $NTFY_TOKEN_FILE: create the ntfy user $NTFY_USER and its token with ~/.claude/skills/ntfy-notify/scripts/add-publisher.sh $NTFY_USER" >&2
   exit 1
 fi
-NTFY_TOKEN=$(<"$NTFY_TOKEN_FILE")
-export NTFY_TOKEN
-
 if [[ -n ${LCDG_PHOTOS_FROM:-} && ! -f $LCDG_PHOTOS_FROM/registry.json ]]; then
   echo "LCDG_PHOTOS_FROM=$LCDG_PHOTOS_FROM holds no registry.json: it is not the output/photos folder of a pipeline checkout." >&2
   exit 1
@@ -39,9 +37,25 @@ fi
 
 (cd "$root/web" && npm ci --no-audit --no-fund && npm run build)
 
+# Compose reads the token in this file whatever the command: only its process gets it, never this shell nor npm.
+compose() {
+  NTFY_TOKEN=$(<"$NTFY_TOKEN_FILE") docker --context "$CONTEXT" compose -f "$here/docker-compose.yml" "$@"
+}
+
 docker --context "$CONTEXT" network inspect edge >/dev/null
-compose=(docker --context "$CONTEXT" compose -f "$here/docker-compose.yml")
-"${compose[@]}" build
+compose build
+
+holds_a_version() {
+  docker --context "$CONTEXT" volume inspect "$DATA_VOLUME" >/dev/null 2>&1 \
+    && docker --context "$CONTEXT" run --rm --network none --read-only --volume "$DATA_VOLUME:/data:ro" "lcdg-pipeline:$LCDG_TAG" test -f /data/v2/current.json
+}
+first_deploy=false
+if ! holds_a_version; then first_deploy=true; fi
+if [[ $first_deploy == true && -z ${LCDG_PHOTOS_FROM:-} && -z ${LCDG_CUTOUTS_ON_BOX:-} ]]; then
+  echo "$DATA_VOLUME holds no data version, and LCDG_PHOTOS_FROM names no cutouts: the box's nightly runs would cut out some 650 photos," >&2
+  echo "hours of CPU and up to 8 GB of memory. Give LCDG_PHOTOS_FROM=<pipeline checkout>/output/photos, or LCDG_CUTOUTS_ON_BOX=1 to accept that." >&2
+  exit 1
+fi
 
 if ! docker --context "$CONTEXT" volume inspect "$DATA_VOLUME" >/dev/null 2>&1; then
   docker --context "$CONTEXT" volume create "$DATA_VOLUME" >/dev/null
@@ -51,20 +65,20 @@ fi
 
 # The scheduler refuses to start without a token ntfy accepts or a data root it can write: the same check here stops the deploy,
 # which would otherwise see a scheduler running for the moment its check takes.
-"${compose[@]}" run --rm --no-TTY lcdg-pipeline node src/scheduled/main.ts check
-"${compose[@]}" up --detach --no-build --wait lcdg-pipeline
+compose run --rm --no-TTY lcdg-pipeline node src/scheduled/main.ts check
+compose up --detach --no-build --wait lcdg-pipeline
 
-if ! docker --context "$CONTEXT" run --rm --network none --read-only --volume "$DATA_VOLUME:/data:ro" "lcdg-pipeline:$LCDG_TAG" test -f /data/v2/current.json; then
+if [[ $first_deploy == true ]]; then
   if [[ -n ${LCDG_PHOTOS_FROM:-} ]]; then
-    COPYFILE_DISABLE=1 tar --no-xattrs -C "$LCDG_PHOTOS_FROM" -cf - . | "${compose[@]}" run --rm --no-TTY lcdg-pipeline tar -C output/photos -xf -
+    COPYFILE_DISABLE=1 tar --no-xattrs -C "$LCDG_PHOTOS_FROM" -cf - . | compose run --rm --no-TTY lcdg-pipeline tar -C output/photos -xf -
   fi
   # The cutouts still missing are left to the nightly run: this one stays within minutes.
-  "${compose[@]}" run --rm --no-TTY lcdg-pipeline node src/scheduled/main.ts run --skip-new-cutouts
+  compose run --rm --no-TTY lcdg-pipeline node src/scheduled/main.ts run --skip-new-cutouts
 fi
 
 docker --context "$CONTEXT" run --rm --network none --read-only --volume "$DATA_VOLUME:/data:ro" "lcdg-og:$LCDG_TAG" node og/src/checkData.ts ${LCDG_ALLOW_OLDER_VERSION:+--allow-older-version}
-"${compose[@]}" up --detach --no-build --wait --wait-timeout 300
-"${compose[@]}" ps
+compose up --detach --no-build --wait --wait-timeout 300
+compose ps
 
 # A first deploy waits for its Let's Encrypt certificate, and every start for the data version to load.
 for _ in $(seq 60); do
