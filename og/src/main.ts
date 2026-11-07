@@ -27,6 +27,10 @@ const POINTER_POLL_MS = 30_000
 const REQUEST_WAIT_MS = 8_000
 const QUEUE = { concurrency: 2, capacity: 12, perClient: 2, timeoutMs: 12_000 } as const
 const FALLBACK_RETRY_MS = 60_000
+// Traefik opens a connection to the service for each request in flight, thousands at once for a class loading the photos: past Node's
+// default of 511 waiting to be accepted, each connection dropped waits a second or more for its handshake again. Capped by
+// net.core.somaxconn, raised to match in docker-compose.yml.
+const LISTEN_BACKLOG = 16384
 
 function log(event: string, fields: Readonly<Record<string, unknown>> = {}): void {
   console.log(JSON.stringify({ at: new Date().toISOString(), event, ...fields }))
@@ -83,7 +87,7 @@ const server = createService({
   logError: error => log("error", { reason: error instanceof Error ? (error.stack ?? error.message) : reasonOf(error) }),
 })
 
-server.listen(config.port, () => log("listening", { port: config.port, origin: config.origin, render, browser: config.browser.kind, dataRoot: config.dataRoot }))
+server.listen({ port: config.port, backlog: LISTEN_BACKLOG }, () => log("listening", { port: config.port, origin: config.origin, render, browser: config.browser.kind, dataRoot: config.dataRoot }))
 
 process.once("SIGTERM", () => {
   watch.stop()

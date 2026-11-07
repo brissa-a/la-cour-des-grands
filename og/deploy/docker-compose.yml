@@ -30,6 +30,11 @@ services:
     memswap_limit: 384m
     cpus: 1
     pids_limit: 64
+    sysctls:
+      # The kernel's send buffer of a download nobody reads, counted in mem_limit, grows to 64 KB instead of 4 MB: Traefik is next door.
+      net.ipv4.tcp_wmem: 4096 16384 65536
+      # Connections Traefik opens faster than the service accepts them wait in the kernel instead of being dropped (src/main.ts).
+      net.core.somaxconn: 16384
     environment:
       PUBLIC_ORIGIN: https://cour-des-grands.fr
       PORT: "8080"
@@ -67,7 +72,9 @@ services:
       - traefik.http.middlewares.lcdg-ratelimit.ratelimit.burst=300
       # The service compresses its own text; this only catches text it would send plain, never the JPEGs.
       - traefik.http.middlewares.lcdg-compress.compress.includedcontenttypes=text/html,text/css,text/javascript,application/json,image/svg+xml,text/plain
-      # The data, immutable but for current.json: a page showing the photos asks for some 600 files at once, per client IP.
+      # The data, immutable but for current.json, per client IP. A page showing the photos asks for some 600 files at once: a class of
+      # 30 behind one address, all at once, some 18,000. The service holds 256 answers in progress per address and 1024 waiting;
+      # this bounds what one address can throw at it in one go, then to 100 a second. A bucket left alone for 2 s starts full again.
       - traefik.http.routers.lcdg-data.rule=Host(`cour-des-grands.fr`) && PathPrefix(`/data/`)
       - traefik.http.routers.lcdg-data.entrypoints=websecure
       - traefik.http.routers.lcdg-data.tls.certresolver=ledns
@@ -75,9 +82,9 @@ services:
       - traefik.http.routers.lcdg-data.tls.domains[0].sans=www.cour-des-grands.fr
       - traefik.http.routers.lcdg-data.service=lcdg
       - traefik.http.routers.lcdg-data.middlewares=lcdg-data-ratelimit
-      - traefik.http.middlewares.lcdg-data-ratelimit.ratelimit.average=3000
+      - traefik.http.middlewares.lcdg-data-ratelimit.ratelimit.average=6000
       - traefik.http.middlewares.lcdg-data-ratelimit.ratelimit.period=1m
-      - traefik.http.middlewares.lcdg-data-ratelimit.ratelimit.burst=1500
+      - traefik.http.middlewares.lcdg-data-ratelimit.ratelimit.burst=20000
       # Images asked by anything but a link preview robot: below the render rate, per client IP.
       - traefik.http.routers.lcdg-og.rule=Host(`cour-des-grands.fr`) && PathPrefix(`/og/`)
       - traefik.http.routers.lcdg-og.entrypoints=websecure
