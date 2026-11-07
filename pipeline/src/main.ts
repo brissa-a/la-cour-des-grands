@@ -1,0 +1,44 @@
+import { catalog } from "./core/catalog.ts";
+import { OUTPUT_DIR } from "./core/csv.ts";
+import type { Job } from "./core/job.ts";
+import { PUBLISHED_BRANCH, publishPhotosThenData } from "./core/publish.ts";
+import { communeConstituencyTable, constituencyContours, electoralRollFiles } from "./jobs/address/published.ts";
+import { communes } from "./jobs/communes.ts";
+import { hemicycle } from "./jobs/hemicycle.ts";
+import { init } from "./jobs/init.ts";
+import { links } from "./jobs/links.ts";
+import { PHOTOS_OUTPUT_DIR, PHOTOS_REPOSITORY, photos } from "./jobs/photos.ts";
+import { majorVotes, votesByBill, votesCatalog } from "./jobs/votes.ts";
+import { options } from "./options.ts";
+
+const DATA_REPOSITORY = "brissa-a/lcdg-data";
+
+const files = [
+  init,
+  hemicycle,
+  communes,
+  links,
+  votesCatalog,
+  majorVotes,
+  votesByBill,
+  communeConstituencyTable,
+  constituencyContours,
+  electoralRollFiles,
+];
+const all = catalog(files);
+
+const publications = options.pushToRemote
+  ? publishPhotosThenData(
+      { repository: PHOTOS_REPOSITORY, from: PHOTOS_OUTPUT_DIR, after: { photos } },
+      { repository: DATA_REPOSITORY, from: OUTPUT_DIR, after: { all } },
+    )
+  : [];
+
+const jobs: Job<unknown>[] = [photos, ...files, all, ...publications];
+const target = options.job === undefined ? null : jobs.find((j) => j.name === options.job);
+if (target === undefined) {
+  console.error(`Unknown job: ${options.job}. Available jobs: ${jobs.map((j) => j.name).join(", ")}`);
+  process.exit(1);
+}
+await Promise.all(target === null ? [all, ...publications].map((j) => j.result()) : [target.result()]);
+if (!options.pushToRemote) console.log(`Local run only: nothing was pushed (use --push-to-remote to publish to ${PUBLISHED_BRANCH}).`);
