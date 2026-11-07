@@ -1,6 +1,6 @@
 import { constants } from "node:fs"
 import { open, readdir, realpath, stat } from "node:fs/promises"
-import { join } from "node:path"
+import { extname, join } from "node:path"
 import { isRecord } from "../../web/src/data/json.ts"
 import { snapshotPath, type SnapshotPath } from "../../web/src/data/snapshotPath.ts"
 import { DATA_FORMAT, DATA_PATH, type ReadText } from "../../web/src/data/source.ts"
@@ -9,13 +9,35 @@ import { loadShareData } from "../../web/src/share/data.ts"
 import { reasonOf } from "./reason.ts"
 import type { ReleaseSource } from "./releases.ts"
 
-export type DataAddress = { readonly kind: "pointer" } | { readonly kind: "file"; readonly version: DataVersion; readonly path: SnapshotPath }
+// The only types a data version holds: a snapshot file of any other type is never served, so nothing in it can be taken for a page or a script.
+const DATA_TYPES = {
+  ".csv": { type: "text/csv; charset=utf-8", compress: true },
+  ".geojson": { type: "application/geo+json", compress: true },
+  ".json": { type: "application/json", compress: true },
+  ".svg": { type: "image/svg+xml", compress: true },
+  ".webp": { type: "image/webp", compress: false },
+} as const
+
+export type DataType = (typeof DATA_TYPES)[keyof typeof DATA_TYPES]
+
+const DATA_TYPE_BY_EXTENSION: ReadonlyMap<string, DataType> = new Map(Object.entries(DATA_TYPES))
+
+export type DataFile = { readonly path: SnapshotPath; readonly type: DataType }
+
+export type DataAddress = { readonly kind: "pointer" } | { readonly kind: "file"; readonly version: DataVersion; readonly file: DataFile }
 
 export type Pointed = { readonly version: DataVersion; readonly pointer: string }
 
 export type PointerCheck = ({ readonly kind: "found" } & Pointed) | { readonly kind: "failed"; readonly reason: string }
 
 const MISSING: ReadonlySet<unknown> = new Set(["ENOENT", "ENOTDIR", "ELOOP"])
+
+export function dataFile(text: string): DataFile | null {
+  const path = snapshotPath(text)
+  if (path === null) return null
+  const type = DATA_TYPE_BY_EXTENSION.get(extname(path))
+  return type === undefined ? null : { path, type }
+}
 
 export function dataAddress(pathname: string): DataAddress | null {
   if (!pathname.startsWith(DATA_PATH)) return null
@@ -24,8 +46,8 @@ export function dataAddress(pathname: string): DataAddress | null {
   const slash = inData.indexOf("/")
   if (slash === -1) return null
   const version = dataVersion(inData.slice(0, slash))
-  const path = snapshotPath(inData.slice(slash + 1))
-  return version && path && { kind: "file", version, path }
+  const file = dataFile(inData.slice(slash + 1))
+  return version && file && { kind: "file", version, file }
 }
 
 async function readRegularFile(file: string): Promise<Buffer | null> {

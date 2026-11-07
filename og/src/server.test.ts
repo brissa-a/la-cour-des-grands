@@ -40,6 +40,10 @@ await writeFile(join(DATA_ROOT, "v2", "current.json"), POINTER)
 await writeFile(join(SNAPSHOT, "votes", "votes.csv"), VOTES)
 await writeFile(join(SNAPSHOT, "photos", "PA720892.webp"), "WEBP")
 await writeFile(join(SNAPSHOT, ".hidden.csv"), "hidden")
+const SVG = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(document.domain)</script></svg>'
+await mkdir(join(SNAPSHOT, "seats"))
+await writeFile(join(SNAPSHOT, "seats", "hemicycle.svg"), SVG)
+for (const name of ["index.html", "seats/draw.js", "notes.txt", "README"]) await writeFile(join(SNAPSHOT, name), "<script>alert(document.domain)</script>")
 await writeFile(join(DATA_ROOT, "v2", ".store", "0".repeat(64)), "stored")
 await writeFile(join(DATA_ROOT, "v2", ".runs", "last.json"), "{}")
 await symlink(join(scratch, "secret.txt"), join(SNAPSHOT, "secret.csv"))
@@ -429,6 +433,30 @@ test("a version's data files are cached for good, open to every origin, the CSV 
   )
   const head = await raw(drawing.port, `/data/v2/${CURRENT}/votes/votes.csv`, "HEAD")
   assert.deepEqual([head.status, head.headers["content-length"], head.body.length], [200, String(VOTES.length), 0])
+})
+
+test("every answer under /data/v2/ is open to every origin but, opened as a page, runs no script, loads nothing, gets an origin of its own and keeps its declared type", async () => {
+  const starting = await startService({ releases: () => ({ kind: "starting" }), pointer: null })
+  const answers = [
+    await raw(drawing.port, `/data/v2/${CURRENT}/seats/hemicycle.svg`),
+    await raw(drawing.port, `/data/v2/${CURRENT}/votes/votes.csv`, "GET", { "accept-encoding": "br" }),
+    await raw(drawing.port, `/data/v2/${CURRENT}/photos/PA720892.webp`),
+    await raw(drawing.port, "/data/v2/current.json"),
+    await raw(drawing.port, `/data/v2/${CURRENT}/missing.svg`),
+    await raw(starting.port, "/data/v2/current.json"),
+  ]
+  assert.deepEqual(
+    answers.map(({ status, headers }) => [status, headers["access-control-allow-origin"], headers["content-security-policy"], headers["x-content-type-options"]]),
+    [200, 200, 200, 200, 404, 503].map(status => [status, "*", "default-src 'none'; style-src 'unsafe-inline'; sandbox", "nosniff"]),
+  )
+  assert.deepEqual([answers[0]?.headers["content-type"], answers[0]?.body.toString()], ["image/svg+xml", SVG])
+})
+
+test("a file of a type the data does not use is never served, even when the version holds it", async () => {
+  for (const name of ["index.html", "seats/draw.js", "notes.txt", "README"]) {
+    const answer = await raw(drawing.port, `/data/v2/${CURRENT}/${name}`)
+    assert.deepEqual([answer.status, answer.headers["content-type"], answer.body.toString()], [404, "text/plain; charset=utf-8", "Fichier introuvable\n"], name)
+  }
 })
 
 test("no path under /data/v2/ leaves the version's folder: climbs, encoded climbs, hidden files, the store, the runs, links and other names answer 404", async () => {

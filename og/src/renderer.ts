@@ -85,7 +85,7 @@ async function answer(route: Route, version: DataVersion, site: StaticSite, data
     case "pointer":
       return route.fulfill({ status: 200, headers: { "content-type": "application/json" }, body: capturePointer(version) })
     case "data": {
-      const file = await data.get(version, target.path, "identity").catch(() => null)
+      const file = await data.get(version, target.file, "identity").catch(() => null)
       return file === null ? route.fulfill({ status: 404 }) : route.fulfill({ status: 200, headers: { "content-type": file.type }, body: file.body })
     }
     case "blocked":

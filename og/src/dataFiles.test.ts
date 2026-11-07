@@ -4,9 +4,9 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { brotliDecompressSync, gunzipSync } from "node:zlib"
-import { snapshotPath, type SnapshotPath } from "../../web/src/data/snapshotPath.ts"
 import { createDataFiles } from "./dataFiles.ts"
 import { given, SHA as VERSION } from "./fixture.test.ts"
+import { dataFile, type DataFile } from "./snapshot.ts"
 
 const scratch = await mkdtemp(join(tmpdir(), "og-data-files-"))
 after(() => rm(scratch, { recursive: true, force: true }))
@@ -27,7 +27,7 @@ async function snapshot(name: string): Promise<string> {
   return root
 }
 
-const path = (text: string): SnapshotPath => given(snapshotPath(text), text)
+const path = (text: string): DataFile => given(dataFile(text), text)
 
 test("each data file goes out with its type, text compressed in the encoding the client accepts and decoding to its bytes, photos as they are", async () => {
   const files = createDataFiles(await snapshot("types"), 1_000_000)

@@ -1,14 +1,13 @@
-import type { SnapshotPath } from "../../web/src/data/snapshotPath.ts"
 import { DATA_PATH } from "../../web/src/data/source.ts"
 import type { DataVersion } from "../../web/src/data/version.ts"
 import { chromeParams } from "../../web/src/embed/chrome.ts"
 import type { ImageQuery } from "./canonical.ts"
-import { dataAddress } from "./snapshot.ts"
+import { dataAddress, type DataFile } from "./snapshot.ts"
 
 export type CaptureRoute =
   | { readonly kind: "site"; readonly path: string }
   | { readonly kind: "pointer" }
-  | { readonly kind: "data"; readonly path: SnapshotPath }
+  | { readonly kind: "data"; readonly file: DataFile }
   | { readonly kind: "blocked" }
 
 export const CAPTURE_ORIGIN = "https://capture.invalid"
@@ -35,5 +34,5 @@ export function captureRoute(address: string, version: DataVersion): CaptureRout
   const data = dataAddress(url.pathname)
   if (data === null) return BLOCKED
   if (data.kind === "pointer") return { kind: "pointer" }
-  return data.version === version ? { kind: "data", path: data.path } : BLOCKED
+  return data.version === version ? { kind: "data", file: data.file } : BLOCKED
 }

@@ -14,8 +14,9 @@ test("the capture browser reaches its own origin: the front's files, the data po
   assert.deepEqual(captureRoute("https://capture.invalid/?vote=VTANR5L17V1&clean=capture", VERSION), { kind: "site", path: "/" })
   assert.deepEqual(captureRoute("https://capture.invalid/assets/index-Dha1ylb_.js", VERSION), { kind: "site", path: "/assets/index-Dha1ylb_.js" })
   assert.deepEqual(captureRoute("https://capture.invalid/data/v2/current.json", VERSION), { kind: "pointer" })
-  assert.deepEqual(captureRoute(`https://capture.invalid/data/v2/${VERSION}/votes/votes.csv`, VERSION), { kind: "data", path: "votes/votes.csv" })
-  assert.deepEqual(captureRoute(`https://capture.invalid/data/v2/${OTHER}/deputies/init.csv`, OTHER), { kind: "data", path: "deputies/init.csv" })
+  const csv = { type: "text/csv; charset=utf-8", compress: true }
+  assert.deepEqual(captureRoute(`https://capture.invalid/data/v2/${VERSION}/votes/votes.csv`, VERSION), { kind: "data", file: { path: "votes/votes.csv", type: csv } })
+  assert.deepEqual(captureRoute(`https://capture.invalid/data/v2/${OTHER}/deputies/init.csv`, OTHER), { kind: "data", file: { path: "deputies/init.csv", type: csv } })
 })
 
 test("the pointer the capture page reads names the version being drawn, not the current one", () => {
@@ -30,6 +31,8 @@ test("every other address is blocked: another data version, a path out of the ve
     `https://capture.invalid/data/v2/${VERSION}/%2e%2e/${OTHER}/catalog.json`,
     `https://capture.invalid/data/v2/${VERSION}/..%2f${OTHER}/catalog.json`,
     `https://capture.invalid/data/v2/${VERSION}/.hidden`,
+    `https://capture.invalid/data/v2/${VERSION}/index.html`,
+    `https://capture.invalid/data/v2/${VERSION}/seats/draw.js`,
     `https://capture.invalid/data/v2/${VERSION}/`,
     `https://capture.invalid/data/v2/${VERSION}`,
     "https://capture.invalid/data/v2/.store/0123456789abcdef",

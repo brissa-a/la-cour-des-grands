@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdtemp, rm } from "node:fs/promises"
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { after, test } from "node:test"
@@ -30,7 +30,7 @@ const FILES = createDataFiles(DATA_ROOT, 64 * 1024 ** 2)
 
 type Running = { readonly local: string; readonly lines: RenderLine[]; readonly close: () => Promise<void> }
 
-async function startService(captured: DataFiles = FILES): Promise<Running> {
+async function startService(captured: DataFiles = FILES, served: DataFiles = FILES): Promise<Running> {
   const renderer: Renderer = createRenderer(site, captured, { kind: "launch" })
   const lines: RenderLine[] = []
   const images = createImages({
@@ -48,7 +48,7 @@ async function startService(captured: DataFiles = FILES): Promise<Running> {
     page: { template: parseTemplate(site.index), origin: ORIGIN, render },
     releases: () => releases,
     pointer: () => POINTER,
-    data: FILES,
+    data: served,
     images,
     fallback: () => GENERIC,
     health: () => ({ status: "ok" }),
@@ -108,8 +108,8 @@ test("the real service draws a page's preview with Chromium from the local build
 test("a capture page that reports an error, as when the data answers 404, is never kept: the network gets the generic image for a minute", { timeout: 60_000 }, async t => {
   const asked: string[] = []
   const missing: DataFiles = {
-    get: (version, path) => {
-      asked.push(`${version}/${path}`)
+    get: (version, file) => {
+      asked.push(`${version}/${file.path}`)
       return Promise.resolve(null)
     },
   }
@@ -146,4 +146,20 @@ test("a browser on the site reads the current version from the pointer, then eve
   assert.ok(data.length > 5 && data.slice(1).every(path => path.startsWith(root)), data.join(", "))
   assert.deepEqual(photos, [[`${root}photos/PA720892.webp`, 200, "image/webp"]])
   assert.equal(await page.locator('.seat image[href$="/PA720892.webp"]').getAttribute("href"), `${root}photos/PA720892.webp`)
+})
+
+test("an SVG of a data version opened in a browser runs none of its scripts nor event handlers", { timeout: 60_000 }, async t => {
+  const root = await mkdtemp(join(scratch, "hostile-"))
+  await mkdir(join(root, "v2", VERSION, "seats"), { recursive: true })
+  const mark = (by: string) => `document.documentElement.setAttribute('data-ran', '${by}')`
+  await writeFile(join(root, "v2", VERSION, "seats", "hemicycle.svg"), `<svg xmlns="http://www.w3.org/2000/svg"><script>${mark("script")}</script><image href="missing.webp" onerror="${mark("handler")}"/><rect width="10" height="10" onload="${mark("onload")}"/></svg>`)
+  const running = await startService(FILES, createDataFiles(root, 1024 ** 2))
+  t.after(running.close)
+  const browser = await chromium.launch()
+  t.after(() => browser.close())
+  const page = await browser.newPage()
+  const response = await page.goto(`${running.local}/data/v2/${VERSION}/seats/hemicycle.svg`)
+  assert.equal(response?.headers()["content-type"], "image/svg+xml")
+  await page.waitForTimeout(500)
+  assert.equal(await page.locator(":root").getAttribute("data-ran"), null)
 })

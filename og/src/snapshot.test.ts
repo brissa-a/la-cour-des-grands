@@ -6,7 +6,7 @@ import { after, test } from "node:test"
 import { snapshotPath, type SnapshotPath } from "../../web/src/data/snapshotPath.ts"
 import { dataVersion } from "../../web/src/data/version.ts"
 import { given, NEW as OTHER, SHA as VERSION } from "./fixture.test.ts"
-import { dataAddress, keptVersions, modifiedAt, readPointer, readSnapshotFile, snapshotReader } from "./snapshot.ts"
+import { dataAddress, dataFile, keptVersions, modifiedAt, readPointer, readSnapshotFile, snapshotReader } from "./snapshot.ts"
 
 const scratch = await mkdtemp(join(tmpdir(), "og-snapshot-"))
 after(() => rm(scratch, { recursive: true, force: true }))
@@ -49,8 +49,8 @@ const read = async (root: string, text: string, version = VERSION) => (await rea
 
 test("an address under /data/v2/ names the pointer, or a file of a version by its path, and nothing else", () => {
   assert.deepEqual(dataAddress("/data/v2/current.json"), { kind: "pointer" })
-  assert.deepEqual(dataAddress(`/data/v2/${VERSION}/catalog.json`), { kind: "file", version: VERSION, path: "catalog.json" })
-  assert.deepEqual(dataAddress(`/data/v2/${VERSION}/deputies/votes/other.csv`), { kind: "file", version: VERSION, path: "deputies/votes/other.csv" })
+  assert.deepEqual(dataAddress(`/data/v2/${VERSION}/catalog.json`), { kind: "file", version: VERSION, file: { path: "catalog.json", type: { type: "application/json", compress: true } } })
+  assert.deepEqual(dataAddress(`/data/v2/${VERSION}/deputies/votes/other.csv`), { kind: "file", version: VERSION, file: { path: "deputies/votes/other.csv", type: { type: "text/csv; charset=utf-8", compress: true } } })
   for (const pathname of [
     "/data/v2/",
     "/data/v2/current.json/",
@@ -78,6 +78,21 @@ test("an address under /data/v2/ names the pointer, or a file of a version by it
     `/data/v2/${VERSION}/catalog.json%00`,
   ])
     assert.equal(dataAddress(pathname), null, pathname)
+})
+
+test("a data file is one of the types a data version holds, each with its own content type, compressed but for the photos; any other name is none", () => {
+  assert.deepEqual(
+    ["catalog.json", "deputies/init.csv", "communes/constituency-contours.geojson", "seats/hemicycle.svg", "photos/PA720892.webp"].map(name => given(dataFile(name), name).type),
+    [
+      { type: "application/json", compress: true },
+      { type: "text/csv; charset=utf-8", compress: true },
+      { type: "application/geo+json", compress: true },
+      { type: "image/svg+xml", compress: true },
+      { type: "image/webp", compress: false },
+    ],
+  )
+  for (const name of ["index.html", "seats/draw.js", "seats/draw.mjs", "notes.txt", "photos/PA1.jpg", "photos/PA1.png", "README", "catalog.JSON", "photos/PA1.WEBP", "catalog.json.gz", "seats/hemicycle.svgz", "toString", ".csv", "../catalog.json"])
+    assert.equal(dataFile(name), null, name)
 })
 
 test("the pointer is read from v2/current.json, kept as written, with the version it names", async () => {
