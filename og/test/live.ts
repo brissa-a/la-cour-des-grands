@@ -56,18 +56,19 @@ async function jpeg(url: string, cacheControl: string): Promise<{ readonly bytes
   return { bytes: body.length, ms: Math.round(performance.now() - started) }
 }
 
-async function health(): Promise<{ readonly data: unknown; readonly version: string; readonly render: string }> {
+async function health(): Promise<{ readonly data: unknown; readonly version: string; readonly pointed: unknown; readonly render: string }> {
   const response = await fetch(`${ORIGIN}/healthz`)
   assert.equal(response.status, 200)
   const body: unknown = await response.json()
-  assert.ok(typeof body === "object" && body !== null && "data" in body && "version" in body && typeof body.version === "string" && "render" in body && typeof body.render === "string", "the health check's JSON")
-  return { data: body.data, version: body.version, render: body.render }
+  assert.ok(typeof body === "object" && body !== null && "data" in body && "version" in body && typeof body.version === "string" && "pointed" in body && "render" in body && typeof body.render === "string", "the health check's JSON")
+  return { data: body.data, version: body.version, pointed: body.pointed, render: body.render }
 }
 
-test("the service has loaded a data version, and names its render", async () => {
-  const { data, version, render } = await health()
+test("the service has loaded the data version current.json names, and names its render", async () => {
+  const { data, version, pointed, render } = await health()
   assert.equal(data, "ready")
   assert.match(version, /^[0-9a-f]{40}$/)
+  assert.equal(pointed, version, "a version current.json names but the service could not load: it serves an older one kept in the data root")
   assert.match(render, /^[0-9a-f]{12}$/)
 })
 

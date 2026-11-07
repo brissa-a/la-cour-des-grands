@@ -1,15 +1,19 @@
 import { constants } from "node:fs"
-import { open, realpath } from "node:fs/promises"
+import { open, readdir, realpath, stat } from "node:fs/promises"
 import { join } from "node:path"
 import { isRecord } from "../../web/src/data/json.ts"
 import { snapshotPath, type SnapshotPath } from "../../web/src/data/snapshotPath.ts"
 import { DATA_FORMAT, DATA_PATH, type ReadText } from "../../web/src/data/source.ts"
 import { dataVersion, POINTER_FILE, pointedVersion, type DataVersion } from "../../web/src/data/version.ts"
+import { loadShareData } from "../../web/src/share/data.ts"
 import { reasonOf } from "./reason.ts"
+import type { ReleaseSource } from "./releases.ts"
 
 export type DataAddress = { readonly kind: "pointer" } | { readonly kind: "file"; readonly version: DataVersion; readonly path: SnapshotPath }
 
-export type PointerCheck = { readonly kind: "found"; readonly version: DataVersion; readonly pointer: string } | { readonly kind: "failed"; readonly reason: string }
+export type Pointed = { readonly version: DataVersion; readonly pointer: string }
+
+export type PointerCheck = ({ readonly kind: "found" } & Pointed) | { readonly kind: "failed"; readonly reason: string }
 
 const MISSING: ReadonlySet<unknown> = new Set(["ENOENT", "ENOTDIR", "ELOOP"])
 
@@ -51,6 +55,22 @@ export async function readPointer(root: string): Promise<PointerCheck> {
   return { kind: "found", version, pointer }
 }
 
+// The pipeline dates a version's folder with its publication, and prunes the oldest first.
+export async function keptVersions(root: string): Promise<readonly Pointed[]> {
+  const folder = join(root, DATA_FORMAT)
+  const entries = await readdir(folder, { withFileTypes: true }).catch((error: unknown) => {
+    if (missing(error)) return []
+    throw error
+  })
+  const dated = await Promise.all(
+    entries.flatMap(entry => {
+      const version = entry.isDirectory() ? dataVersion(entry.name) : null
+      return version === null ? [] : [stat(join(folder, entry.name)).then(stats => ({ version, publishedAt: stats.mtime }))]
+    }),
+  )
+  return dated.toSorted((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).map(({ version, publishedAt }) => ({ version, pointer: `${JSON.stringify({ version, publishedAt: publishedAt.toISOString() })}\n` }))
+}
+
 // A snapshot holds regular files and folders only: a link anywhere below the root, even one that stays inside, is not followed.
 export async function readSnapshotFile(root: string, version: DataVersion, path: SnapshotPath): Promise<Buffer | null> {
   try {
@@ -69,5 +89,13 @@ export function snapshotReader(root: string, version: DataVersion): ReadText {
     const content = checked === null ? null : await readSnapshotFile(root, version, checked)
     if (content === null) throw new Error(`${path}: not in the data version ${version}`)
     return content.toString("utf8")
+  }
+}
+
+export function dataRootSource(root: string): ReleaseSource {
+  return {
+    check: () => readPointer(root),
+    kept: () => keptVersions(root),
+    load: version => loadShareData(snapshotReader(root, version)),
   }
 }

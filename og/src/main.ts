@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
-import { loadShareData } from "../../web/src/share/data.ts"
 import { canonicalView, renderId } from "./canonical.ts"
 import { CAPTURE_SETTINGS } from "./capture.ts"
 import { readConfig } from "./config.ts"
@@ -14,7 +13,7 @@ import { retained, watchReleases, type Releases } from "./releases.ts"
 import { createRenderer } from "./renderer.ts"
 import { createService } from "./server.ts"
 import { loadSite } from "./site.ts"
-import { readPointer, snapshotReader } from "./snapshot.ts"
+import { dataRootSource } from "./snapshot.ts"
 import { parseTemplate } from "./tags.ts"
 
 const CACHE_MAX_BYTES = 2 * 1024 ** 3
@@ -55,8 +54,7 @@ const fallback = createFallback({
 })
 
 const watch = watchReleases({
-  check: () => readPointer(config.dataRoot),
-  load: version => loadShareData(snapshotReader(config.dataRoot, version)),
+  ...dataRootSource(config.dataRoot),
   onRelease: async ready => {
     const version = ready.current.version
     await cache.keep(retained(ready).map(release => release.version)).catch((error: unknown) => log("cache-keep-failed", { version, reason: reasonOf(error) }))
@@ -75,7 +73,7 @@ const server = createService({
   data,
   images,
   fallback: fallback.image,
-  health: () => ({ status: "ok", data: watch.state().kind, version: currentVersion(), render, renders: { running: queue.running(), waiting: queue.waiting(), clients: queue.clients(), ...images.health() }, cacheBytes: cache.bytes() }),
+  health: () => ({ status: "ok", data: watch.state().kind, version: currentVersion(), pointed: watch.pointed(), render, renders: { running: queue.running(), waiting: queue.waiting(), clients: queue.clients(), ...images.health() }, cacheBytes: cache.bytes() }),
   logError: error => log("error", { reason: error instanceof Error ? (error.stack ?? error.message) : reasonOf(error) }),
 })
 

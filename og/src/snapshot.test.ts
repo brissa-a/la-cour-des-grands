@@ -1,12 +1,12 @@
 import assert from "node:assert/strict"
-import { chmod, link, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises"
+import { chmod, link, mkdir, mkdtemp, rm, symlink, utimes, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { snapshotPath, type SnapshotPath } from "../../web/src/data/snapshotPath.ts"
 import { dataVersion } from "../../web/src/data/version.ts"
 import { given, NEW as OTHER, SHA as VERSION } from "./fixture.test.ts"
-import { dataAddress, readPointer, readSnapshotFile, snapshotReader } from "./snapshot.ts"
+import { dataAddress, keptVersions, readPointer, readSnapshotFile, snapshotReader } from "./snapshot.ts"
 
 const scratch = await mkdtemp(join(tmpdir(), "og-snapshot-"))
 after(() => rm(scratch, { recursive: true, force: true }))
@@ -96,6 +96,34 @@ test("a pointer that is absent, not a file, a link, or that names no valid versi
   assert.ok(link.kind === "failed" && link.reason.startsWith("ELOOP"), JSON.stringify(link))
   assert.deepEqual(await readPointer(await dataRoot("garbled", '{"version":')), { kind: "failed", reason: 'current.json names no version: "{\\"version\\":"' })
   assert.deepEqual(await readPointer(await dataRoot("long", "x".repeat(80))), { kind: "failed", reason: `current.json names no version: "${"x".repeat(60)}"` })
+})
+
+test("the kept versions are the folders of v2/ named by a version, newest first by their date, each with a pointer naming it and published at that date", async () => {
+  const root = await dataRoot("kept")
+  const v2 = join(root, "v2")
+  const NEWEST = given(dataVersion("4".repeat(40)), "newest version")
+  for (const version of [ABSENT, NEWEST]) await mkdir(join(v2, version))
+  await mkdir(join(v2, "A".repeat(40)))
+  await mkdir(join(v2, ".rejected", NEWEST), { recursive: true })
+  await writeFile(join(v2, "5".repeat(40)), "")
+  const dated = [
+    [ABSENT, "2026-11-01T04:00:00.000Z"],
+    [VERSION, "2026-11-05T04:00:00.000Z"],
+    [NEWEST, "2026-11-07T04:00:00.123Z"],
+  ] as const
+  for (const [version, at] of dated) await utimes(join(v2, version), new Date(at), new Date(at))
+  assert.deepEqual(
+    await keptVersions(root),
+    dated.toReversed().map(([version, publishedAt]) => ({ version, pointer: `{"version":"${version}","publishedAt":"${publishedAt}"}\n` })),
+  )
+})
+
+test("a data root without v2/ keeps no version, and one whose v2/ the service may not list is an error", async () => {
+  assert.deepEqual(await keptVersions(join(scratch, "nowhere")), [])
+  const locked = await dataRoot("unlisted")
+  await chmod(join(locked, "v2"), 0o000)
+  await assert.rejects(keptVersions(locked), /EACCES/)
+  await chmod(join(locked, "v2"), 0o755)
 })
 
 test("a file of a version is read by its path, a photo linked to the store included", async () => {
