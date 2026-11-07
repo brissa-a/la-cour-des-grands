@@ -79,6 +79,7 @@ test("a body past ntfy's message size is cut to it on a character boundary, with
   assert.equal(clipped("x".repeat(MAX_BODY_BYTES)), "x".repeat(MAX_BODY_BYTES));
   assert.equal(clipped("abcdefghij", 10), "abcdefghij");
   assert.equal(clipped("abcdefghijk", 10), "abcd\n[…]");
+  assert.equal(clipped("\uFFFDabcdefgh", 10), "\uFFFDa\n[…]");
 });
 
 function answering(...outcomes: (number | Error)[]): { readonly fetcher: Fetch; readonly calls: () => number } {

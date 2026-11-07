@@ -42,7 +42,11 @@
     "src/scheduled/host.ts",
     "src/scheduled/report.ts",
     "src/scheduled/supervise.ts",
-    "src/scheduled/alertedRun.ts"
+    "src/scheduled/alertedRun.ts",
+    "src/photos/child.ts",
+    "src/photos/cutouts.ts",
+    "src/photos/registry.ts",
+    "src/scheduled/commands.ts"
   ],
   "ignorePatterns": [
     "tsconfig.json",
