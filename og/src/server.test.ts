@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
+import { once } from "node:events"
 import { copyFile, mkdir, mkdtemp, rm, symlink, truncate, writeFile } from "node:fs/promises"
-import { request, type IncomingHttpHeaders } from "node:http"
-import type { Socket } from "node:net"
+import { Agent, request, type IncomingHttpHeaders } from "node:http"
+import { connect, type Socket } from "node:net"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { after, test } from "node:test"
@@ -9,6 +10,7 @@ import { brotliDecompressSync, gunzipSync } from "node:zlib"
 import { renderId, viewHash } from "./canonical.ts"
 import { createDataFiles } from "./dataFiles.ts"
 import { openDiskCache, type DiskCache } from "./disk.ts"
+import { perClientDownloads, type DownloadLimits, type Downloads } from "./downloads.ts"
 import { DATA, eventually, NEW as CURRENT, OLD as OLDER, openDescriptorsOn, ORIGIN, RENDER, viewOf } from "./fixture.test.ts"
 import { createImages, type Images, type RenderLine } from "./images.ts"
 import { renderQueue, type QueueLimits, type RenderQueue } from "./queue.ts"
@@ -71,6 +73,7 @@ type Options = {
   readonly pointer?: string | null
   readonly fallback?: Buffer | null
   readonly disk?: "works" | "full"
+  readonly downloads?: DownloadLimits
 }
 
 type Running = {
@@ -80,11 +83,13 @@ type Running = {
   readonly errors: unknown[]
   readonly images: Images
   readonly queue: RenderQueue<Buffer>
+  readonly downloads: Downloads
   readonly sockets: Socket[]
   readonly advance: (ms: number) => void
 }
 
 const LIMITS: QueueLimits = { concurrency: 1, capacity: 4, perClient: 4, timeoutMs: 12_000 }
+const DOWNLOADS: DownloadLimits = { perClient: 64, waiting: 64, waitMs: 5_000 }
 
 function full(cache: DiskCache): DiskCache {
   return { ...cache, put: () => Promise.reject(new Error("ENOSPC: no space left on device, write")) }
@@ -92,7 +97,7 @@ function full(cache: DiskCache): DiskCache {
 
 const RENDER_CLOCK_MS = 1_234
 
-async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_000, releases = () => READY, pointer = POINTER, fallback = FALLBACK, disk = "works" }: Options = {}): Promise<Running> {
+async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_000, releases = () => READY, pointer = POINTER, fallback = FALLBACK, disk = "works", downloads = DOWNLOADS }: Options = {}): Promise<Running> {
   const renders: CaptureTarget[] = []
   const lines: RenderLine[] = []
   const errors: unknown[] = []
@@ -117,12 +122,14 @@ async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_00
   }
   const queue = renderQueue<Buffer>(limits)
   const images = createImages({ releases, cache, queue, render, renderId: RENDER, waitMs, log: line => lines.push(line), now: () => clock })
+  const gate = perClientDownloads(downloads)
   const server = createService({
     site: SITE,
     page: { template: parseTemplate(SITE.index), origin: ORIGIN, render: RENDER },
     releases,
     pointer: () => pointer,
     data: createDataFiles(DATA_ROOT, { keptBytes: 1_000_000, compressions: 2 }),
+    downloads: gate,
     images,
     fallback: () => fallback,
     health: () => ({ status: "ok" }),
@@ -144,6 +151,7 @@ async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_00
     errors,
     images,
     queue,
+    downloads: gate,
     sockets,
     advance: ms => {
       clock += ms
@@ -171,6 +179,23 @@ function firstChunk(port: number, path: string): Promise<{ readonly status: numb
       response.once("data", (chunk: Buffer) => {
         resolve({ status: response.statusCode ?? 0, headers: response.headers, chunk })
         response.destroy()
+      })
+    })
+    sent.on("error", reject)
+    sent.end()
+  })
+}
+
+type Held = { readonly status: number; readonly close: () => void }
+
+function held(port: number, path: string, headers: Readonly<Record<string, string>>): Promise<Held> {
+  return new Promise((resolve, reject) => {
+    const sent = request({ host: "127.0.0.1", port, path, headers, agent: false }, response => {
+      response.once("data", () => {
+        response.pause()
+        sent.removeListener("error", reject)
+        sent.on("error", () => undefined)
+        resolve({ status: response.statusCode ?? 0, close: () => sent.destroy() })
       })
     })
     sent.on("error", reject)
@@ -533,4 +558,70 @@ test("a connection takes no more of an answer once 16 KB of it wait for a slow c
     running.sockets.map(socket => socket.writableHighWaterMark),
     [16 * 1024],
   )
+})
+
+const SCHOOL = { "x-real-ip": "203.0.113.7" }
+const HUGE = `/data/v2/${CURRENT}/votes/huge.csv`
+const VOTES_PATH = `/data/v2/${CURRENT}/votes/votes.csv`
+
+test("past its limit, a client's data downloads wait for one of its own to end, and get 503 with Retry-After once kept waiting too long; other clients are served meanwhile", { timeout: 20_000 }, async () => {
+  const limited = await startService({ downloads: { perClient: 2, waiting: 1, waitMs: 100 } })
+  const slow = [await held(limited.port, HUGE, SCHOOL), await held(limited.port, HUGE, SCHOOL)]
+  const since = performance.now()
+  const refused = await raw(limited.port, VOTES_PATH, "GET", SCHOOL)
+  assert.ok(performance.now() - since >= 90, "it waited first")
+  assert.deepEqual(
+    [refused.status, refused.headers["retry-after"], refused.headers.connection, refused.headers["cache-control"], refused.headers["access-control-allow-origin"], refused.headers["content-security-policy"], refused.body.toString()],
+    [503, "30", "close", "no-store", "*", "default-src 'none'; style-src 'unsafe-inline'; sandbox", "Trop de téléchargements en cours, réessayez plus tard\n"],
+  )
+  assert.equal((await raw(limited.port, VOTES_PATH, "GET", { "x-real-ip": "198.51.100.1" })).status, 200)
+  assert.equal((await raw(limited.port, "/data/v2/current.json", "GET", SCHOOL)).status, 200)
+  const next = raw(limited.port, VOTES_PATH, "GET", SCHOOL)
+  await eventually(() => limited.downloads.counts().waiting === 1, "the school's next download waits")
+  slow[0]?.close()
+  assert.equal((await next).status, 200)
+  for (const one of slow) one.close()
+  await eventually(() => limited.downloads.counts().clients === 0, "every place given back")
+})
+
+test("a data file answered in full, plain from the disk or compressed from memory, gives its place back to its client", { timeout: 20_000 }, async () => {
+  const one = await startService({ downloads: { perClient: 1, waiting: 0, waitMs: 60_000 } })
+  const statuses = []
+  for (const encoding of ["identity", "br", "identity", "br"]) statuses.push((await raw(one.port, VOTES_PATH, "GET", { ...SCHOOL, "accept-encoding": encoding })).status)
+  assert.deepEqual(statuses, [200, 200, 200, 200])
+  assert.deepEqual(one.downloads.counts(), { clients: 0, running: 0, waiting: 0, waited: 0, refused: 0 })
+})
+
+test("a download queued behind another on a pipelined connection gives back its place and its file when the connection closes", { timeout: 20_000 }, async () => {
+  const piped = await startService()
+  const socket = connect(piped.port, "127.0.0.1")
+  await once(socket, "connect")
+  const ask = `GET ${HUGE} HTTP/1.1\r\nHost: og\r\nX-Real-Ip: 203.0.113.7\r\n\r\n`
+  socket.write(ask + ask)
+  await once(socket, "data")
+  socket.pause()
+  await eventually(() => piped.downloads.counts().running === 2, "both downloads started")
+  socket.destroy()
+  await eventually(async () => piped.downloads.counts().clients === 0 && (await openDescriptorsOn(join(SNAPSHOT, "votes", "huge.csv"))) === 0, "places and files given back")
+})
+
+test("a connection Traefik keeps alive across many requests keeps nothing of the past ones", { timeout: 20_000 }, async () => {
+  const kept = await startService()
+  const agent = new Agent({ keepAlive: true, maxSockets: 1 })
+  after(() => agent.destroy())
+  const ask = () =>
+    new Promise<number>((resolve, reject) => {
+      request({ host: "127.0.0.1", port: kept.port, path: VOTES_PATH, agent, headers: SCHOOL }, response => {
+        response.resume()
+        response.on("end", () => resolve(response.statusCode ?? 0))
+      }).on("error", reject).end()
+    })
+  const statuses = [await ask()]
+  const [socket] = kept.sockets
+  assert.ok(socket !== undefined)
+  await new Promise(resolve => setTimeout(resolve, 20))
+  const listening = socket.listenerCount("close")
+  for (let index = 0; index < 20; index += 1) statuses.push(await ask())
+  assert.deepEqual([kept.sockets.length, new Set(statuses)], [1, new Set([200])])
+  await eventually(() => socket.listenerCount("close") === listening, "as many listeners as after the first request")
 })

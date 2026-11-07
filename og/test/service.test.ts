@@ -9,6 +9,7 @@ import { renderId } from "../src/canonical.ts"
 import { CAPTURE_SETTINGS } from "../src/capture.ts"
 import { createDataFiles, type DataFiles, type ReadDataFile } from "../src/dataFiles.ts"
 import { openDiskCache } from "../src/disk.ts"
+import { perClientDownloads } from "../src/downloads.ts"
 import { given, ORIGIN } from "../src/fixture.test.ts"
 import { createImages, type RenderLine } from "../src/images.ts"
 import { renderQueue } from "../src/queue.ts"
@@ -49,6 +50,7 @@ async function startService(captured: ReadDataFile = FILES.read, served: DataFil
     releases: () => releases,
     pointer: () => POINTER,
     data: served,
+    downloads: perClientDownloads({ perClient: 256, waiting: 4096, waitMs: 30_000 }),
     images,
     fallback: () => GENERIC,
     health: () => ({ status: "ok" }),

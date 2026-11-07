@@ -5,6 +5,7 @@ import { CAPTURE_SETTINGS } from "./capture.ts"
 import { readConfig } from "./config.ts"
 import { createDataFiles } from "./dataFiles.ts"
 import { openDiskCache, removeTemporaries, writeAtomically } from "./disk.ts"
+import { perClientDownloads } from "./downloads.ts"
 import { createFallback } from "./fallback.ts"
 import { createImages } from "./images.ts"
 import { renderQueue } from "./queue.ts"
@@ -18,6 +19,9 @@ import { parseTemplate } from "./tags.ts"
 
 const CACHE_MAX_BYTES = 2 * 1024 ** 3
 const COMPRESSED_DATA = { keptBytes: 32 * 1024 ** 2, compressions: 2 } as const
+// A browser asks Traefik for at most 250 files at once on its HTTP/2 connection, so one never waits; a client that does not read its answers
+// holds 256 at most, some 100 KB each in buffers, and its next requests wait their turn, then get 503.
+const DOWNLOADS = { perClient: 256, waiting: 1024, waitMs: 30_000 } as const
 // The pipeline replaces the pointer by a rename, which ends a watch on the file; reading a local file every 30 s costs nothing.
 const POINTER_POLL_MS = 30_000
 const REQUEST_WAIT_MS = 8_000
@@ -42,6 +46,7 @@ const currentVersion = () => {
 
 const cache = await openDiskCache(join(config.cacheDir, "images"), CACHE_MAX_BYTES, render, currentVersion)
 const data = createDataFiles(config.dataRoot, COMPRESSED_DATA)
+const downloads = perClientDownloads(DOWNLOADS)
 const renderer = createRenderer(site, data.read, config.browser)
 const queue = renderQueue<Buffer>(QUEUE)
 const images = createImages({ releases: () => state(), cache, queue, render: renderer.render, renderId: render, waitMs: REQUEST_WAIT_MS, log: line => log("render", line), now: () => performance.now() })
@@ -71,9 +76,10 @@ const server = createService({
   releases: watch.state,
   pointer: watch.pointer,
   data,
+  downloads,
   images,
   fallback: fallback.image,
-  health: () => ({ status: "ok", data: watch.state().kind, version: currentVersion(), pointed: watch.pointed(), render, renders: { running: queue.running(), waiting: queue.waiting(), clients: queue.clients(), ...images.health() }, cacheBytes: cache.bytes() }),
+  health: () => ({ status: "ok", data: watch.state().kind, version: currentVersion(), pointed: watch.pointed(), render, renders: { running: queue.running(), waiting: queue.waiting(), clients: queue.clients(), ...images.health() }, downloads: downloads.counts(), cacheBytes: cache.bytes() }),
   logError: error => log("error", { reason: error instanceof Error ? (error.stack ?? error.message) : reasonOf(error) }),
 })
 

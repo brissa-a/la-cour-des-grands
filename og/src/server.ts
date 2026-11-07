@@ -6,6 +6,7 @@ import { FALLBACK_PATH, parseImagePath } from "./canonical.ts"
 import { clientOf, type ClientId } from "./client.ts"
 import { isLinkPreviewCrawler } from "./crawlers.ts"
 import type { DataFiles } from "./dataFiles.ts"
+import type { Downloads } from "./downloads.ts"
 import type { ImageAnswer, Images } from "./images.ts"
 import { answerPage, type PageSite } from "./page.ts"
 import type { Releases } from "./releases.ts"
@@ -18,6 +19,7 @@ export type ServiceDeps = {
   readonly releases: () => Releases
   readonly pointer: () => string | null
   readonly data: DataFiles
+  readonly downloads: Downloads
   readonly images: Images
   readonly fallback: () => Buffer | null
   readonly health: () => Readonly<Record<string, unknown>>
@@ -45,7 +47,7 @@ const POINTER_CACHE = "public, max-age=60"
 const DATA_HEADERS = { "access-control-allow-origin": "*", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" }
 const JPEG = "image/jpeg"
 const RETRY_AFTER_S = "30"
-// What a download holds in memory, file read ahead and socket queue, while its client is slow: Traefik lets one address keep 1500 open on /data/.
+// What a download holds in memory, file read ahead and socket queue, while its client is slow.
 const STREAM_CHUNK_BYTES = 16 * 1024
 
 function reply(status: number, headers: Readonly<Record<string, string>>, body: Buffer): Reply {
@@ -78,7 +80,7 @@ function imageReply(answer: ImageAnswer, fallback: Buffer | null): Reply {
   }
 }
 
-async function handle(request: IncomingMessage, deps: ServiceDeps): Promise<Reply> {
+async function handle(request: IncomingMessage, answered: AbortSignal, deps: ServiceDeps): Promise<Reply> {
   const target = request.url ?? ""
   if (Buffer.byteLength(target) > MAX_TARGET_BYTES) return text(414, "Adresse trop longue")
   if (request.method !== "GET" && request.method !== "HEAD") return text(405, "Méthode non permise", { allow: "GET, HEAD" })
@@ -101,11 +103,11 @@ async function handle(request: IncomingMessage, deps: ServiceDeps): Promise<Repl
     case FALLBACK_PATH:
       return jpeg(deps.fallback(), FALLBACK_CACHE)
     default:
-      return file(url, encoding, client, deps)
+      return file(url, encoding, client, answered, deps)
   }
 }
 
-async function data(pathname: string, encoding: Encoding, deps: ServiceDeps): Promise<Reply> {
+async function data(pathname: string, encoding: Encoding, client: ClientId, answered: AbortSignal, deps: ServiceDeps): Promise<Reply> {
   const address = dataAddress(pathname)
   if (address === null) return text(404, "Fichier introuvable", DATA_HEADERS)
   switch (address.kind) {
@@ -115,6 +117,8 @@ async function data(pathname: string, encoding: Encoding, deps: ServiceDeps): Pr
       return reply(200, { "content-type": fileType(POINTER_FILE).type, "cache-control": POINTER_CACHE, ...DATA_HEADERS }, Buffer.from(pointer))
     }
     case "file": {
+      // Closed after the answer: a client refused by the thousand would otherwise leave as many idle connections, and their memory.
+      if ((await deps.downloads.enter(client, answered)) === "refused") return text(503, "Trop de téléchargements en cours, réessayez plus tard", { "retry-after": RETRY_AFTER_S, connection: "close", ...DATA_HEADERS })
       const found = await deps.data.get(address.version, address.file, encoding)
       if (found === null) return text(404, "Fichier introuvable", DATA_HEADERS)
       return { status: 200, headers: { "content-type": found.type, "cache-control": IMMUTABLE, ...DATA_HEADERS }, body: found.body, encoding: found.encoding, varies: found.varies }
@@ -122,8 +126,8 @@ async function data(pathname: string, encoding: Encoding, deps: ServiceDeps): Pr
   }
 }
 
-async function file(url: URL, encoding: Encoding, client: ClientId, deps: ServiceDeps): Promise<Reply> {
-  if (url.pathname.startsWith(DATA_PATH)) return data(url.pathname, encoding, deps)
+async function file(url: URL, encoding: Encoding, client: ClientId, answered: AbortSignal, deps: ServiceDeps): Promise<Reply> {
+  if (url.pathname.startsWith(DATA_PATH)) return data(url.pathname, encoding, client, answered, deps)
   const address = parseImagePath(url.pathname)
   if (address !== null) return imageReply(await deps.images.answer(address, url.searchParams, client), deps.fallback())
   const asset = deps.site.assets.get(url.pathname)
@@ -132,7 +136,7 @@ async function file(url: URL, encoding: Encoding, client: ClientId, deps: Servic
   return { status: 200, headers: { "content-type": asset.type, "cache-control": asset.cacheControl }, ...chosen, varies: asset.bodies.compressed !== null }
 }
 
-function send(response: ServerResponse, { status, headers, body, encoding, varies }: Reply): void {
+function send(response: ServerResponse, { status, headers, body, encoding, varies }: Reply, answered: AbortSignal): void {
   response.writeHead(status, {
     ...headers,
     "content-length": String(Buffer.isBuffer(body) ? body.length : body.size),
@@ -141,16 +145,27 @@ function send(response: ServerResponse, { status, headers, body, encoding, varie
     ...(varies ? { vary: "Accept-Encoding" } : {}),
   })
   if (Buffer.isBuffer(body)) response.end(body)
-  else pipeline(body.handle.createReadStream({ highWaterMark: STREAM_CHUNK_BYTES }), response).catch(() => undefined)
+  else pipeline(body.handle.createReadStream({ highWaterMark: STREAM_CHUNK_BYTES }), response, { signal: answered }).catch(() => undefined)
+}
+
+// A response queued behind another on a pipelined connection never closes if the connection does: the socket's close ends it too.
+function answeredSignal(request: IncomingMessage, response: ServerResponse): AbortSignal {
+  const answered = new AbortController()
+  const end = () => answered.abort()
+  response.once("close", end)
+  request.socket.once("close", end)
+  answered.signal.addEventListener("abort", () => request.socket.off("close", end))
+  return answered.signal
 }
 
 export function createService(deps: ServiceDeps): Server {
   return createServer({ highWaterMark: STREAM_CHUNK_BYTES }, (request, response) => {
-    handle(request, deps).then(
-      answer => send(response, answer),
+    const answered = answeredSignal(request, response)
+    handle(request, answered, deps).then(
+      answer => send(response, answer, answered),
       (error: unknown) => {
         deps.logError(error)
-        send(response, text(500, "Erreur interne"))
+        send(response, text(500, "Erreur interne"), answered)
       },
     )
   })
