@@ -36,6 +36,7 @@ services:
       CHROMIUM_ENDPOINT: ws://lcdg-chromium:3000/capture
     volumes:
       - cache:/app/og/cache
+      - data:/data:ro
     networks:
       - edge
       - capture
@@ -66,6 +67,17 @@ services:
       - traefik.http.middlewares.lcdg-ratelimit.ratelimit.burst=300
       # The service compresses its own text; this only catches text it would send plain, never the JPEGs.
       - traefik.http.middlewares.lcdg-compress.compress.includedcontenttypes=text/html,text/css,text/javascript,application/json,image/svg+xml,text/plain
+      # The data, immutable but for current.json: a page showing the photos asks for some 600 files at once, per client IP.
+      - traefik.http.routers.lcdg-data.rule=Host(`cour-des-grands.fr`) && PathPrefix(`/data/`)
+      - traefik.http.routers.lcdg-data.entrypoints=websecure
+      - traefik.http.routers.lcdg-data.tls.certresolver=ledns
+      - traefik.http.routers.lcdg-data.tls.domains[0].main=cour-des-grands.fr
+      - traefik.http.routers.lcdg-data.tls.domains[0].sans=www.cour-des-grands.fr
+      - traefik.http.routers.lcdg-data.service=lcdg
+      - traefik.http.routers.lcdg-data.middlewares=lcdg-data-ratelimit
+      - traefik.http.middlewares.lcdg-data-ratelimit.ratelimit.average=3000
+      - traefik.http.middlewares.lcdg-data-ratelimit.ratelimit.period=1m
+      - traefik.http.middlewares.lcdg-data-ratelimit.ratelimit.burst=1500
       # Images asked by anything but a link preview robot: below the render rate, per client IP.
       - traefik.http.routers.lcdg-og.rule=Host(`cour-des-grands.fr`) && PathPrefix(`/og/`)
       - traefik.http.routers.lcdg-og.entrypoints=websecure
@@ -142,3 +154,7 @@ networks:
 
 volumes:
   cache:
+  # Written by the pipeline alone; external, so that a missing one stops the deploy instead of starting the service on an empty one.
+  data:
+    name: lcdg-data
+    external: true

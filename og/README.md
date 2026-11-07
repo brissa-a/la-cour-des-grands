@@ -40,9 +40,9 @@ Renders: 2 at a time, 12 s each at most; a request waits 8 s for its image, then
 
 ## Deploy
 
-Two containers of the compose project `lcdg`, one image: `lcdg-og` (Node, on Traefik's `edge` network and the internal `capture` network) and `lcdg-chromium` (a Playwright `run-server`, on `capture` only: it reaches nothing but `lcdg-og`). Both run as uid 10001, read-only, without capabilities. Traefik limits browsers per IP (600/min on the site, 20/min and 3 at once on `/og/`), and spares the link preview robots, matched by the `User-Agent` pattern of `src/crawlers.ts`.
+Two containers of the compose project `lcdg`, one image: `lcdg-og` (Node, on Traefik's `edge` network and the internal `capture` network) and `lcdg-chromium` (a Playwright `run-server`, on `capture` only: it reaches nothing but `lcdg-og`). Both run as uid 10001, read-only, without capabilities. `lcdg-og` reads the data root from the volume `lcdg-data`, mounted read-only at `/data`: the pipeline writes it, and the compose project never creates it. Traefik limits browsers per IP (600/min on the site, 3000/min with bursts of 1500 on `/data/`, where a page showing the photos asks for some 600 files at once, 20/min and 3 at once on `/og/`), and spares the link preview robots, matched by the `User-Agent` pattern of `src/crawlers.ts`.
 
-`deploy/deploy.sh` builds the front, builds the image on the Dedibox through the `abysshopper` Docker context (tagged with the commit), starts the project, waits for the certificate and the data, then runs `npm run test:live`. It touches nothing but that project, its image and its `lcdg_cache` volume.
+`deploy/deploy.sh` builds the front, builds the image on the Dedibox through the `abysshopper` Docker context (tagged with the commit), checks with that image (`src/checkData.ts`, without network, the volume read-only) that `lcdg-data` holds a version the service would serve, and stops there if it does not; then it starts the project, waits for the certificate and the data, and runs `npm run test:live`. It touches nothing but that project, its image and its `lcdg_cache` volume, and reads `lcdg-data`.
 
 ```sh
 compose="docker --context abysshopper compose -f og/deploy/docker-compose.yml"

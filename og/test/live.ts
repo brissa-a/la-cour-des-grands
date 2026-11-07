@@ -143,6 +143,19 @@ test("the data pointer names the version the service has loaded, and that versio
   for (const hidden of ["/data/v2/.runs/last.json", `/data/v2/${version}/../.runs/last.json`]) assert.equal((await fetch(`${ORIGIN}${hidden}`)).status, 404, hidden)
 })
 
+test("as many data requests from one browser as a page showing the photos makes at once are never answered 429", async () => {
+  const { version } = await health()
+  const statuses: number[] = []
+  for (let wave = 0; wave < 12; wave++) {
+    const answers = await Promise.all(Array.from({ length: 50 }, () => fetch(`${ORIGIN}/data/v2/${version}/catalog.json`, { headers: { "user-agent": BROWSER } })))
+    for (const answer of answers) {
+      statuses.push(answer.status)
+      await answer.arrayBuffer()
+    }
+  }
+  assert.deepEqual([...new Set(statuses)], [200])
+})
+
 test("a burst of image requests from one link preview robot is never answered 429", async () => {
   const image = tag(await page("", CRAWLERS[4]), "og:image")
   const statuses: number[] = []
