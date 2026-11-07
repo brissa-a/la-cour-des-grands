@@ -32,6 +32,8 @@ export type PointerCheck = ({ readonly kind: "found" } & Pointed) | { readonly k
 
 export type OpenedFile = { readonly handle: FileHandle; readonly size: number }
 
+export type DateOf = (path: string) => Promise<Date | null>
+
 const MISSING: ReadonlySet<unknown> = new Set(["ENOENT", "ENOTDIR", "ELOOP"])
 
 export function dataFile(text: string): DataFile | null {
@@ -101,7 +103,7 @@ export async function modifiedAt(path: string): Promise<Date | null> {
 }
 
 // The pipeline dates a version's folder with its publication, and prunes the oldest first by moving it out of v2/ before deleting it.
-export async function keptVersions(root: string): Promise<readonly Pointed[]> {
+export async function keptVersions(root: string, dateOf: DateOf = modifiedAt): Promise<readonly Pointed[]> {
   const folder = join(root, DATA_FORMAT)
   const entries = await readdir(folder, { withFileTypes: true }).catch((error: unknown) => {
     if (missing(error)) return []
@@ -110,7 +112,7 @@ export async function keptVersions(root: string): Promise<readonly Pointed[]> {
   const dated = await Promise.all(
     entries.flatMap(entry => {
       const version = entry.isDirectory() ? dataVersion(entry.name) : null
-      return version === null ? [] : [modifiedAt(join(folder, entry.name)).then(publishedAt => (publishedAt === null ? [] : [{ version, publishedAt }]))]
+      return version === null ? [] : [dateOf(join(folder, entry.name)).then(publishedAt => (publishedAt === null ? [] : [{ version, publishedAt }]))]
     }),
   )
   return dated

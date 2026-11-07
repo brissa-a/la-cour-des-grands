@@ -153,6 +153,15 @@ test("a version folder the pipeline moves away while the versions are listed rea
   await chmod(join(root, "v2"), 0o755)
 })
 
+test("a version folder the pipeline moves away between the listing and its date is left out of the kept versions", async () => {
+  const root = await dataRoot("moved-away")
+  const v2 = join(root, "v2")
+  await mkdir(join(v2, ABSENT))
+  const dated = new Date("2026-11-05T04:00:00.000Z")
+  const movedAway = (folder: string) => Promise.resolve(folder === join(v2, ABSENT) ? null : dated)
+  assert.deepEqual(await keptVersions(root, movedAway), [{ version: VERSION, pointer: `{"version":"${VERSION}","publishedAt":"${dated.toISOString()}"}\n` }])
+})
+
 test("a file of a version is read by its path, a photo linked to the store included", async () => {
   assert.equal(await read(ROOT, "catalog.json"), '{"files":[]}')
   assert.equal(await read(ROOT, "votes/votes.csv"), "vote_id\nVTANR5L17V1\n")
