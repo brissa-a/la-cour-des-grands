@@ -4,7 +4,8 @@ import { type IsoDate, today } from "../core/types.ts";
 import { fixedValues, valueTable } from "../core/values.ts";
 import { type DeputyId, type Group, REGIONS, deputies, deputy, inOffice, lastMandate } from "./deputies.ts";
 import { seats } from "./hemicycle.ts";
-import { PHOTOS_BASE_URL, photos } from "./photos.ts";
+import { publishedPhotoPath } from "../photos/paths.ts";
+import { photos } from "./photos.ts";
 
 function ageOn(birthDate: IsoDate, date: IsoDate): number {
   const years = Number(date.slice(0, 4)) - Number(birthDate.slice(0, 4));
@@ -70,7 +71,7 @@ export const init = csv({
     group: category("Groupe politique", groups),
   },
   row: (d, { photos }) => ({
-    photo: photos.has(d.id) ? `${PHOTOS_BASE_URL}/${d.id}.webp` : null,
+    photo: photos.has(d.id) ? publishedPhotoPath(d.id) : null,
     last_name: d.lastName,
     first_name: d.firstName,
     civility: d.civility,

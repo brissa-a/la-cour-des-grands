@@ -23,7 +23,17 @@
     "src/core/geometry.ts",
     "src/jobs/address/codes.ts",
     "src/jobs/address/label.ts",
-    "src/jobs/address/streets.ts"
+    "src/jobs/address/streets.ts",
+    "src/options.ts",
+    "src/publication/paths.ts",
+    "src/publication/version.ts",
+    "src/publication/catalog.ts",
+    "src/publication/guards.ts",
+    "src/publication/files.ts",
+    "src/publication/store.ts",
+    "src/publication/publish.ts",
+    "src/publication/runs.ts",
+    "src/publication/sources.ts"
   ],
   "ignorePatterns": [
     "tsconfig.json",
