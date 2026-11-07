@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { chmod, link, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, unlink } from "node:fs/promises";
+import { chmod, link, lstat, mkdtemp, readFile, readdir, rename, rm, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
-import { exists, filesUnder, isMissing, writeDurably } from "./files.ts";
+import { DIRECTORY_MODE, STORED_FILE_MODE, exists, filesUnder, isMissing, makeDirectory, writeDurably } from "./files.ts";
 import { type SnapshotPath, snapshotPath } from "./paths.ts";
 import { type DataVersion, type ManifestLine, type Sha256, sha256Of, versionOf } from "./version.ts";
 
@@ -15,7 +15,7 @@ async function keep(store: string, sha256: Sha256, content: Uint8Array): Promise
   const stored = `${store}/${sha256}`;
   if (await exists(stored)) return stored;
   const temporary = `${store}/.${randomUUID()}.tmp`;
-  await writeDurably(temporary, content, 0o444);
+  await writeDurably(temporary, content, STORED_FILE_MODE);
   await rename(temporary, stored);
   return stored;
 }
@@ -27,18 +27,18 @@ const readUnlessMissing = (path: string): Promise<Buffer | null> =>
   });
 
 export async function stage(paths: { staging: string; store: string }, sources: ReadonlyMap<SnapshotPath, string>): Promise<StagedSnapshot> {
-  await mkdir(paths.staging, { recursive: true });
-  await mkdir(paths.store, { recursive: true });
+  await makeDirectory(paths.staging);
+  await makeDirectory(paths.store);
   const dir = await mkdtemp(`${paths.staging}/`);
   try {
-    await chmod(dir, 0o755);
+    await chmod(dir, DIRECTORY_MODE);
     const lines: ManifestLine[] = [];
     const sizes = new Map<SnapshotPath, number>();
     for (const [path, source] of sources) {
       const content = await readUnlessMissing(source);
       if (content === null) continue;
       const sha256 = sha256Of(content);
-      await mkdir(dirname(`${dir}/${path}`), { recursive: true });
+      await makeDirectory(dirname(`${dir}/${path}`));
       await link(await keep(paths.store, sha256, content), `${dir}/${path}`);
       lines.push({ path, sha256 });
       sizes.set(path, content.length);

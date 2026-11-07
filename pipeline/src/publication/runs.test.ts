@@ -12,10 +12,13 @@ const counts = { deputies: 654, votes: 9697, newVotes: 3 };
 const startedAt = new Date("2026-11-07T04:00:00.000Z");
 const finishedAt = new Date("2026-11-07T04:20:00.000Z");
 
-test("published and unchanged runs exit with 0, refused ones with 3, failed ones with 1", () => {
-  assert.equal(exitCode({ status: "published", version, previous, counts, override: null }), 0);
+test("published and unchanged runs exit with 0, published ones whose retention failed with 5, refused ones with 3, failed ones with 1", () => {
+  assert.equal(exitCode({ status: "published", version, previous, counts, override: null, warning: null }), 0);
+  assert.equal(exitCode({ status: "published", version, previous, counts, override: null, warning: "EACCES" }), 5);
   assert.equal(exitCode({ status: "unchanged", version, counts }), 0);
-  assert.equal(exitCode({ status: "rejected", version, previous, counts, refusals: [{ guard: "votes-drop", current: 2, candidate: 1 }] }), 3);
+  const refusals = [{ guard: "votes-drop", current: 2, candidate: 1 }] as const;
+  assert.equal(exitCode({ status: "rejected", version, previous, counts, refusals, warning: null }), 3);
+  assert.equal(exitCode({ status: "rejected", version, previous, counts, refusals, warning: "EACCES" }), 3);
   assert.equal(exitCode({ status: "failed", error: "boom" }), 1);
 });
 
@@ -31,7 +34,7 @@ test("last.json records a refused run with its counts and the reason of each ref
     { guard: "votes-drop", current: 2, candidate: 1 },
     { guard: "file-empty", file: snapshotPath("deputies/values/civility.csv") },
   ] as const;
-  assert.deepEqual(await recorded({ status: "rejected", version, previous, counts, refusals }), {
+  assert.deepEqual(await recorded({ status: "rejected", version, previous, counts, refusals, warning: "Old versions could not be pruned: EACCES" }), {
     startedAt: "2026-11-07T04:00:00.000Z",
     finishedAt: "2026-11-07T04:20:00.000Z",
     status: "rejected",
@@ -41,13 +44,14 @@ test("last.json records a refused run with its counts and the reason of each ref
     forced: false,
     counts,
     refusals: ["1 votes against 2 in the current version", "deputies/values/civility.csv is empty"],
+    warning: "Old versions could not be pruned: EACCES",
     error: null,
   });
 });
 
 test("last.json records a forced publication with the refusals it overrode", async () => {
   const override = { refusals: [{ guard: "votes-drop", current: 2, candidate: 1 }] } as const;
-  assert.deepEqual(await recorded({ status: "published", version, previous, counts, override }), {
+  assert.deepEqual(await recorded({ status: "published", version, previous, counts, override, warning: null }), {
     startedAt: "2026-11-07T04:00:00.000Z",
     finishedAt: "2026-11-07T04:20:00.000Z",
     status: "published",
@@ -57,12 +61,29 @@ test("last.json records a forced publication with the refusals it overrode", asy
     forced: true,
     counts,
     refusals: ["1 votes against 2 in the current version"],
+    warning: null,
+    error: null,
+  });
+});
+
+test("last.json records a publication whose retention failed as published, with its version, counts and warning", async () => {
+  assert.deepEqual(await recorded({ status: "published", version, previous: null, counts, override: null, warning: "Old versions could not be pruned: EACCES" }), {
+    startedAt: "2026-11-07T04:00:00.000Z",
+    finishedAt: "2026-11-07T04:20:00.000Z",
+    status: "published",
+    exitCode: 5,
+    version,
+    previousVersion: null,
+    forced: false,
+    counts,
+    refusals: [],
+    warning: "Old versions could not be pruned: EACCES",
     error: null,
   });
 });
 
 test("last.json records a plain publication, an unchanged run and a failure", async () => {
-  assert.deepEqual(await recorded({ status: "published", version, previous: null, counts, override: null }), {
+  assert.deepEqual(await recorded({ status: "published", version, previous: null, counts, override: null, warning: null }), {
     startedAt: "2026-11-07T04:00:00.000Z",
     finishedAt: "2026-11-07T04:20:00.000Z",
     status: "published",
@@ -72,6 +93,7 @@ test("last.json records a plain publication, an unchanged run and a failure", as
     forced: false,
     counts,
     refusals: [],
+    warning: null,
     error: null,
   });
   assert.deepEqual(await recorded({ status: "unchanged", version, counts }), {
@@ -84,6 +106,7 @@ test("last.json records a plain publication, an unchanged run and a failure", as
     forced: false,
     counts,
     refusals: [],
+    warning: null,
     error: null,
   });
   assert.deepEqual(await recorded({ status: "failed", error: "fetch failed" }), {
@@ -96,6 +119,7 @@ test("last.json records a plain publication, an unchanged run and a failure", as
     forced: false,
     counts: null,
     refusals: [],
+    warning: null,
     error: "fetch failed",
   });
 });

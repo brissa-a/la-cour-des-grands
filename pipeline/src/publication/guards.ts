@@ -7,6 +7,7 @@ import { type SnapshotPath, snapshotPath } from "./paths.ts";
 
 export const DEPUTY_FLOOR = 550;
 export const MAX_DEPUTY_DROP_PERCENT = 2;
+export const MAX_PHOTO_DROP_PERCENT = 5;
 const LISTED_PHOTOS = 5;
 
 export type CountedFiles = { readonly deputies: SnapshotPath; readonly votes: SnapshotPath };
@@ -28,7 +29,8 @@ export type Refusal =
   | { readonly guard: "file-missing"; readonly file: SnapshotPath }
   | { readonly guard: "file-empty"; readonly file: SnapshotPath }
   | { readonly guard: "catalog-mismatch"; readonly file: SnapshotPath; readonly field: Mismatch; readonly catalog: string; readonly actual: string }
-  | { readonly guard: "photos-missing"; readonly file: SnapshotPath; readonly column: string; readonly photos: readonly string[] };
+  | { readonly guard: "photos-missing"; readonly file: SnapshotPath; readonly column: string; readonly photos: readonly string[] }
+  | { readonly guard: "photos-drop"; readonly file: SnapshotPath; readonly column: string; readonly current: number; readonly candidate: number };
 
 export function describeRefusal(refusal: Refusal): string {
   switch (refusal.guard) {
@@ -50,6 +52,8 @@ export function describeRefusal(refusal: Refusal): string {
       return `${refusal.file}: the catalog says ${refusal.field} ${refusal.catalog}, the file has ${refusal.actual}`;
     case "photos-missing":
       return `${refusal.file}: ${refusal.photos.length} ${refusal.column} values point to no file of the snapshot (${refusal.photos.slice(0, LISTED_PHOTOS).join(", ")})`;
+    case "photos-drop":
+      return `${refusal.file}: ${refusal.candidate} ${refusal.column} values against ${refusal.current} in the current version, a drop of more than ${MAX_PHOTO_DROP_PERCENT} %`;
   }
 }
 
@@ -153,8 +157,35 @@ async function entryRefusals(candidate: Candidate, entry: CatalogEntry): Promise
   return [...(await content), ...missing];
 }
 
+async function filledValues(snapshot: Snapshot, file: SnapshotPath, column: string): Promise<number> {
+  const records = await readRecords(snapshot.dir, file).catch((error: unknown) => {
+    if (isMissing(error)) return [];
+    throw error;
+  });
+  const [header = [], ...rows] = records;
+  const index = header.indexOf(column);
+  return rows.filter((r) => (r[index] ?? "") !== "").length;
+}
+
+async function photoDrops(candidate: Snapshot, current: Snapshot): Promise<Refusal[]> {
+  const refusals: Refusal[] = [];
+  for (const entry of candidate.catalog.values()) {
+    const before = current.catalog.get(entry.file);
+    if (entry.shape.kind !== "table" || entry.shape.format !== "csv" || before?.shape.kind !== "table") continue;
+    const kept = new Set(before.shape.columns.filter((c) => c.type === "image").map((c) => c.name));
+    for (const column of entry.shape.columns.filter((c) => c.type === "image" && kept.has(c.name))) {
+      const was = await filledValues(current, entry.file, column.name);
+      const now = await filledValues(candidate, entry.file, column.name);
+      if (now * 100 < was * (100 - MAX_PHOTO_DROP_PERCENT))
+        refusals.push({ guard: "photos-drop", file: entry.file, column: column.name, current: was, candidate: now });
+    }
+  }
+  return refusals;
+}
+
 export async function refusalsOf(candidate: Candidate, current: Snapshot | null, counted: CountedFiles): Promise<Refusal[]> {
   const empty = [...candidate.sizes].flatMap(([file, size]): Refusal[] => (size === 0 ? [{ guard: "file-empty", file }] : []));
   const coherence = (await Promise.all([...candidate.catalog.values()].map((e) => entryRefusals(candidate, e)))).flat();
-  return [...countRefusals(candidate, current, counted), ...(current === null ? [] : lostEntries(candidate.catalog, current.catalog)), ...empty, ...coherence];
+  const losses = current === null ? [] : [...lostEntries(candidate.catalog, current.catalog), ...(await photoDrops(candidate, current))];
+  return [...countRefusals(candidate, current, counted), ...losses, ...empty, ...coherence];
 }

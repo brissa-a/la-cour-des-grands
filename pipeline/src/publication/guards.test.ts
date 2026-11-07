@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { stat } from "node:fs/promises";
+import { stat, unlink } from "node:fs/promises";
 import { test } from "node:test";
 import { filesUnder } from "./files.ts";
 import { type Candidate, type Refusal, type Snapshot, countsOf, describeRefusal, readSnapshotCatalog, refusalsOf } from "./guards.ts";
@@ -141,6 +141,25 @@ test("a photo value that is missing from the snapshot or is not a path inside it
   assert.deepEqual(refusals, [{ guard: "photos-missing", file: "deputies/init.csv", column: "photo", photos: [absolute, "photos/PA999.webp"] }]);
 });
 
+test("losing more than 5 % of the current photos is refused, a photo column the current version lacks is not compared", async () => {
+  const published = await current(standard({ photos: 100 }));
+  assert.deepEqual(await refusalsOf(await candidate(standard({ photos: 95 })), published, COUNTED), []);
+  assert.deepEqual(await refusalsOf(await candidate(standard({ photos: 94 })), published, COUNTED), [
+    { guard: "photos-drop", file: "deputies/init.csv", column: "photo", current: 100, candidate: 94 },
+  ]);
+  assert.deepEqual(guards(await refusalsOf(await candidate(standard({ photos: 0 })), published, COUNTED)), ["photos-drop"]);
+  const lost = await candidate(standard({ photos: 100 }));
+  await unlink(`${lost.dir}/deputies/init.csv`);
+  const withoutDeputies = { ...lost, sizes: new Map([...lost.sizes].filter(([file]) => file !== "deputies/init.csv")) };
+  assert.deepEqual(
+    (await refusalsOf(withoutDeputies, published, COUNTED)).filter((r) => r.guard === "photos-drop"),
+    [{ guard: "photos-drop", file: "deputies/init.csv", column: "photo", current: 100, candidate: 0 }],
+  );
+  const contents = standard({ photos: 100 });
+  const photoAsText = { ...contents, tables: contents.tables.map((t) => ({ ...t, columns: t.columns.map((c) => (c.name === "photo" ? { ...c, type: "text" } : c)) })) };
+  assert.deepEqual(await refusalsOf(await candidate(standard({ photos: 0 })), await current(photoAsText), COUNTED), []);
+});
+
 test("the counts give the candidate's deputies and votes, and the votes absent from the current version", async () => {
   const published = await current(standard({ deputies: 600, votes: ["V1", "V2"] }));
   const next = await candidate(standard({ deputies: 601, votes: ["V1", "V2", "V3", "V4"] }));
@@ -160,6 +179,7 @@ test("each refusal is described with the file and the figures that locate the fa
     [{ guard: "file-empty", file }, [file, "empty"]],
     [{ guard: "catalog-mismatch", file, field: "rows", catalog: "4", actual: "3" }, [file, "rows 4", "has 3"]],
     [{ guard: "photos-missing", file, column: "photo", photos: ["p1", "p2", "p3", "p4", "p5", "p6"] }, [file, "6 photo values", "(p1, p2, p3, p4, p5)"]],
+    [{ guard: "photos-drop", file, column: "photo", current: 100, candidate: 94 }, [file, "94 photo values", "100", "5 %"]],
   ];
   for (const [refusal, figures] of described) for (const figure of figures) assert.ok(describeRefusal(refusal).includes(figure), `${refusal.guard}: ${figure}`);
 });

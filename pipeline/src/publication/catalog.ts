@@ -1,7 +1,19 @@
+import type { Feature } from "../core/csv.ts";
 import { type JsonRecord, fieldOf, list, parseJson, record, text } from "../core/json.ts";
 import { type SnapshotPath, snapshotPath } from "./paths.ts";
 
-export type Column = { readonly name: string; readonly type: string };
+export type ColumnType = Feature["type"];
+
+export type Column = { readonly name: string; readonly type: ColumnType };
+
+const COLUMN_TYPES: readonly ColumnType[] = ["text", "number", "date", "code", "list", "link", "image", "category", "reference"];
+
+function columnType(value: unknown, what: string): ColumnType {
+  const raw = text(value, what);
+  const type = COLUMN_TYPES.find((t) => t === raw);
+  if (type === undefined) throw new Error(`${what} is not a known column type: ${raw}`);
+  return type;
+}
 
 export type EntryShape =
   | { readonly kind: "table"; readonly format: "csv" | "geojson"; readonly columns: readonly Column[] }
@@ -52,7 +64,7 @@ function entry(raw: JsonRecord): CatalogEntry {
     shape: {
       kind: "table",
       format: raw.geometry === undefined ? "csv" : "geojson",
-      columns: features.map((f) => ({ name: text(f.column, `${what} column`), type: text(f.type, `${what} column type`) })),
+      columns: features.map((f) => ({ name: text(f.column, `${what} column`), type: columnType(f.type, `${what} column type`) })),
     },
     references: [...background, ...features.flatMap((f) => optionalPath(f.values, `${what} values`))],
   };

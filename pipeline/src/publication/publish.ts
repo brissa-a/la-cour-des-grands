@@ -1,7 +1,7 @@
-import { mkdir, readFile, readdir, rename, rm, stat, utimes } from "node:fs/promises";
+import { readFile, readdir, rename, rm, stat, utimes } from "node:fs/promises";
 import { parseJson, record, text } from "../core/json.ts";
 import { type CountedFiles, type Counts, type Refusal, type Snapshot, countsOf, readSnapshotCatalog, refusalsOf } from "./guards.ts";
-import { exists, isMissing, replaceAtomically } from "./files.ts";
+import { discard, isMissing, makeDirectory, replaceAtomically } from "./files.ts";
 import { type DataRoot, type SnapshotPath, layout } from "./paths.ts";
 import { collectGarbage, readSnapshot, stage } from "./store.ts";
 import { type DataVersion, dataVersion } from "./version.ts";
@@ -14,7 +14,14 @@ type Layout = ReturnType<typeof layout>;
 export type Current = { readonly version: DataVersion; readonly publishedAt: string };
 
 export type Outcome =
-  | { readonly status: "published"; readonly version: DataVersion; readonly previous: DataVersion | null; readonly counts: Counts; readonly override: { readonly refusals: readonly Refusal[] } | null }
+  | {
+      readonly status: "published";
+      readonly version: DataVersion;
+      readonly previous: DataVersion | null;
+      readonly counts: Counts;
+      readonly override: { readonly refusals: readonly Refusal[] } | null;
+      readonly warning: string | null;
+    }
   | { readonly status: "unchanged"; readonly version: DataVersion; readonly counts: Counts }
   | {
       readonly status: "rejected";
@@ -22,11 +29,19 @@ export type Outcome =
       readonly previous: DataVersion | null;
       readonly counts: Counts;
       readonly refusals: readonly [Refusal, ...Refusal[]];
+      readonly warning: string | null;
     };
+
+export const reasonOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 function isoInstant(value: string): string {
   if (Number.isNaN(Date.parse(value)) || new Date(value).toISOString() !== value) throw new Error(`Not an ISO 8601 UTC instant: ${value}`);
   return value;
+}
+
+export function parseCurrent(content: string, what: string): Current {
+  const pointer = record(parseJson(content), what);
+  return { version: dataVersion(text(pointer.version, `${what} version`)), publishedAt: isoInstant(text(pointer.publishedAt, `${what} publishedAt`)) };
 }
 
 export async function readCurrent(root: DataRoot): Promise<Current | null> {
@@ -35,9 +50,7 @@ export async function readCurrent(root: DataRoot): Promise<Current | null> {
     if (isMissing(error)) return null;
     throw error;
   });
-  if (content === null) return null;
-  const pointer = record(parseJson(content), path);
-  return { version: dataVersion(text(pointer.version, `${path} version`)), publishedAt: isoInstant(text(pointer.publishedAt, `${path} publishedAt`)) };
+  return content === null ? null : parseCurrent(content, path);
 }
 
 async function currentSnapshot(paths: Layout, current: Current | null): Promise<Snapshot | null> {
@@ -59,40 +72,59 @@ async function newestFirst(dir: string): Promise<string[]> {
   return dated.sort((a, b) => b.time - a.time).map((d) => d.name);
 }
 
-async function prune(dir: string, keep: number, kept: ReadonlySet<string>): Promise<void> {
+async function prune(dir: string, trash: string, keep: number, kept: ReadonlySet<string>): Promise<void> {
   const names = await newestFirst(dir);
   const removed = names.slice(keep).filter((name) => !kept.has(name));
-  for (const name of removed) await rm(`${dir}/${name}`, { recursive: true, force: true });
+  for (const name of removed) await discard(`${dir}/${name}`, trash);
 }
 
 export async function pruneVersions(root: DataRoot): Promise<void> {
   const paths = layout(root);
+  await rm(paths.trash, { recursive: true, force: true });
   const current = await readCurrent(root);
-  await prune(paths.v2, KEPT_VERSIONS, new Set(current === null ? [] : [current.version]));
-  await prune(paths.rejected, KEPT_REJECTED, new Set());
+  await prune(paths.v2, paths.trash, KEPT_VERSIONS, new Set(current === null ? [] : [current.version]));
+  await prune(paths.rejected, paths.trash, KEPT_REJECTED, new Set());
   await collectGarbage(paths.store);
 }
 
-async function moveInto(dir: string, target: string, now: Date): Promise<void> {
-  if (await exists(target)) await rm(dir, { recursive: true, force: true });
-  else await rename(dir, target);
+async function retention(root: DataRoot): Promise<string | null> {
+  try {
+    await pruneVersions(root);
+    return null;
+  } catch (error) {
+    return `Old versions could not be pruned: ${reasonOf(error)}`;
+  }
+}
+
+async function holdsVersion(dir: string, version: DataVersion): Promise<boolean> {
+  try {
+    return (await readSnapshot(dir)).version === version;
+  } catch {
+    return false;
+  }
+}
+
+async function moveInto(dir: string, target: string, version: DataVersion, trash: string, now: Date): Promise<void> {
+  if (await holdsVersion(target, version)) await rm(dir, { recursive: true, force: true });
+  else {
+    await discard(target, trash);
+    await rename(dir, target);
+  }
   await utimes(target, now, now);
 }
 
-async function point(root: DataRoot, dir: string, version: DataVersion, now: Date): Promise<void> {
+async function point(root: DataRoot, dir: string, version: DataVersion, now: Date): Promise<string | null> {
   const paths = layout(root);
-  await moveInto(dir, paths.version(version), now);
+  await moveInto(dir, paths.version(version), version, paths.trash, now);
   await replaceAtomically(paths.current, JSON.stringify({ version, publishedAt: now.toISOString() }) + "\n");
-  await pruneVersions(root);
+  return retention(root);
 }
 
-async function setAside(root: DataRoot, dir: string, version: DataVersion, now: Date): Promise<void> {
+async function setAside(root: DataRoot, dir: string, version: DataVersion, now: Date): Promise<string | null> {
   const paths = layout(root);
-  await mkdir(paths.rejected, { recursive: true });
-  const target = `${paths.rejected}/${version}`;
-  await rm(target, { recursive: true, force: true });
-  await moveInto(dir, target, now);
-  await pruneVersions(root);
+  await makeDirectory(paths.rejected);
+  await moveInto(dir, paths.rejectedVersion(version), version, paths.trash, now);
+  return retention(root);
 }
 
 export type Publication = {
@@ -115,11 +147,11 @@ export async function publish({ root, sources, counted, now }: Publication): Pro
     if (staged.version === previous) return { status: "unchanged", version: staged.version, counts };
     const [refusal, ...refusals] = await refusalsOf(candidate, published, counted);
     if (refusal !== undefined) {
-      await setAside(root, staged.dir, staged.version, now());
-      return { status: "rejected", version: staged.version, previous, counts, refusals: [refusal, ...refusals] };
+      const warning = await setAside(root, staged.dir, staged.version, now());
+      return { status: "rejected", version: staged.version, previous, counts, refusals: [refusal, ...refusals], warning };
     }
-    await point(root, staged.dir, staged.version, now());
-    return { status: "published", version: staged.version, previous, counts, override: null };
+    const warning = await point(root, staged.dir, staged.version, now());
+    return { status: "published", version: staged.version, previous, counts, override: null, warning };
   } finally {
     await rm(staged.dir, { recursive: true, force: true });
   }
@@ -127,7 +159,8 @@ export async function publish({ root, sources, counted, now }: Publication): Pro
 
 export async function publishRejected(root: DataRoot, version: DataVersion, counted: CountedFiles, now: () => Date): Promise<Outcome> {
   const paths = layout(root);
-  const dir = `${paths.rejected}/${version}`;
+  await rm(paths.staging, { recursive: true, force: true });
+  const dir = paths.rejectedVersion(version);
   const read = await readSnapshot(dir);
   if (read.version !== version) throw new Error(`${dir} holds version ${read.version}, not ${version}`);
   const current = await readCurrent(root);
@@ -135,6 +168,6 @@ export async function publishRejected(root: DataRoot, version: DataVersion, coun
   const candidate = { dir, sizes: read.sizes, catalog: await readSnapshotCatalog(dir) };
   const counts = await countsOf(candidate, published, counted);
   const refusals = await refusalsOf(candidate, published, counted);
-  await point(root, dir, version, now());
-  return { status: "published", version, previous: current?.version ?? null, counts, override: { refusals } };
+  const warning = await point(root, dir, version, now());
+  return { status: "published", version, previous: current?.version ?? null, counts, override: { refusals }, warning };
 }

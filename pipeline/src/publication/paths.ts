@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import type { DataVersion } from "./version.ts";
 
 export type SnapshotPath = string & { readonly __brand: "SnapshotPath" };
 
@@ -25,10 +26,13 @@ export const layout = (root: DataRoot) => {
   return {
     v2,
     current: `${v2}/current.json`,
-    version: (version: string) => `${v2}/${version}`,
+    version: (version: DataVersion) => `${v2}/${version}`,
     store: `${v2}/.store`,
     staging: `${v2}/.staging`,
+    trash: `${v2}/.trash`,
     rejected: `${v2}/.rejected`,
+    rejectedVersion: (version: DataVersion) => `${v2}/.rejected/${version}`,
     runs: `${v2}/.runs`,
+    lock: `${v2}/.lock`,
   };
 };

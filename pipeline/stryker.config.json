@@ -33,7 +33,10 @@
     "src/publication/store.ts",
     "src/publication/publish.ts",
     "src/publication/runs.ts",
-    "src/publication/sources.ts"
+    "src/publication/sources.ts",
+    "src/publication/run.ts",
+    "src/publication/lock.ts",
+    "src/publication/mirror.ts"
   ],
   "ignorePatterns": [
     "tsconfig.json",

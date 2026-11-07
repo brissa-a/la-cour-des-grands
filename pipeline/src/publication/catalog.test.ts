@@ -60,6 +60,13 @@ test("the catalog gives each file's shape, and lists every file it references on
   ]);
 });
 
+test("every column type the pipeline writes is read back as such", () => {
+  const types = ["text", "number", "date", "code", "list", "link", "image", "category", "reference"];
+  const catalog = parseCatalog(catalogOf({ ...table, features: types.map((type) => ({ title: type, type, column: type })) }));
+  const [read] = catalog.values();
+  assert.deepEqual(read?.shape.kind === "table" ? read.shape.columns.map((c) => c.type) : [], types);
+});
+
 test("a catalog naming a file outside the snapshot, twice, or with an impossible count is refused", () => {
   assert.throws(() => parseCatalog(catalogOf({ ...table, file: "../current.json" })), /Not a path inside a snapshot/);
   assert.throws(() => parseCatalog(catalogOf({ ...table, layout: { background: "/etc/passwd" } })), /Not a path inside a snapshot/);
@@ -69,4 +76,5 @@ test("a catalog naming a file outside the snapshot, twice, or with an impossible
   assert.throws(() => parseCatalog(catalogOf({ ...table, rows: "2" })), /rows is not a count/);
   assert.throws(() => parseCatalog(catalogOf({ ...generated, columnsOf: { ...generated.columnsOf, count: -1 } })), /count is not a count/);
   assert.throws(() => parseCatalog(JSON.stringify({ files: {} })), /catalog files is not a list/);
+  assert.throws(() => parseCatalog(catalogOf({ ...table, features: [{ title: "x", type: "picture", column: "x" }] })), /not a known column type: picture/);
 });

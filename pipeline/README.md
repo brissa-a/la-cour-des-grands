@@ -15,11 +15,11 @@ npm run pipeline -- --data-root /path/to/data-root   # or LCDG_DATA_ROOT=/path/t
 | `<job>` | Runs one job (e.g. `photos`, `deputies/init.csv`) into `output/` and publishes nothing. |
 | `--skip-new-cutouts` | Leaves out the photos that still need a cutout instead of computing it. |
 | `--publish-rejected <version>` | Publishes a snapshot the guards refused, as is, once you have inspected it. Runs no job. Never used by the scheduled run. |
-| `--push-to-remote` | After a run that publishes or finds nothing new, mirrors the current snapshot, photos included, to `v2/` on `main` of [brissa-a/lcdg-data](https://github.com/brissa-a/lcdg-data). Nothing automatic uses it. |
+| `--push-to-remote` | After a run that publishes or finds nothing new, mirrors the current snapshot, photos included, to `v2/` on `main` of [brissa-a/lcdg-data](https://github.com/brissa-a/lcdg-data). Refused (exit 1, after `last.json`) while `https://cour-des-grands.fr/data/v2/current.json` names no version: a site that still reads its data from that repository cannot resolve the snapshot's relative photo paths. |
 
 State kept between runs, next to the code: `cache/` (downloads, refreshed after 24 hours) and `output/photos/` (cutouts and `registry.json`; losing it means cutting out every photo again). `output/v2/` is the working copy of the last build: only the files its `catalog.json` lists are published.
 
-Run one pipeline at a time (for instance with `flock -n` around the scheduled command): two runs share `cache/` and `output/`.
+A run holds `<root>/v2/.lock` from start to end, since two runs would share `cache/` and `output/` as well as the data root: a run started meanwhile exits with 4 and changes nothing. The lock is released on exit, on `SIGINT` and on `SIGTERM`; after a `SIGKILL` or an out-of-memory kill it stays, its content names the process that held it, and the next runs exit with 4 until it is deleted by hand. A single-job run takes no lock.
 
 ## Data root
 
@@ -33,13 +33,16 @@ Run one pipeline at a time (for instance with `flock -n` around the scheduled co
   .rejected/<version>/         snapshots the guards refused, the 3 newest
   .runs/last.json              summary of the last run
   .staging/                    work in progress
+  .trash/                      versions being deleted
+  .lock                        held by the run in progress
 ```
 
-- A snapshot is assembled in `.staging/`, then renamed to `<version>/`: a visible snapshot is always complete.
+- A snapshot is assembled in `.staging/`, then renamed to `<version>/`: a visible snapshot is always complete. A `<version>/` folder already there is reused only when its files hash to that version; otherwise it is replaced.
 - `current.json` is replaced atomically (temporary file in `v2/`, then rename), once the snapshot is in place.
 - The `photo` column holds paths relative to the snapshot root (`photos/PA1592.webp`).
-- The ten most recently published versions are kept, plus the one `current.json` names. A store entry that no snapshot links to any more is deleted.
-- Hidden entries (`.store`, `.rejected`, `.runs`, `.staging`) are not published data.
+- The ten most recently published versions are kept, plus the one `current.json` names. An older version is first renamed into `.trash/`, then deleted, so a deletion cut short never leaves part of a version in `v2/`. A store entry that no snapshot links to any more is deleted.
+- Folders are `0755`, `current.json` `0644` and snapshot files `0444`, whatever the umask of the run: the server reads them as another user.
+- Hidden entries (`.store`, `.rejected`, `.runs`, `.staging`, `.trash`, `.lock`) are not published data.
 
 ### Version
 
@@ -61,7 +64,8 @@ Before `current.json` moves, the candidate is checked, against the current versi
 - every entry and every column of the current catalog still there;
 - no empty file;
 - each catalog entry matches its file: size, row count, header;
-- every file the catalog references exists, and every value of an `image` column is the path of a file of the snapshot.
+- every file the catalog references exists, and every value of an `image` column is the path of a file of the snapshot;
+- no more than 5 % fewer filled values in an `image` column (the photos) than in the current version.
 
 A refused candidate is moved to `.rejected/<version>/` and `current.json` stays as it was. Once inspected, `--publish-rejected <version>` publishes it.
 
@@ -70,8 +74,11 @@ A refused candidate is moved to `.rejected/<version>/` and `current.json` stays 
 | Code | Meaning |
 |---|---|
 | 0 | Published, or unchanged |
+| 1 | Failure: nothing published, or the mirror failed |
 | 3 | Refused by the guards: nothing published |
-| other | Failure |
+| 4 | Another run holds the lock: nothing done, `last.json` untouched |
+| 5 | Published, but old versions could not be pruned: see `warning` |
+| other | Crash |
 
 Every run writes `<root>/v2/.runs/last.json`:
 
@@ -86,11 +93,12 @@ Every run writes `<root>/v2/.runs/last.json`:
  "forced": false,
  "counts": { "deputies": 654, "votes": 9759, "newVotes": 3 },
  "refusals": ["one sentence per refusal"],
+ "warning": null,
  "error": null
 }
 ```
 
-`counts` is `null` on failure, and `newVotes` is `null` when there was no previous version. `forced` is `true` for a `--publish-rejected` run, whose `refusals` are those it overrode. When the data root itself is unusable, the run exits with 1 and writes nothing. A `--push-to-remote` mirror that fails exits with 1 after `last.json` has recorded the publication.
+`counts` is `null` on failure, and `newVotes` is `null` when there was no previous version. `warning` names a retention that failed after the publication or the refusal was settled. `forced` is `true` for a `--publish-rejected` run, whose `refusals` are those it overrode. When the data root is not a directory, the run exits with 1 and writes nothing. A `--push-to-remote` mirror that fails exits with 1 after `last.json` has recorded the publication.
 
 ## Development
 
@@ -101,4 +109,4 @@ npm test
 npm run mutate
 ```
 
-To run the front against a local build, point `VITE_DATA_ROOT` at a published snapshot, `<root>/v2/<version>/`, which holds the photos.
+To run the front or og against a local build, set `LCDG_DATA_ROOT` to the data root itself (`<root>`, not `<root>/v2/<version>/`): both read `v2/current.json`, then the version it names.

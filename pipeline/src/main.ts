@@ -1,4 +1,4 @@
-import { stat } from "node:fs/promises";
+import { constants, hostname } from "node:os";
 import { catalog } from "./core/catalog.ts";
 import { OUTPUT_DIR } from "./core/csv.ts";
 import type { Job } from "./core/job.ts";
@@ -10,11 +10,11 @@ import { links } from "./jobs/links.ts";
 import { photos } from "./jobs/photos.ts";
 import { majorVotes, votesByBill, votesCatalog } from "./jobs/votes.ts";
 import { options } from "./options.ts";
-import { describeRefusal } from "./publication/guards.ts";
+import type { Lock } from "./publication/lock.ts";
 import { mirror } from "./publication/mirror.ts";
 import { layout, snapshotPath } from "./publication/paths.ts";
 import { type Outcome, publish, publishRejected } from "./publication/publish.ts";
-import { type RunResult, exitCode, recordRun } from "./publication/runs.ts";
+import { runOnce } from "./publication/run.ts";
 import { snapshotSources } from "./publication/sources.ts";
 
 const files = [
@@ -44,41 +44,32 @@ if (target !== null) {
 }
 
 const root = options.dataRoot;
-if (!(await stat(root).then((s) => s.isDirectory(), () => false))) {
-  console.error(`The data root ${root} is not a directory: create it, or pass --data-root or LCDG_DATA_ROOT.`);
-  process.exit(1);
-}
-
 const counted = { deputies: snapshotPath(init.name), votes: snapshotPath(votesCatalog.name) };
 const now = () => new Date();
 
-async function run(): Promise<Outcome> {
+async function build(): Promise<Outcome> {
   if (options.publishRejected !== null) return publishRejected(root, options.publishRejected, counted, now);
   await all.result();
   return publish({ root, sources: await snapshotSources(OUTPUT_DIR, await photos.result()), counted, now });
 }
 
-function report(result: RunResult): string {
-  switch (result.status) {
-    case "published":
-      return `Published ${result.version}${result.override === null ? "" : ", forced over its refusals"} (${result.counts.deputies} deputies, ${result.counts.votes} votes, ${result.counts.newVotes ?? "no previous version, so no"} new votes)`;
-    case "unchanged":
-      return `Unchanged: ${result.version} is already the current version`;
-    case "rejected":
-      return [`Rejected ${result.version}, kept for inspection, current version untouched:`, ...result.refusals.map((r) => `  - ${describeRefusal(r)}`)].join("\n");
-    case "failed":
-      return `Failed: ${result.error}`;
+function releaseOnInterrupt(lock: Lock): void {
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.once(signal, () => {
+      lock.release();
+      process.exit(128 + constants.signals[signal]);
+    });
   }
 }
 
-const startedAt = now();
-const result = await run().catch((error: unknown): RunResult => {
-  console.error(error);
-  return { status: "failed", error: error instanceof Error ? error.message : String(error) };
-});
-await recordRun(root, result, startedAt, now());
-console.log(report(result));
-if (options.pushToRemote && (result.status === "published" || result.status === "unchanged")) {
-  await mirror(layout(root).version(result.version), result.version);
-}
-process.exit(exitCode(result));
+process.exit(
+  await runOnce({
+    root,
+    owner: { pid: process.pid, host: hostname() },
+    build,
+    mirror: options.pushToRemote ? (version) => mirror(layout(root).version(version), version) : null,
+    now,
+    whileLocked: releaseOnInterrupt,
+    console,
+  }),
+);
