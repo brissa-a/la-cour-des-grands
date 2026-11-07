@@ -10,11 +10,15 @@ test("a cutout whose process ends with 0 is done", async () => {
 });
 
 test("a cutout whose process fails gives the last line of its error output, or its exit code when it said nothing", async () => {
-  assert.deepEqual(await node(`process.stderr.write("loading the model\\nInput file is missing: x.jpg\\n\\n"); process.exit(1)`), {
+  assert.deepEqual(await node(`process.stderr.write("loading the model\\nmodel loaded\\nInput file is missing: x.jpg\\n\\n"); process.exit(1)`), {
     kind: "failed",
     reason: "Input file is missing: x.jpg",
   });
   assert.deepEqual(await node("process.exit(3)"), { kind: "failed", reason: "exited with 3" });
+});
+
+test("a cutout whose process prints a lot still ends", async () => {
+  assert.deepEqual(await node(`process.stdout.write("x".repeat(1024 * 1024)); process.stderr.write("y".repeat(1024 * 1024))`, 10_000), { kind: "done" });
 });
 
 test("a cutout whose process the kernel kills leaves the pipeline running and is said to have lacked memory", async () => {

@@ -29,7 +29,6 @@ export type CutoutPlan = {
 
 export const RETRY_AFTER_DAYS = 7;
 const DAY_MS = 86_400_000;
-const PROGRESS_INTERVAL = 25;
 
 async function orEmpty<T>(load: Promise<Map<DeputyId, T>>, log: (line: string) => void): Promise<Map<DeputyId, T>> {
   return load.catch((error: unknown) => {
@@ -88,27 +87,25 @@ export async function choosePhotos(candidates: readonly Candidate[], plan: Cutou
     .sort((a, b) => Number(b.inOffice) - Number(a.inOffice) || Number(failures.has(a.id)) - Number(failures.has(b.id)));
 
   const failed: FailedCutout[] = [];
-  if (todo.length > 0) {
-    log(`  ${todo.length} photos to cut out with ${model}, for ${plan.budgetMs / 60_000} min at most`);
-    await mkdir(files.dir, { recursive: true });
-  }
+  await mkdir(files.dir, { recursive: true });
+  if (todo.length > 0) log(`  ${todo.length} photos to cut out with ${model}, for ${plan.budgetMs / 60_000} min at most`);
   for (const [i, candidate] of todo.entries()) {
     if (plan.elapsedMs() >= plan.budgetMs) break;
     const { id, original } = candidate;
     const result = await attempt(candidate, plan);
+    const progress = `${i + 1}/${todo.length}`;
     if (result.kind === "done") {
+      log(`  cutout of ${id} done (${progress})`);
       cutouts.add(id);
       registry.set(id, { model, date: today, originalSha256: original.sha256 });
       failures.delete(id);
       await save(files.registry, registry);
     } else {
-      log(`  cutout of ${id} failed: ${result.reason}`);
+      log(`  cutout of ${id} failed (${progress}): ${result.reason}`);
       failed.push({ id, reason: result.reason });
       failures.set(id, { model, failedOn: today, originalSha256: original.sha256, reason: result.reason });
     }
     await save(files.failures, failures);
-    const done = i + 1;
-    if (done % PROGRESS_INTERVAL === 0 || done === todo.length) log(`  ${done}/${todo.length}`);
   }
 
   const published = new Map(

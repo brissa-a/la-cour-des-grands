@@ -32,7 +32,7 @@ async function photo(files: PhotoFiles, id: DeputyId, gray: number, inOffice = t
 
 type Run = { readonly attempted: DeputyId[]; readonly lines: string[] };
 
-function plan(files: PhotoFiles, outcome: (id: DeputyId) => Attempt | "done without a file", overrides: Partial<CutoutPlan> = {}): { plan: CutoutPlan; run: Run } {
+function plan(files: PhotoFiles, outcome: (id: DeputyId) => Attempt | "done without a file" | "failed without a file", overrides: Partial<CutoutPlan> = {}): { plan: CutoutPlan; run: Run } {
   const run: Run = { attempted: [], lines: [] };
   return {
     run,
@@ -44,6 +44,7 @@ function plan(files: PhotoFiles, outcome: (id: DeputyId) => Attempt | "done with
         run.attempted.push(id);
         const result = outcome(id);
         if (result === "done without a file") return { kind: "done" };
+        if (result === "failed without a file") return { kind: "failed", reason: "could not start: spawn node ENOENT" };
         await writeFile(cutout, result.kind === "done" ? CUT : "half a cutout");
         return result;
       },
@@ -97,6 +98,10 @@ test("a new photo is cut out, recorded, and published from its cutout; a current
   assert.equal(await readFile(photos.cutout(fresh.id), "utf8"), CUT);
   assert.deepEqual((await loadRegistry(photos.registry)).get(fresh.id), { model: MODEL, date: TODAY, originalSha256: fresh.original.sha256 });
   assert.deepEqual(await readdir(photos.dir), ["PA1.webp", "PA2.webp", "failures.json", "originals", "registry.json"]);
+  assert.deepEqual(run.lines, ["  1 photos to cut out with bria-rmbg, for 1 min at most", "  cutout of PA1 done (1/1)"]);
+  const again = plan(photos, done);
+  await choosePhotos([fresh, current], again.plan);
+  assert.deepEqual([again.run.attempted, again.run.lines], [[], []]);
 });
 
 test("a cutout that fails keeps the deputy's previous cutout, records the failure, and reports it", async () => {
@@ -116,7 +121,10 @@ test("a cutout that fails keeps the deputy's previous cutout, records the failur
     reason: "killed by SIGKILL, most likely for lack of memory",
   });
   assert.equal((await loadRegistry(photos.registry)).get(changed.id)?.originalSha256, "0".repeat(64));
-  assert.ok(run.lines.includes("  cutout of PA1 failed: killed by SIGKILL, most likely for lack of memory"), run.lines.join("\n"));
+  assert.deepEqual(run.lines.slice(1), [
+    "  cutout of PA1 failed (1/1): killed by SIGKILL, most likely for lack of memory",
+    "  cutouts: 1 failed, 0 still waiting; their deputies keep their previous cutout, or the official photo",
+  ]);
 });
 
 test("a deputy without any cutout whose cutout fails is published with the official photo, background included, as webp", async () => {
@@ -160,10 +168,12 @@ test("once its budget is spent the run starts no other cutout, and the photos le
   const choice = await choosePhotos(candidates, cutting);
   assert.deepEqual(run.attempted, ["PA1", "PA2"]);
   assert.deepEqual(choice.cutouts, { failed: [], waiting: 1 });
+  assert.equal(run.lines.at(-1), "  cutouts: 0 failed, 1 still waiting; their deputies keep their previous cutout, or the official photo");
   assert.deepEqual([...choice.published.values()], [photos.cutout(deputyId("PA1")), photos.cutout(deputyId("PA2")), photos.uncut(deputyId("PA3"))]);
   const skipped = plan(photos, done, { budgetMs: 0 });
-  const nothing = await choosePhotos(candidates, skipped.plan);
-  assert.deepEqual([skipped.run.attempted, nothing.cutouts], [[], { failed: [], waiting: 1 }]);
+  const nothing = await choosePhotos([...candidates, await photo(photos, deputyId("PA4"), 200)], skipped.plan);
+  assert.deepEqual([skipped.run.attempted, nothing.cutouts], [[], { failed: [], waiting: 2 }]);
+  assert.deepEqual([nothing.published.get(deputyId("PA3")), nothing.published.get(deputyId("PA4"))], [photos.uncut(deputyId("PA3")), photos.uncut(deputyId("PA4"))]);
 });
 
 test("deputies in office are cut out first, and among them the photos that never failed before those that did", async () => {
@@ -175,6 +185,14 @@ test("deputies in office are cut out first, and among them the photos that never
   const { plan: cutting, run } = plan(photos, done);
   await choosePhotos([former, retried, fresh], cutting);
   assert.deepEqual(run.attempted, ["PA3", "PA2", "PA1"]);
+});
+
+test("a cutout whose process failed before writing anything is a failure like any other", async () => {
+  const photos = await files();
+  const candidate = await photo(photos, deputyId("PA1"), 100);
+  const choice = await choosePhotos([candidate], plan(photos, () => "failed without a file").plan);
+  assert.deepEqual(choice.cutouts.failed, [{ id: candidate.id, reason: "could not start: spawn node ENOENT" }]);
+  assert.deepEqual(choice.published, new Map([[candidate.id, photos.uncut(candidate.id)]]));
 });
 
 test("a cutout said done that wrote no file is a failure, and a later success clears the failure", async () => {

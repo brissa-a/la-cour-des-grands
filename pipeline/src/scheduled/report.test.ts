@@ -75,6 +75,8 @@ test("failed cutouts raise the summary of a publication or an unchanged run, nam
   const unchanged = notificationFor(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: failedCutouts(7) }) }));
   assert.deepEqual([unchanged.priority, unchanged.title, unchanged.tags], [3, "Data unchanged, cutouts failed: 7", ["warning"]]);
   assert.deepEqual(unchanged.body.split("\n").slice(-3), ["- PA4: Input file is missing", "- PA5: Input file is missing", "- and 2 more, listed in .runs/last.json"]);
+  const five = notificationFor(observed({ record: fresh({ ...published, cutouts: failedCutouts(5) }) }));
+  assert.equal(five.body.split("\n").at(-1), "- PA5: Input file is missing");
   const both = notificationFor(observed({ exit: { kind: "code", code: 5 }, record: fresh({ ...published, warning: "EACCES", cutouts: failedCutouts(1) }) }));
   assert.deepEqual([both.priority, both.title], [3, "Data published: 3 new votes, old versions not pruned, cutouts failed: 1"]);
 });

@@ -172,3 +172,33 @@ test("check and run are the only commands", async () => {
   assert.equal(await scheduled(["run", "--skip-new-cutouts"], any), 0);
   assert.match(recorded.errors.join("\n"), /^usage: node src\/scheduled\/main\.ts check \| run \[pipeline options\]\n {2}check {2}exits 0 once/);
 });
+
+test("without an ntfy token neither check nor run goes further, and both say how to get one", async () => {
+  for (const NTFY_TOKEN of [undefined, "", "tk_short"]) {
+    const { recorded, host: tokenless } = await host();
+    const env = { ...tokenless.env, NTFY_TOKEN };
+    assert.equal(await check({ ...tokenless, env }), 78);
+    assert.equal(await run([], { ...tokenless, env }), 78);
+    assert.deepEqual(recorded.errors, [
+      "NTFY_TOKEN holds no ntfy token: without it no alert would go out. Run add-publisher.sh lcdg_pipeline on the Mac, then deploy with og/deploy/deploy.sh.",
+      "NTFY_TOKEN holds no ntfy token: without it no alert would go out. Run add-publisher.sh lcdg_pipeline on the Mac, then deploy with og/deploy/deploy.sh.",
+    ]);
+    assert.deepEqual([recorded.sent, recorded.priorities], [[], []]);
+  }
+});
+
+test("a run of a single job or with an unknown option is refused with the usage, before the priority or the pipeline", async () => {
+  const { recorded, host: any } = await host();
+  assert.equal(await run(["photos"], any), 2);
+  assert.equal(await run(["--branch", "main"], any), 2);
+  assert.equal(recorded.errors.length, 2);
+  assert.match(recorded.errors[0] ?? "", /^photos: a single job publishes nothing; run it with npm run pipeline\nusage: node src\/scheduled\/main\.ts/);
+  assert.match(recorded.errors[1] ?? "", /^Unknown option '--branch'.*\nusage: node src\/scheduled\/main\.ts/s);
+  assert.deepEqual([recorded.sent, recorded.priorities], [[], []]);
+});
+
+test("a data root the scheduler cannot write names the user's uid, or a question mark where there is none", async () => {
+  const { dir, recorded, host: uidless } = await host({ uid: null });
+  assert.equal(await check({ ...uidless, env: { ...uidless.env, LCDG_DATA_ROOT: `${dir}/missing` } }), 78);
+  assert.deepEqual(recorded.errors, [`The data root ${dir}/missing is not a directory this user (uid ?) can write.`]);
+});
