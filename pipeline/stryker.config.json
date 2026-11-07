@@ -44,6 +44,8 @@
     "src/scheduled/supervise.ts",
     "src/scheduled/alertedRun.ts",
     "src/photos/child.ts",
+    "src/photos/cutoutPlan.ts",
+    "src/publication/interrupt.ts",
     "src/photos/cutouts.ts",
     "src/photos/registry.ts",
     "src/scheduled/commands.ts"

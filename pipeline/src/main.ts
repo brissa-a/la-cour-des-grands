@@ -1,4 +1,4 @@
-import { constants, hostname } from "node:os";
+import { hostname } from "node:os";
 import { catalog } from "./core/catalog.ts";
 import { OUTPUT_DIR } from "./core/csv.ts";
 import type { Job } from "./core/job.ts";
@@ -7,10 +7,10 @@ import { communes } from "./jobs/communes.ts";
 import { hemicycle } from "./jobs/hemicycle.ts";
 import { init } from "./jobs/init.ts";
 import { links } from "./jobs/links.ts";
-import { photos } from "./jobs/photos.ts";
+import { cutoutProcesses, photos } from "./jobs/photos.ts";
 import { majorVotes, votesByBill, votesCatalog } from "./jobs/votes.ts";
 import { options } from "./argv.ts";
-import type { Lock } from "./publication/lock.ts";
+import { endOnInterrupt } from "./publication/interrupt.ts";
 import { mirror } from "./publication/mirror.ts";
 import { layout, snapshotPath } from "./publication/paths.ts";
 import { publish, publishRejected } from "./publication/publish.ts";
@@ -39,6 +39,7 @@ if (target === undefined) {
   process.exit(1);
 }
 if (target !== null) {
+  endOnInterrupt(process, () => cutoutProcesses.stop());
   await target.result();
   console.log("Single job run: nothing was published.");
   process.exit(0);
@@ -55,15 +56,6 @@ async function build(): Promise<Built> {
   return { ...(await publish({ root, sources: await snapshotSources(OUTPUT_DIR, published), counted, now })), cutouts };
 }
 
-function releaseOnInterrupt(lock: Lock): void {
-  for (const signal of ["SIGINT", "SIGTERM"] as const) {
-    process.once(signal, () => {
-      lock.release();
-      process.exit(128 + constants.signals[signal]);
-    });
-  }
-}
-
 process.exit(
   await runOnce({
     root,
@@ -71,7 +63,11 @@ process.exit(
     build,
     mirror: options.pushToRemote ? (version) => mirror(layout(root).version(version), version) : null,
     now,
-    whileLocked: releaseOnInterrupt,
+    whileLocked: (lock) =>
+      endOnInterrupt(process, () => {
+        cutoutProcesses.stop();
+        lock.release();
+      }),
     console,
   }),
 );

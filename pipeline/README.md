@@ -19,7 +19,7 @@ npm run pipeline -- --data-root /path/to/data-root   # or LCDG_DATA_ROOT=/path/t
 
 State kept between runs, next to the code: `cache/` (downloads, refreshed after 24 hours) and `output/photos/` (cutouts, `registry.json`, `failures.json`, and `uncut/`, the official photos as webp; losing it means cutting out every photo again). `output/v2/` is the working copy of the last build: only the files its `catalog.json` lists are published.
 
-A run holds `<root>/v2/.lock` from start to end, since two runs would share `cache/` and `output/` as well as the data root: a run started meanwhile exits with 4 and changes nothing. The lock is released on exit, on `SIGINT` and on `SIGTERM`; after a `SIGKILL` or an out-of-memory kill it stays, its content names the process that held it, and the next runs exit with 4 until it is deleted by hand. A single-job run takes no lock.
+A run holds `<root>/v2/.lock` from start to end, since two runs would share `cache/` and `output/` as well as the data root: a run started meanwhile exits with 4 and changes nothing. The lock is released on exit, and on `SIGINT` and `SIGTERM`, which also kill the cutout in progress; after a `SIGKILL` or an out-of-memory kill it stays, its content names the process that held it, and the next runs exit with 4 until it is deleted by hand. A single-job run takes no lock.
 
 ## Photos
 
