@@ -72,6 +72,11 @@ test("failed cutouts raise the summary of a publication or an unchanged run, nam
     ].join("\n"),
     tags: ["warning"],
   });
+  const noneWaiting = notificationFor(observed({ record: fresh({ ...published, cutouts: { ...failedCutouts(1), waiting: 0 } }) }));
+  assert.deepEqual(noneWaiting.body.split("\n").slice(2), [
+    "Cutouts: 1 failed, 0 still waiting. Until theirs is done, these deputies keep their previous cutout, or the official photo.",
+    "- PA1: killed by SIGKILL, most likely for lack of memory",
+  ]);
   const unchanged = notificationFor(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: failedCutouts(7) }) }));
   assert.deepEqual([unchanged.priority, unchanged.title, unchanged.tags], [3, "Data unchanged, cutouts failed: 7", ["warning"]]);
   assert.deepEqual(unchanged.body.split("\n").slice(-3), ["- PA4: Input file is missing", "- PA5: Input file is missing", "- and 2 more, listed in .runs/last.json"]);
