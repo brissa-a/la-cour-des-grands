@@ -36,7 +36,13 @@
     "src/publication/sources.ts",
     "src/publication/run.ts",
     "src/publication/lock.ts",
-    "src/publication/mirror.ts"
+    "src/publication/mirror.ts",
+    "src/scheduled/ntfy.ts",
+    "src/scheduled/lastRun.ts",
+    "src/scheduled/host.ts",
+    "src/scheduled/report.ts",
+    "src/scheduled/supervise.ts",
+    "src/scheduled/alertedRun.ts"
   ],
   "ignorePatterns": [
     "tsconfig.json",

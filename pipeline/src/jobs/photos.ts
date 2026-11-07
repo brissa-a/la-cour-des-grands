@@ -2,7 +2,7 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import { job } from "../core/job.ts";
 import { today } from "../core/types.ts";
 import { MODEL, backgroundRemover, briaModel } from "../photos/bria.ts";
-import { options } from "../options.ts";
+import { options } from "../argv.ts";
 import { type OfficialPhoto, officialPhoto } from "../photos/officialPhoto.ts";
 import { PHOTOS_OUTPUT_DIR, cutoutPath } from "../photos/paths.ts";
 import { loadRegistry, saveRegistry } from "../photos/registry.ts";

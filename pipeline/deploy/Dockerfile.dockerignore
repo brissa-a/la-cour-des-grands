@@ -1,0 +1,9 @@
+*
+!pipeline/package.json
+!pipeline/package-lock.json
+!pipeline/assets
+!pipeline/src
+!pipeline/deploy/crontab
+!pipeline/deploy/scheduler.sh
+**/*.test.ts
+**/*.fixture.ts

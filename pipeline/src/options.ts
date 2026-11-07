@@ -33,5 +33,3 @@ export function parseOptions(args: string[], env: Readonly<Record<string, string
     skipNewCutouts: values["skip-new-cutouts"],
   };
 }
-
-export const options = parseOptions(process.argv.slice(2), process.env);

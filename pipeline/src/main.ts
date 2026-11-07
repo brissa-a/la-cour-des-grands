@@ -9,7 +9,7 @@ import { init } from "./jobs/init.ts";
 import { links } from "./jobs/links.ts";
 import { photos } from "./jobs/photos.ts";
 import { majorVotes, votesByBill, votesCatalog } from "./jobs/votes.ts";
-import { options } from "./options.ts";
+import { options } from "./argv.ts";
 import type { Lock } from "./publication/lock.ts";
 import { mirror } from "./publication/mirror.ts";
 import { layout, snapshotPath } from "./publication/paths.ts";

@@ -100,6 +100,27 @@ Every run writes `<root>/v2/.runs/last.json`:
 
 `counts` is `null` on failure, and `newVotes` is `null` when there was no previous version. `warning` names a retention that failed after the publication or the refusal was settled. `forced` is `true` for a `--publish-rejected` run, whose `refusals` are those it overrode. When the data root is not a directory, the run exits with 1 and writes nothing. A `--push-to-remote` mirror that fails exits with 1 after `last.json` has recorded the publication.
 
+## On the Dedibox
+
+The service `lcdg-pipeline` of og's compose project (`og/deploy/docker-compose.yml`, deployed by `og/deploy/deploy.sh`) runs this image (`deploy/Dockerfile`): uid 10002, read-only, the data root on the volume `lcdg-data` at `/data`, `cache/` and `output/` on the volumes `lcdg_pipeline-cache` and `lcdg_pipeline-output`, 2 CPUs at a quarter of the default weight, 8 GB of memory. [supercronic](https://github.com/aptible/supercronic) runs `node src/scheduled/main.ts run` every night at 04:30, Paris time (`deploy/crontab`), and waits on `SIGTERM` for the run in progress.
+
+`src/scheduled/main.ts` wraps a run of the pipeline with alerts to Alexis's phone, through https://ntfy.kxv.fr as the user `lcdg_pipeline`, whose token is `NTFY_TOKEN`:
+
+| Command | Effect |
+|---|---|
+| `check` | Exits 0 when `NTFY_TOKEN` is a token ntfy accepts for `lcdg_pipeline` and the data root is a directory this user can write, 78 otherwise. The container runs it before the scheduler (`deploy/scheduler.sh`): without it, no scheduler and no run. |
+| `run [options]` | Runs the pipeline with these options (no job), passes its output through, then sends one notification and exits with the pipeline's code (128 + the signal's number when killed). Exits 78 without running anything when `NTFY_TOKEN` holds no token. |
+
+| Outcome | Topic | Priority |
+|---|---|---|
+| Published or unchanged: version, counts, new votes | `lcdg_pipeline-done` | 2 (low) |
+| Published, old versions not pruned (exit 5) | `lcdg_pipeline-done` | 3 |
+| Refused by the guards (exit 3): each refusal from `last.json`, the command that publishes the candidate anyway | `lcdg_pipeline-rejected` | 4 (high) |
+| Another run holds the lock (exit 4): its holder, the command that frees it | `lcdg_pipeline-locked` | 3 |
+| Any other end: failure recorded in `last.json`, exit without a fresh `last.json`, a kill (out of memory when cgroup v2's `memory.events` counted one), with the end of the error output | `lcdg_pipeline-failed` | 4 (high) |
+
+The pipeline never gets `NTFY_TOKEN`. A run's `last.json` counts only when it started after the run did. When the pipeline is killed, a lock that names that very process on this host is deleted: nobody else can hold it. A notification ntfy does not take is tried again after 10 s and 60 s, unless ntfy refuses it (4xx but 429), then logged; the run's exit code stays the pipeline's.
+
 ## Development
 
 ```bash
