@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Builds the front here, then on the Dedibox: builds the service and pipeline images, creates the data volume if missing, starts the
-# pipeline's scheduler, fills the data root with a first run when it holds no version, checks the new service has a data version to serve,
-# (re)starts it, then checks it from outside.
+# Builds the front here, then on the Dedibox: builds the service and pipeline images, creates the data volume if missing, stops a pipeline
+# run in progress, starts the pipeline's scheduler, fills the data root with a first run when it holds no version, checks the new service
+# has a data version to serve, (re)starts it, then checks it from outside.
 #   og/deploy/deploy.sh
 #   LCDG_PHOTOS_FROM=<pipeline checkout>/output/photos og/deploy/deploy.sh   first deploy: cutouts made elsewhere, spared to the box
-#   LCDG_CUTOUTS_ON_BOX=1 og/deploy/deploy.sh   first deploy without them: the nightly runs then cut out some 650 photos on the box
+#   LCDG_CUTOUTS_ON_BOX=1 og/deploy/deploy.sh   first deploy without them: the nightly runs cut out some 650 photos on the box, 30 min a night
 #   LCDG_ALLOW_OLDER_VERSION=1 og/deploy/deploy.sh   deploy a service that serves an older kept version than the one current.json names
 # Roll back to an earlier deploy, with the compose file of the commit its tag names: routes and PUBLIC_ORIGIN are not in the image.
 #   git show <tag>:og/deploy/docker-compose.yml > /tmp/lcdg-<tag>.yml && LCDG_TAG=<tag> docker --context abysshopper compose -f /tmp/lcdg-<tag>.yml up -d --no-build --wait --remove-orphans
@@ -15,6 +15,7 @@ readonly CONTEXT=abysshopper
 readonly ORIGIN=https://cour-des-grands.fr
 readonly DATA_VOLUME=lcdg-data
 readonly PIPELINE_USER=10002:10002
+readonly PIPELINE_CONTAINER=lcdg-lcdg-pipeline-1
 readonly NTFY_USER=lcdg_pipeline
 readonly NTFY_TOKEN_FILE=$HOME/.config/ntfy/$NTFY_USER-token
 
@@ -53,7 +54,8 @@ first_deploy=false
 if ! holds_a_version; then first_deploy=true; fi
 if [[ $first_deploy == true && -z ${LCDG_PHOTOS_FROM:-} && -z ${LCDG_CUTOUTS_ON_BOX:-} ]]; then
   echo "$DATA_VOLUME holds no data version, and LCDG_PHOTOS_FROM names no cutouts: the box's nightly runs would cut out some 650 photos," >&2
-  echo "hours of CPU and up to 8 GB of memory. Give LCDG_PHOTOS_FROM=<pipeline checkout>/output/photos, or LCDG_CUTOUTS_ON_BOX=1 to accept that." >&2
+  echo "30 minutes a night for days, each cutout never measured on the box (some 8.8 GB on a Mac); the official photos stand in meanwhile." >&2
+  echo "Give LCDG_PHOTOS_FROM=<pipeline checkout>/output/photos, or LCDG_CUTOUTS_ON_BOX=1 to accept that." >&2
   exit 1
 fi
 
@@ -63,16 +65,32 @@ if ! docker --context "$CONTEXT" volume inspect "$DATA_VOLUME" >/dev/null 2>&1; 
   docker --context "$CONTEXT" run --rm --network none --user 0:0 --cap-drop ALL --cap-add CHOWN --volume "$DATA_VOLUME:/data" "lcdg-pipeline:$LCDG_TAG" chown "$PIPELINE_USER" /data
 fi
 
+# A run in progress would hold the scheduler's replacement up to its stop_grace_period, 50 minutes when it cuts out photos. On SIGTERM its
+# wrapper ends it in seconds, the cutout in progress killed and the lock released, then alerts. The image has no ps nor kill.
+stop_run_in_progress() {
+  if [[ $(docker --context "$CONTEXT" inspect --format '{{.State.Running}}' "$PIPELINE_CONTAINER" 2>/dev/null) != true ]]; then return 0; fi
+  docker --context "$CONTEXT" exec "$PIPELINE_CONTAINER" node -e '
+    const { readdirSync, readFileSync } = require("node:fs")
+    for (const pid of readdirSync("/proc").filter(name => /^[0-9]+$/.test(name))) {
+      let args = []
+      try { args = readFileSync("/proc/" + pid + "/cmdline", "utf8").split("\0") } catch {}
+      if (args[0] !== "node" || args[args.indexOf("src/scheduled/main.ts") + 1] !== "run") continue
+      process.kill(Number(pid), "SIGTERM")
+      console.log("Stopped the pipeline run in progress (" + args.join(" ").trim() + "): an alert follows; run it again once deployed.")
+    }'
+}
+
 # The scheduler refuses to start without a token ntfy accepts or a data root it can write: the same check here stops the deploy,
 # which would otherwise see a scheduler running for the moment its check takes.
 compose run --rm --no-TTY lcdg-pipeline node src/scheduled/main.ts check
+stop_run_in_progress
 compose up --detach --no-build --wait lcdg-pipeline
 
 if [[ $first_deploy == true ]]; then
   if [[ -n ${LCDG_PHOTOS_FROM:-} ]]; then
     COPYFILE_DISABLE=1 tar --no-xattrs -C "$LCDG_PHOTOS_FROM" -cf - . | compose run --rm --no-TTY lcdg-pipeline tar -C output/photos -xf -
   fi
-  # The cutouts still missing are left to the nightly run: this one stays within minutes.
+  # Within minutes: a deputy without a cutout gets the official photo, and the nightly runs cut out the missing ones, 30 minutes each.
   compose run --rm --no-TTY lcdg-pipeline node src/scheduled/main.ts run --skip-new-cutouts
 fi
 

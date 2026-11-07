@@ -161,11 +161,13 @@ services:
     build:
       context: ../..
       dockerfile: pipeline/deploy/Dockerfile
-    # On SIGTERM the scheduler waits for the run in progress, about a minute without new cutouts.
-    stop_grace_period: 10m
+    # On SIGTERM the scheduler waits for the run in progress: minutes, but up to 30 minutes of new cutouts, then the one in progress
+    # (10 at most), then the rest of the run. Killed sooner, a run leaves its lock behind. deploy.sh stops a run in progress itself.
+    stop_grace_period: 50m
     tmpfs:
       - /tmp:size=64m
-    # A run without new cutouts peaks at 1.6 GB; cutting out photos with bria peaked at 5.5 GB on a Mac and was never measured here.
+    # A run without new cutouts peaks at 1.6 GB. A cutout (bria) took some 8.8 GB on a Mac and was never measured here; it runs in a child
+    # process the kernel kills first when this limit is reached (oom_score_adj 1000), and the data is published all the same.
     mem_limit: 8g
     memswap_limit: 8g
     cpus: 2
@@ -197,5 +199,6 @@ volumes:
     external: true
   # Downloads, the bria model among them, some 3 GB: lost, they are downloaded again.
   pipeline-cache:
-  # The photos' cutouts and their registry.json: lost, every photo is cut out again, hours of CPU.
+  # The photos' cutouts, registry.json, failures.json and uncut/: lost, every photo is cut out again, 30 minutes a night, the official
+  # photos standing in meanwhile.
   pipeline-output:
