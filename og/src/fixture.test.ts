@@ -3,7 +3,7 @@ import { loadShareData } from "../../web/src/share/data.ts"
 import { FILES, readerOf } from "../../web/src/share/fixture.test.ts"
 import { canonicalView, renderId, type CanonicalView } from "./canonical.ts"
 import { publicOrigin } from "./config.ts"
-import { dataVersion } from "./version.ts"
+import { dataVersion } from "../../web/src/data/version.ts"
 
 export function given<T>(value: T | null | undefined, what: string): T {
   assert.ok(value !== null && value !== undefined, what)

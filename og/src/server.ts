@@ -1,16 +1,22 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http"
+import { DATA_PATH } from "../../web/src/data/source.ts"
+import { POINTER_FILE } from "../../web/src/data/version.ts"
 import { FALLBACK_PATH, parseImagePath } from "./canonical.ts"
 import { clientOf, type ClientId } from "./client.ts"
 import { isLinkPreviewCrawler } from "./crawlers.ts"
+import type { DataFiles } from "./dataFiles.ts"
 import type { ImageAnswer, Images } from "./images.ts"
 import { answerPage, type PageSite } from "./page.ts"
 import type { Releases } from "./releases.ts"
-import { bodyFor, encoded, PAGE_TYPE, preferredEncoding, type Encoding, type StaticSite } from "./site.ts"
+import { bodyFor, encoded, fileType, PAGE_TYPE, preferredEncoding, type Encoding, type StaticSite } from "./site.ts"
+import { dataAddress } from "./snapshot.ts"
 
 export type ServiceDeps = {
   readonly site: StaticSite
   readonly page: PageSite
   readonly releases: () => Releases
+  readonly pointer: () => string | null
+  readonly data: DataFiles
   readonly images: Images
   readonly fallback: () => Buffer | null
   readonly health: () => Readonly<Record<string, unknown>>
@@ -32,6 +38,9 @@ export const HEALTH_PATH = "/healthz"
 const IMMUTABLE = "public, max-age=31536000, immutable"
 const PAGE_CACHE = "public, max-age=60"
 const FALLBACK_CACHE = "public, max-age=60"
+// As long as the page: a pointer a minute old still names a version kept on disk, and fresher would cost every visit a round trip before its first data file.
+const POINTER_CACHE = "public, max-age=60"
+const OPEN_DATA = { "access-control-allow-origin": "*" }
 const JPEG = "image/jpeg"
 const RETRY_AFTER_S = "30"
 
@@ -92,7 +101,25 @@ async function handle(request: IncomingMessage, deps: ServiceDeps): Promise<Repl
   }
 }
 
+async function data(pathname: string, encoding: Encoding, deps: ServiceDeps): Promise<Reply> {
+  const address = dataAddress(pathname)
+  if (address === null) return text(404, "Fichier introuvable", OPEN_DATA)
+  switch (address.kind) {
+    case "pointer": {
+      const pointer = deps.pointer()
+      if (pointer === null) return text(503, "Données indisponibles, réessayez plus tard", { "retry-after": RETRY_AFTER_S, ...OPEN_DATA })
+      return reply(200, { "content-type": fileType(POINTER_FILE).type, "cache-control": POINTER_CACHE, ...OPEN_DATA }, Buffer.from(pointer))
+    }
+    case "file": {
+      const found = await deps.data.get(address.version, address.path, encoding)
+      if (found === null) return text(404, "Fichier introuvable", OPEN_DATA)
+      return { status: 200, headers: { "content-type": found.type, "cache-control": IMMUTABLE, ...OPEN_DATA }, body: found.body, encoding: found.encoding, varies: found.varies }
+    }
+  }
+}
+
 async function file(url: URL, encoding: Encoding, client: ClientId, deps: ServiceDeps): Promise<Reply> {
+  if (url.pathname.startsWith(DATA_PATH)) return data(url.pathname, encoding, deps)
   const address = parseImagePath(url.pathname)
   if (address !== null) return imageReply(await deps.images.answer(address, url.searchParams, client), deps.fallback())
   const asset = deps.site.assets.get(url.pathname)

@@ -53,7 +53,7 @@ export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, t
         </button>
       </div>
       <div className="portrait">
-        <img className="portrait-photo" src={deputy.photo} alt="" style={{ borderColor: color }} />
+        <img className="portrait-photo" src={deputy.photo ?? undefined} alt="" style={{ borderColor: color }} />
       </div>
       <div className="panel-identity">
         <span className="civility">{deputy.civility}</span>

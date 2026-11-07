@@ -9,6 +9,7 @@ export type Config = {
   readonly origin: PublicOrigin
   readonly dist: string
   readonly cacheDir: string
+  readonly dataRoot: string
   readonly browser: BrowserSource
 }
 
@@ -41,6 +42,7 @@ export function readConfig(env: Readonly<Record<string, string | undefined>>, he
     origin,
     dist: resolve(here, env["DIST_DIR"] ?? "../web/dist"),
     cacheDir: resolve(here, env["CACHE_DIR"] ?? "cache"),
+    dataRoot: resolve(here, env["LCDG_DATA_ROOT"] ?? "/data"),
     browser,
   }
 }

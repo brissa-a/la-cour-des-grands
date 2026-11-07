@@ -131,6 +131,17 @@ test("a browser gets the site with its script compressed and cached for a year",
   assert.equal(response.headers.get("cache-control"), IMMUTABLE)
 })
 
+test("the data pointer names the version the service has loaded, and that version's files are open to every origin, compressed and cached for good", async () => {
+  const { version } = await health()
+  const pointer = await fetch(`${ORIGIN}/data/v2/current.json`)
+  assert.deepEqual([pointer.status, pointer.headers.get("cache-control"), pointer.headers.get("access-control-allow-origin")], [200, "public, max-age=60", "*"])
+  const named: unknown = await pointer.json()
+  assert.ok(typeof named === "object" && named !== null && "version" in named && named.version === version, JSON.stringify(named))
+  const catalog = await fetch(`${ORIGIN}/data/v2/${version}/catalog.json`, { headers: { "accept-encoding": "br" } })
+  assert.deepEqual([catalog.status, catalog.headers.get("content-encoding"), catalog.headers.get("cache-control"), catalog.headers.get("access-control-allow-origin")], [200, "br", IMMUTABLE, "*"])
+  for (const hidden of ["/data/v2/.runs/last.json", `/data/v2/${version}/../.runs/last.json`]) assert.equal((await fetch(`${ORIGIN}${hidden}`)).status, 404, hidden)
+})
+
 test("a burst of image requests from one link preview robot is never answered 429", async () => {
   const image = tag(await page("", CRAWLERS[4]), "og:image")
   const statuses: number[] = []

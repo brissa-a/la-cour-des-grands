@@ -5,19 +5,22 @@ import { initials } from "./format.ts"
 const decoded = new Set<string>()
 
 export function Portrait({ deputy, className }: { deputy: Person; className: string }) {
+  const { photo } = deputy
   const [loaded, setLoaded] = useState<string | null>(null)
-  const ready = loaded === deputy.photo || decoded.has(deputy.photo)
+  const ready = photo !== null && (loaded === photo || decoded.has(photo))
   return (
     <span className={className} style={{ borderColor: deputy.politicalGroup.color }}>
-      <img
-        src={deputy.photo}
-        alt=""
-        onLoad={() => {
-          decoded.add(deputy.photo)
-          setLoaded(deputy.photo)
-        }}
-        style={{ opacity: ready ? 1 : 0 }}
-      />
+      {photo !== null && (
+        <img
+          src={photo}
+          alt=""
+          onLoad={() => {
+            decoded.add(photo)
+            setLoaded(photo)
+          }}
+          style={{ opacity: ready ? 1 : 0 }}
+        />
+      )}
       {!ready && (
         <span
           className="initials"

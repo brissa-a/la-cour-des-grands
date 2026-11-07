@@ -6,7 +6,7 @@ import { after, test } from "node:test"
 import { imageKey, renderId, type ImageKey } from "./canonical.ts"
 import { openDiskCache, removeTemporaries, writeAtomically } from "./disk.ts"
 import { given, NEW, OLD, RENDER, viewOf } from "./fixture.test.ts"
-import type { DataVersion } from "./version.ts"
+import type { DataVersion } from "../../web/src/data/version.ts"
 
 const scratch = await mkdtemp(join(tmpdir(), "og-disk-"))
 after(() => rm(scratch, { recursive: true, force: true }))

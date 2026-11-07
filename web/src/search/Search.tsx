@@ -233,7 +233,7 @@ function ResultRow({ assembly, result, onHalo, onSelect }: RowProps) {
       onBlur={() => onHalo(null)}
       onClick={() => onSelect(deputy.id)}
     >
-      <img className="result-photo" src={deputy.photo} alt="" style={{ borderColor: deputy.politicalGroup.color }} />
+      <img className="result-photo" src={deputy.photo ?? undefined} alt="" style={{ borderColor: deputy.politicalGroup.color }} />
       <span className="result-text">
         <span className="result-head">
           <span className="result-name">

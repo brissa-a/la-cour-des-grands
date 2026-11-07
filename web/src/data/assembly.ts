@@ -4,7 +4,8 @@ import { loadCsv } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
 import { CIVILITIES, INIT_COLUMNS, type Civility, type ConstituencyLabel, type Group, type InitRow, type Person } from "./person.ts"
 import { parseSeatRows, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS, SEATS_FILE, seatProblemWarning, type EmptySeat, type Seat } from "./seats.ts"
-import type { ReadText } from "./source.ts"
+import { photoUrl } from "./snapshotPath.ts"
+import type { ReadText, Snapshot } from "./source.ts"
 import { parseViewBox, type ViewBox } from "./viewBox.ts"
 
 export type { Civility, ConstituencyLabel, DeputyId, Group, Person, Seat }
@@ -32,7 +33,7 @@ export type Assembly = Omit<Sitting, "emptySeats"> & {
 
 const GROUP_VALUE_COLUMNS = ["value", "label_fr", "short_fr", "color"] as const
 
-export async function loadAssembly(read: ReadText): Promise<Assembly> {
+export async function loadAssembly({ root, read }: Snapshot): Promise<Assembly> {
   const catalogLoaded = loadCatalog(read)
   const [catalog, groupRows, rows, seatRows, svg] = await Promise.all([
     catalogLoaded,
@@ -49,7 +50,9 @@ export async function loadAssembly(read: ReadText): Promise<Assembly> {
     if (!group) throw new Error(`deputies/values/group.csv: no group ${row.group}`)
     const civility = CIVILITIES.find(c => c === row.civility)
     if (!civility) throw new Error(`deputies/init.csv: ${row.deputy_id} has civility ${row.civility}`)
-    return { ...row, civility, id: deputyId(row.deputy_id), politicalGroup: group }
+    const photo = photoUrl(root, row.photo)
+    if (photo === null && row.photo !== "") console.warn(`deputies/init.csv: ${row.deputy_id} has photo ${row.photo}, not a path in the data version`)
+    return { ...row, civility, photo, id: deputyId(row.deputy_id), politicalGroup: group }
   })
   const inOffice = people.filter(p => p.in_office === "yes")
 

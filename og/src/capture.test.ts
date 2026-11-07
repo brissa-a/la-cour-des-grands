@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { DATA_BRANCH } from "../../web/src/data/source.ts"
-import { captureRoute, captureUrl } from "./capture.ts"
-import { SHA as VERSION, viewOf } from "./fixture.test.ts"
+import { pointedVersion } from "../../web/src/data/version.ts"
+import { capturePointer, captureRoute, captureUrl } from "./capture.ts"
+import { OLD as OTHER, SHA as VERSION, viewOf } from "./fixture.test.ts"
 
 test("the capture page is the service's own copy of the front, at a fixed origin, on the image's view with the capture switch and without photos", () => {
   const { image } = viewOf("deputy=PA720892&vote=VTANR5L17V1&clean=true&title=true&showPic=true&next=http://evil.example/")
@@ -10,31 +10,40 @@ test("the capture page is the service's own copy of the front, at a fixed origin
   assert.equal(captureUrl(viewOf("").image), "https://capture.invalid/?clean=capture")
 })
 
-test("the capture browser reaches its own origin and the published data, pinned to the version being drawn", () => {
+test("the capture browser reaches its own origin: the front's files, the data pointer and the files of the version being drawn", () => {
   assert.deepEqual(captureRoute("https://capture.invalid/?vote=VTANR5L17V1&clean=capture", VERSION), { kind: "site", path: "/" })
   assert.deepEqual(captureRoute("https://capture.invalid/assets/index-Dha1ylb_.js", VERSION), { kind: "site", path: "/assets/index-Dha1ylb_.js" })
-  assert.deepEqual(captureRoute(`https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/votes/votes.csv`, VERSION), {
-    kind: "upstream",
-    url: `https://raw.githubusercontent.com/brissa-a/lcdg-data/${VERSION}/v2/votes/votes.csv`,
-  })
+  assert.deepEqual(captureRoute("https://capture.invalid/data/v2/current.json", VERSION), { kind: "pointer" })
+  assert.deepEqual(captureRoute(`https://capture.invalid/data/v2/${VERSION}/votes/votes.csv`, VERSION), { kind: "data", path: "votes/votes.csv" })
+  assert.deepEqual(captureRoute(`https://capture.invalid/data/v2/${OTHER}/deputies/init.csv`, OTHER), { kind: "data", path: "deputies/init.csv" })
 })
 
-test("every other address is blocked: the photos, look-alike hosts, other branches, climbs out of the data folder and local addresses", () => {
+test("the pointer the capture page reads names the version being drawn, not the current one", () => {
+  assert.equal(pointedVersion(capturePointer(VERSION)), VERSION)
+  assert.equal(pointedVersion(capturePointer(OTHER)), OTHER)
+})
+
+test("every other address is blocked: another data version, a path out of the version, other origins, GitHub and local addresses", () => {
   for (const address of [
-    `https://raw.githubusercontent.com/brissa-a/lcdg-nobg/${DATA_BRANCH}/v2/PA720892.webp`,
-    `https://raw.githubusercontent.com.evil.example/brissa-a/lcdg-data/${DATA_BRANCH}/v2/catalog.json`,
-    `https://evil.example/https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/catalog.json`,
-    `https://user@raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/catalog.json`,
-    `https://raw.githubusercontent.com:444/brissa-a/lcdg-data/${DATA_BRANCH}/v2/catalog.json`,
-    `http://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/catalog.json`,
-    `https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}-next/v2/catalog.json`,
-    `https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/../../other-repo/x`,
-    `https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/%2e%2e/%2E%2E/other-repo/x`,
-    `https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2evil/catalog.json`,
-    `https://raw.githubusercontent.com/brissa-a/lcdg-data/${DATA_BRANCH}/v2/catalog.json?token=x`,
-    `https://raw.githubusercontent.com/brissa-a/other/${DATA_BRANCH}/v2/catalog.json`,
+    `https://capture.invalid/data/v2/${OTHER}/votes/votes.csv`,
+    `https://capture.invalid/data/v2/${VERSION}/../${OTHER}/catalog.json`,
+    `https://capture.invalid/data/v2/${VERSION}/%2e%2e/${OTHER}/catalog.json`,
+    `https://capture.invalid/data/v2/${VERSION}/..%2f${OTHER}/catalog.json`,
+    `https://capture.invalid/data/v2/${VERSION}/.hidden`,
+    `https://capture.invalid/data/v2/${VERSION}/`,
+    `https://capture.invalid/data/v2/${VERSION}`,
+    "https://capture.invalid/data/v2/.store/0123456789abcdef",
+    "https://capture.invalid/data/v2/.runs/last.json",
+    "https://capture.invalid/data/v2/main/catalog.json",
+    "https://capture.invalid/data/v2/",
+    `https://cour-des-grands.fr/data/v2/${VERSION}/catalog.json`,
+    "https://cour-des-grands.fr/data/v2/current.json",
+    "https://raw.githubusercontent.com/brissa-a/lcdg-data/main/v2/votes/votes.csv",
+    "https://raw.githubusercontent.com/brissa-a/lcdg-nobg/main/v2/PA720892.webp",
+    "https://api.github.com/repos/brissa-a/lcdg-data/commits/main",
     "https://capture.invalid:8443/",
     "http://capture.invalid/",
+    "http://capture.invalid/data/v2/current.json",
     "http://169.254.169.254/latest/meta-data/",
     "http://127.0.0.1:8080/healthz",
     "http://traefik:8080/api/http/routers",

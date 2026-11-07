@@ -13,15 +13,19 @@ test("the public origin the tags are built on is an https origin, or http on loo
     assert.equal(publicOrigin(text), null, text)
 })
 
-test("the configuration defaults to cour-des-grands.fr on port 8080 with the front built next door, and refuses a bad origin or port", () => {
-  assert.deepEqual(readConfig({}, "/app/og"), { port: 8080, origin: "https://cour-des-grands.fr", dist: "/app/web/dist", cacheDir: "/app/og/cache", browser: { kind: "launch" } })
-  assert.deepEqual(readConfig({ PORT: "3000", PUBLIC_ORIGIN: "https://lcdg.kxv.fr", DIST_DIR: "/srv/dist", CACHE_DIR: "/var/cache/og", CHROMIUM_ENDPOINT: "ws://lcdg-chromium:3000/" }, "/app/og"), {
-    port: 3000,
-    origin: "https://lcdg.kxv.fr",
-    dist: "/srv/dist",
-    cacheDir: "/var/cache/og",
-    browser: { kind: "connect", endpoint: "ws://lcdg-chromium:3000/" },
-  })
+test("the configuration defaults to cour-des-grands.fr on port 8080 with the front built next door and the data in /data, and refuses a bad origin or port", () => {
+  assert.deepEqual(readConfig({}, "/app/og"), { port: 8080, origin: "https://cour-des-grands.fr", dist: "/app/web/dist", cacheDir: "/app/og/cache", dataRoot: "/data", browser: { kind: "launch" } })
+  assert.deepEqual(
+    readConfig({ PORT: "3000", PUBLIC_ORIGIN: "https://lcdg.kxv.fr", DIST_DIR: "/srv/dist", CACHE_DIR: "/var/cache/og", LCDG_DATA_ROOT: "../data-root", CHROMIUM_ENDPOINT: "ws://lcdg-chromium:3000/" }, "/app/og"),
+    {
+      port: 3000,
+      origin: "https://lcdg.kxv.fr",
+      dist: "/srv/dist",
+      cacheDir: "/var/cache/og",
+      dataRoot: "/app/data-root",
+      browser: { kind: "connect", endpoint: "ws://lcdg-chromium:3000/" },
+    },
+  )
   assert.throws(() => readConfig({ PUBLIC_ORIGIN: "http://lcdg.kxv.fr" }, "/app/og"), /PUBLIC_ORIGIN/)
   for (const port of ["0", "65536", "80.5", "http", ""]) assert.throws(() => readConfig({ PORT: port }, "/app/og"), /PORT/, port)
   assert.deepEqual([readConfig({ PORT: "1" }, "/").port, readConfig({ PORT: "65535" }, "/").port], [1, 65_535])

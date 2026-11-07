@@ -3,7 +3,7 @@ import { mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from "n
 import { join } from "node:path"
 import type { ImageKey, RenderId } from "./canonical.ts"
 import { sizedLru } from "./lru.ts"
-import type { DataVersion } from "./version.ts"
+import type { DataVersion } from "../../web/src/data/version.ts"
 
 export type DiskCache = {
   readonly has: (key: ImageKey) => Promise<boolean>

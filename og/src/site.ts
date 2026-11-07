@@ -1,8 +1,11 @@
 import { readdir, readFile } from "node:fs/promises"
 import { extname, join, relative, sep } from "node:path"
-import { brotliCompressSync, constants, gzipSync } from "node:zlib"
+import { promisify } from "node:util"
+import { brotliCompress, brotliCompressSync, constants, gzip, gzipSync } from "node:zlib"
 
 export type Encoding = "br" | "gzip" | "identity"
+
+export type FileType = { readonly type: string; readonly compress: boolean }
 
 export type Bodies = { readonly identity: Buffer; readonly compressed: { readonly br: Buffer; readonly gzip: Buffer } | null }
 
@@ -20,8 +23,10 @@ const REVALIDATED = "public, max-age=3600"
 
 const HASHED_DIRECTORY = "assets/"
 
-const TYPES: Readonly<Record<string, { readonly type: string; readonly compress: boolean }>> = {
+const TYPES: Readonly<Record<string, FileType>> = {
   ".css": { type: "text/css; charset=utf-8", compress: true },
+  ".csv": { type: "text/csv; charset=utf-8", compress: true },
+  ".geojson": { type: "application/geo+json", compress: true },
   ".html": { type: PAGE_TYPE, compress: true },
   ".ico": { type: "image/x-icon", compress: true },
   ".jpg": { type: "image/jpeg", compress: false },
@@ -34,10 +39,19 @@ const TYPES: Readonly<Record<string, { readonly type: string; readonly compress:
   ".woff2": { type: "font/woff2", compress: false },
 }
 
-const UNKNOWN_TYPE = { type: "application/octet-stream", compress: false }
+const UNKNOWN_TYPE: FileType = { type: "application/octet-stream", compress: false }
 
-// Each page is compressed as it is sent, on the event loop: brotli's default quality 11 costs ~75 times quality 5 for 10 % fewer bytes.
-const PAGE_BROTLI = { params: { [constants.BROTLI_PARAM_QUALITY]: 5 } }
+// Pages and data files are compressed as they are sent: brotli's default quality 11 costs 75 to 200 times quality 5 for 10 to 20 % fewer bytes
+// (3.6 s against 17 ms for the 4 MB of votes/votes.csv).
+const QUICK_BROTLI = { params: { [constants.BROTLI_PARAM_QUALITY]: 5 } }
+
+const brotliLater = promisify(brotliCompress)
+
+const gzipLater = promisify(gzip)
+
+export function fileType(path: string): FileType {
+  return TYPES[extname(path).toLowerCase()] ?? UNKNOWN_TYPE
+}
 
 export function bodiesOf(content: Buffer, compress: boolean): Bodies {
   if (!compress) return { identity: content, compressed: null }
@@ -56,7 +70,7 @@ export async function loadSite(dist: string): Promise<StaticSite> {
       index = content.toString("utf8")
       continue
     }
-    const { type, compress } = TYPES[extname(path).toLowerCase()] ?? UNKNOWN_TYPE
+    const { type, compress } = fileType(path)
     assets.set(`/${path}`, { type, cacheControl: path.startsWith(HASHED_DIRECTORY) ? IMMUTABLE : REVALIDATED, bodies: bodiesOf(content, compress) })
   }
   if (index === null) throw new Error(`${dist}: no ${PAGE_FILE}; build the front first (npm run build in web/)`)
@@ -85,12 +99,16 @@ export function preferredEncoding(acceptEncoding: string | undefined): Encoding 
 export function encoded(content: Buffer, encoding: Encoding): Buffer {
   switch (encoding) {
     case "br":
-      return brotliCompressSync(content, PAGE_BROTLI)
+      return brotliCompressSync(content, QUICK_BROTLI)
     case "gzip":
       return gzipSync(content)
     case "identity":
       return content
   }
+}
+
+export function compressedOffLoop(content: Buffer, encoding: "br" | "gzip"): Promise<Buffer> {
+  return encoding === "br" ? brotliLater(content, QUICK_BROTLI) : gzipLater(content)
 }
 
 export function bodyFor(bodies: Bodies, encoding: Encoding): { readonly encoding: Encoding; readonly body: Buffer } {

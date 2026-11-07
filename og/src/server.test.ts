@@ -1,11 +1,12 @@
 import assert from "node:assert/strict"
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { copyFile, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises"
 import { request, type IncomingHttpHeaders } from "node:http"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { brotliDecompressSync, gunzipSync } from "node:zlib"
 import { renderId, viewHash } from "./canonical.ts"
+import { createDataFiles } from "./dataFiles.ts"
 import { openDiskCache, type DiskCache } from "./disk.ts"
 import { DATA, NEW as CURRENT, OLD as OLDER, ORIGIN, RENDER, viewOf } from "./fixture.test.ts"
 import { createImages, type Images, type RenderLine } from "./images.ts"
@@ -27,6 +28,23 @@ await writeFile(join(dist, "logo-gris.png"), "PNG")
 await writeFile(join(scratch, "secret.txt"), "secret")
 const SITE = await loadSite(dist)
 
+const DATA_ROOT = join(scratch, "data")
+const SNAPSHOT = join(DATA_ROOT, "v2", CURRENT)
+const VOTES = "vote_id,number\n" + "VTANR5L17V1,1\n".repeat(300)
+const POINTER = `{"version":"${CURRENT}","publishedAt":"2026-11-07T04:00:00.000Z"}`
+await mkdir(join(SNAPSHOT, "votes"), { recursive: true })
+await mkdir(join(SNAPSHOT, "photos"))
+await mkdir(join(DATA_ROOT, "v2", ".store"))
+await mkdir(join(DATA_ROOT, "v2", ".runs"))
+await writeFile(join(DATA_ROOT, "v2", "current.json"), POINTER)
+await writeFile(join(SNAPSHOT, "votes", "votes.csv"), VOTES)
+await writeFile(join(SNAPSHOT, "photos", "PA720892.webp"), "WEBP")
+await writeFile(join(SNAPSHOT, ".hidden.csv"), "hidden")
+await writeFile(join(DATA_ROOT, "v2", ".store", "0".repeat(64)), "stored")
+await writeFile(join(DATA_ROOT, "v2", ".runs", "last.json"), "{}")
+await symlink(join(scratch, "secret.txt"), join(SNAPSHOT, "secret.csv"))
+await symlink(scratch, join(SNAPSHOT, "outside"))
+
 const CURRENT_RELEASE: Release = { version: CURRENT, data: DATA }
 const READY: Releases = { kind: "ready", current: CURRENT_RELEASE, previous: { version: OLDER, data: DATA } }
 const FALLBACK = Buffer.from("generic image")
@@ -40,6 +58,7 @@ type Options = {
   readonly limits?: QueueLimits
   readonly waitMs?: number
   readonly releases?: () => Releases
+  readonly pointer?: string | null
   readonly fallback?: Buffer | null
   readonly disk?: "works" | "full"
 }
@@ -54,7 +73,7 @@ function full(cache: DiskCache): DiskCache {
 
 const RENDER_CLOCK_MS = 1_234
 
-async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_000, releases = () => READY, fallback = FALLBACK, disk = "works" }: Options = {}): Promise<Running> {
+async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_000, releases = () => READY, pointer = POINTER, fallback = FALLBACK, disk = "works" }: Options = {}): Promise<Running> {
   const renders: CaptureTarget[] = []
   const lines: RenderLine[] = []
   const errors: unknown[] = []
@@ -83,6 +102,8 @@ async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_00
     site: SITE,
     page: { template: parseTemplate(SITE.index), origin: ORIGIN, render: RENDER },
     releases,
+    pointer: () => pointer,
+    data: createDataFiles(DATA_ROOT, 1_000_000),
     images,
     fallback: () => fallback,
     health: () => ({ status: "ok" }),
@@ -374,4 +395,65 @@ test("an unexpected failure answers 500 and is logged", async () => {
   const answer = await raw(broken.port, "/")
   assert.deepEqual([answer.status, answer.body.toString()], [500, "Erreur interne\n"])
   assert.deepEqual(broken.errors, [new Error("state lost")])
+})
+
+test("the data pointer is served as read, cached a minute, open to every origin, and answers 503 until a version is loaded", async () => {
+  const pointer = await raw(drawing.port, "/data/v2/current.json")
+  assert.deepEqual(
+    [pointer.status, pointer.headers["content-type"], pointer.headers["cache-control"], pointer.headers["access-control-allow-origin"], pointer.body.toString()],
+    [200, "application/json", "public, max-age=60", "*", POINTER],
+  )
+  const starting = await startService({ releases: () => ({ kind: "starting" }), pointer: null })
+  const early = await raw(starting.port, "/data/v2/current.json")
+  assert.deepEqual(
+    [early.status, early.headers["retry-after"], early.headers["cache-control"], early.headers["access-control-allow-origin"], early.body.toString()],
+    [503, "30", "no-store", "*", "Données indisponibles, réessayez plus tard\n"],
+  )
+})
+
+test("a version's data files are cached for good, open to every origin, the CSV and JSON compressed when the client accepts it, the photos as they are", async () => {
+  const br = await raw(drawing.port, `/data/v2/${CURRENT}/votes/votes.csv`, "GET", { "accept-encoding": "gzip, br" })
+  assert.deepEqual(
+    [br.status, br.headers["content-type"], br.headers["cache-control"], br.headers["access-control-allow-origin"], br.headers["content-encoding"], br.headers.vary, br.headers["x-content-type-options"]],
+    [200, "text/csv; charset=utf-8", "public, max-age=31536000, immutable", "*", "br", "Accept-Encoding", "nosniff"],
+  )
+  assert.equal(brotliDecompressSync(br.body).toString(), VOTES)
+  const gzip = await raw(drawing.port, `/data/v2/${CURRENT}/votes/votes.csv`, "GET", { "accept-encoding": "gzip" })
+  assert.deepEqual([gzip.headers["content-encoding"], gunzipSync(gzip.body).toString()], ["gzip", VOTES])
+  const plain = await raw(drawing.port, `/data/v2/${CURRENT}/votes/votes.csv?v=1`)
+  assert.deepEqual([plain.headers["content-encoding"], plain.headers.vary, plain.body.toString()], [undefined, "Accept-Encoding", VOTES])
+  const photo = await raw(drawing.port, `/data/v2/${CURRENT}/photos/PA720892.webp`, "GET", { "accept-encoding": "br" })
+  assert.deepEqual(
+    [photo.headers["content-type"], photo.headers["cache-control"], photo.headers["access-control-allow-origin"], photo.headers["content-encoding"], photo.headers.vary, photo.body.toString()],
+    ["image/webp", "public, max-age=31536000, immutable", "*", undefined, undefined, "WEBP"],
+  )
+  const head = await raw(drawing.port, `/data/v2/${CURRENT}/votes/votes.csv`, "HEAD")
+  assert.deepEqual([head.status, head.headers["content-length"], head.body.length], [200, String(VOTES.length), 0])
+})
+
+test("no path under /data/v2/ leaves the version's folder: climbs, encoded climbs, hidden files, the store, the runs, links and other names answer 404", async () => {
+  for (const path of ["/data/v2/../../secret.txt", "/data/v2/%2e%2e/%2e%2e/secret.txt", `/data/v2/${CURRENT}/../../../secret.txt`, `/data/v2/${CURRENT}/%2e%2e/%2e%2e/%2e%2e/secret.txt`, `/data/v2/${CURRENT}/..\\..\\..\\secret.txt`]) {
+    const answer = await raw(drawing.port, path)
+    assert.deepEqual([answer.status, answer.body.toString()], [404, "Page introuvable\n"], path)
+  }
+  for (const path of [
+    `/data/v2/${CURRENT}/..%2f..%2f..%2fsecret.txt`,
+    `/data/v2/${CURRENT}/votes%2fvotes.csv`,
+    `/data/v2/${CURRENT}/.hidden.csv`,
+    `/data/v2/${CURRENT}/secret.csv`,
+    `/data/v2/${CURRENT}/outside/secret.txt`,
+    `/data/v2/.store/${"0".repeat(64)}`,
+    "/data/v2/.runs/last.json",
+    `/data/v2/${CURRENT}/`,
+    `/data/v2/${CURRENT}/votes`,
+    `/data/v2/${CURRENT}//votes/votes.csv`,
+    `/data/v2/${OLDER}/votes/votes.csv`,
+    "/data/v2/main/votes/votes.csv",
+    "/data/v2/",
+    `/data/v2/${CURRENT}/votes/votes.csv%00`,
+  ]) {
+    const answer = await raw(drawing.port, path)
+    assert.deepEqual([answer.status, answer.headers["access-control-allow-origin"], answer.body.toString()], [404, "*", "Fichier introuvable\n"], path)
+  }
+  for (const path of ["/data/v1/catalog.json", "/data/secret.txt", "/data"]) assert.deepEqual([(await raw(drawing.port, path)).status], [404], path)
 })

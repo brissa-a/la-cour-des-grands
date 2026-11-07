@@ -1,20 +1,22 @@
 import assert from "node:assert/strict"
 import { spawn } from "node:child_process"
 import { test } from "node:test"
-import { dataRootAt, fetchUnder } from "../../web/src/data/source.ts"
+import { dataVersion } from "../../web/src/data/version.ts"
 import { loadShareData } from "../../web/src/share/data.ts"
 import { canonicalView } from "../src/canonical.ts"
 import { CAPTURE_SETTINGS } from "../src/capture.ts"
 import type { BrowserSource } from "../src/config.ts"
-import { SHA } from "../src/fixture.test.ts"
+import { createDataFiles, type DataFiles } from "../src/dataFiles.ts"
+import { given } from "../src/fixture.test.ts"
 import { createRenderer, openBrowser, withCapturePage } from "../src/renderer.ts"
 import { loadSite } from "../src/site.ts"
-import { createUpstream } from "../src/upstream.ts"
+import { snapshotReader } from "../src/snapshot.ts"
+import { DATA_ROOT, VERSION } from "./dataRoot.ts"
 import { jpegSize } from "./jpeg.ts"
 
 const site = await loadSite(new URL("../../web/dist/", import.meta.url).pathname)
-const data = await loadShareData(fetchUnder(dataRootAt(SHA)))
-const upstream = createUpstream(fetch, { maxBytes: 64 * 1024 ** 2, parallel: 16, timeoutMs: 5_000 })
+const data = await loadShareData(snapshotReader(DATA_ROOT, VERSION))
+const files = createDataFiles(DATA_ROOT, 64 * 1024 ** 2)
 const LOCAL: BrowserSource = { kind: "launch" }
 
 const VIEWS = [
@@ -49,7 +51,7 @@ test("every capture keeps its legend inside the part of the image X shows, clear
   t.after(() => browser.close())
   for (const search of VIEWS) {
     const { image } = canonicalView(new URLSearchParams(search), data)
-    const layout = await withCapturePage(browser, { version: SHA, query: image }, site, upstream, AbortSignal.timeout(30_000), page =>
+    const layout = await withCapturePage(browser, { version: VERSION, query: image }, site, files, AbortSignal.timeout(30_000), page =>
       page.evaluate((): Layout => {
         const boxOf = (element: Element): Box => {
           const { left, top, right, bottom } = element.getBoundingClientRect()
@@ -134,7 +136,7 @@ test("a vote's outcome stands in large type in the hollow of an arc, clear of ev
   t.after(() => browser.close())
   for (const [search, outcome] of OUTCOMES) {
     const { image } = canonicalView(new URLSearchParams(search), data)
-    const caption = await withCapturePage(browser, { version: SHA, query: image }, site, upstream, AbortSignal.timeout(30_000), page =>
+    const caption = await withCapturePage(browser, { version: VERSION, query: image }, site, files, AbortSignal.timeout(30_000), page =>
       page.evaluate((): Caption | null => {
         const boxOf = (element: Element): Box => {
           const { left, top, right, bottom } = element.getBoundingClientRect()
@@ -166,6 +168,22 @@ test("a vote's outcome stands in large type in the hollow of an arc, clear of ev
   }
 })
 
+test("a capture draws the data version it is pinned to, not the one the data root names, and asks for no other", { timeout: 60_000 }, async t => {
+  const pinned = given(dataVersion("f".repeat(40)), "pinned version")
+  const asked = new Set<string>()
+  const anyVersion: DataFiles = {
+    get: (version, path, accepted) => {
+      asked.add(version)
+      return files.get(VERSION, path, accepted)
+    },
+  }
+  const browser = await openBrowser(LOCAL)
+  t.after(() => browser.close())
+  const { image } = canonicalView(new URLSearchParams("vote=VTANR5L17V8427&color=vote"), data)
+  const drawing = await withCapturePage(browser, { version: pinned, query: image }, site, anyVersion, AbortSignal.timeout(30_000), page => page.evaluate(() => document.documentElement.dataset["drawing"]))
+  assert.deepEqual([drawing, [...asked]], ["ready", [pinned]])
+})
+
 test("a Chromium in another container, reached through a Playwright server, draws the same image and reaches nothing the service does not answer", { timeout: 90_000 }, async () => {
   const server = spawn(process.execPath, [new URL("../node_modules/playwright-core/cli.js", import.meta.url).pathname, "run-server", "--port", "0", "--host", "127.0.0.1", "--path", "/capture"])
   try {
@@ -174,9 +192,9 @@ test("a Chromium in another container, reached through a Playwright server, draw
       server.once("error", reject)
     })
     const remote: BrowserSource = { kind: "connect", endpoint }
-    const renderer = createRenderer(site, upstream, remote)
+    const renderer = createRenderer(site, files, remote)
     try {
-      const jpeg = await renderer.render({ version: SHA, query: canonicalView(new URLSearchParams("deputy=PA720892"), data).image }, AbortSignal.timeout(30_000))
+      const jpeg = await renderer.render({ version: VERSION, query: canonicalView(new URLSearchParams("deputy=PA720892"), data).image }, AbortSignal.timeout(30_000))
       assert.deepEqual(jpegSize(jpeg), { width: 1200, height: 630 })
     } finally {
       await renderer.close()

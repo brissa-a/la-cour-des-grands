@@ -4,7 +4,7 @@ Status: increment 1 done (PR #3), increment 2 in progress (2a and 2b done), incr
 
 ## Goal
 
-Replace the current front (`react-app/`, Create React App, React 17, Material-UI 4) with a new one that reads the v2 data published by `pipeline/` under `v2/` in [brissa-a/lcdg-data](https://github.com/brissa-a/lcdg-data).
+Replace the current front (`react-app/`, Create React App, React 17, Material-UI 4) with a new one that reads the v2 data `pipeline/` publishes on the Dedibox, served by `og/` under `/data/v2/` on the site's own origin.
 
 The new front serves cour-des-grands.fr from the Dedibox, through `og/`; lcdg.kxv.fr, its first address, redirects there. The first site (Firebase) stays a fallback until its certificates expire, and keeps reading `deputes.json` and `scrutins.json`, which must not change until it is removed.
 
@@ -16,7 +16,7 @@ The new front serves cour-des-grands.fr from the Dedibox, through `og/`; lcdg.kx
 - **Category values tables.** A `category` feature points to a values table, `<entity>/values/<column>.csv`, one row per possible value in display order: `value` (the code written in data files), `label_fr`, and optional columns such as `short_fr` (groups) or `color`. Several files with the same kind of value share one table (e.g. `deputies/values/vote_position.csv` for every vote file). The catalog only links to it: `"values": "<path>"`.
 - **Dedicated views over a generic fallback.** Every known feature, identified by (file, column), may get a dedicated view (color, legend, chart, profile row). Anything without one, user imports included, uses the generic view of its type.
 - **Colors.** A values table has a `color` column only for official colors (groups) or colors deliberately chosen for that data. Otherwise colors are front style: palettes for categories, gradients for numbers. In an import, a `<column>_color` column gives the color of `<column>`; on conflict the first row wins and the conflict is reported in "Mes données".
-- **Data branch** is a single constant (`main`). In development only, `VITE_DATA_ROOT` may point to a local pipeline output (see increment 4).
+- **Data source.** The front reads `/data/v2/current.json` on its own origin, then every file from `/data/v2/<version>/`, the immutable folder of the version it names. The `photo` column of `deputies/init.csv` is a path in that folder (`photos/<id>.webp`), resolved against it; an empty or foreign value shows no photo. In development, Vite proxies `/data` to cour-des-grands.fr, or serves a local data root (see "Developing against local data").
 
 ## Increment 1 — hemicycle by group
 
@@ -34,7 +34,7 @@ Out of scope: charts, coloring by anything other than group, votes, search in vo
 
 ### Loading
 
-1. Before first render: `catalog.json`, `deputies/init.csv`, `seats/hemicycle.csv`, `seats/hemicycle.svg`.
+1. Before first render: `current.json`, then `catalog.json`, `deputies/init.csv`, `seats/hemicycle.csv`, `seats/hemicycle.svg`.
 2. Right after: `deputies/links.csv`.
 3. On first focus of the search box: `deputies/communes.csv`. Search works on the other fields while it loads.
 
@@ -228,13 +228,13 @@ Electoral roll extracted in September 2022, polling stations 2022, INSEE contour
 
 ### Developing against local data
 
-`VITE_DATA_ROOT` replaces the published data root in `npm run dev` only; a production build always reads the published branch. `vite.config.ts` allows a `/@fs/` root in the dev server:
+`npm run dev` proxies `/data` to https://cour-des-grands.fr. `LCDG_DATA_ROOT` makes Vite serve `/data` from a local data root instead, a folder holding `v2/current.json` and `v2/<version>/` as the pipeline writes them:
 
 ```sh
-VITE_DATA_ROOT=/@fs/<absolute path to pipeline/output/v2>/ npm run dev
+LCDG_DATA_ROOT=<path to a data root> npm run dev
 ```
 
-The same line can go in `web/.env.development.local`, which git ignores.
+The same line can go in `web/.env.development.local`, which git ignores. `og/test/data` is a small data root: three scrutins and one photo.
 
 ### Done when
 

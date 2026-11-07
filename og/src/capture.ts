@@ -1,11 +1,14 @@
-import { dataRootAt, PUBLISHED_ROOT } from "../../web/src/data/source.ts"
+import type { SnapshotPath } from "../../web/src/data/snapshotPath.ts"
+import { DATA_PATH } from "../../web/src/data/source.ts"
+import type { DataVersion } from "../../web/src/data/version.ts"
 import { chromeParams } from "../../web/src/embed/chrome.ts"
 import type { ImageQuery } from "./canonical.ts"
-import type { DataVersion } from "./version.ts"
+import { dataAddress } from "./snapshot.ts"
 
 export type CaptureRoute =
   | { readonly kind: "site"; readonly path: string }
-  | { readonly kind: "upstream"; readonly url: string }
+  | { readonly kind: "pointer" }
+  | { readonly kind: "data"; readonly path: SnapshotPath }
   | { readonly kind: "blocked" }
 
 export const CAPTURE_ORIGIN = "https://capture.invalid"
@@ -21,11 +24,16 @@ export function captureUrl(query: ImageQuery): string {
   return `${CAPTURE_ORIGIN}/?${params.toString()}`
 }
 
+export function capturePointer(version: DataVersion): string {
+  return JSON.stringify({ version })
+}
+
 export function captureRoute(address: string, version: DataVersion): CaptureRoute {
   const url = URL.parse(address)
-  if (url === null) return BLOCKED
-  if (url.origin === CAPTURE_ORIGIN) return { kind: "site", path: url.pathname }
-  if (url.search !== "") return BLOCKED
-  if (url.href.startsWith(PUBLISHED_ROOT)) return { kind: "upstream", url: dataRootAt(version) + url.href.slice(PUBLISHED_ROOT.length) }
-  return BLOCKED
+  if (url?.origin !== CAPTURE_ORIGIN) return BLOCKED
+  if (!url.pathname.startsWith(DATA_PATH)) return { kind: "site", path: url.pathname }
+  const data = dataAddress(url.pathname)
+  if (data === null) return BLOCKED
+  if (data.kind === "pointer") return { kind: "pointer" }
+  return data.version === version ? { kind: "data", path: data.path } : BLOCKED
 }

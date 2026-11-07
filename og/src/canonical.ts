@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto"
 import { parseShared, sharedQuery, type Known, type Shared } from "../../web/src/share/query.ts"
 import type { TextData } from "../../web/src/share/texts.ts"
-import { dataVersion, type DataVersion } from "./version.ts"
+import { dataVersion, type DataVersion } from "../../web/src/data/version.ts"
 
 export type CanonicalQuery = string & { readonly __brand: "CanonicalQuery" }
 

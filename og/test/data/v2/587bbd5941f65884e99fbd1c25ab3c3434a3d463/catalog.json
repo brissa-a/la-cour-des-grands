@@ -1,0 +1,215 @@
+{
+  "generated": "2026-11-04",
+  "files": [
+    {
+      "file": "deputies/init.csv",
+      "entity": "deputy",
+      "key": "deputy_id",
+      "rows": 654,
+      "size": 132525,
+      "gzipSize": 24395,
+      "features": [
+        {
+          "title": "Photo",
+          "type": "image",
+          "column": "photo"
+        },
+        {
+          "title": "Nom",
+          "type": "text",
+          "column": "last_name"
+        },
+        {
+          "title": "Prénom",
+          "type": "text",
+          "column": "first_name"
+        },
+        {
+          "title": "Civilité",
+          "type": "category",
+          "values": "deputies/values/civility.csv",
+          "column": "civility"
+        },
+        {
+          "title": "Date de naissance",
+          "type": "date",
+          "column": "birth_date"
+        },
+        {
+          "title": "Âge",
+          "type": "number",
+          "column": "age"
+        },
+        {
+          "title": "En exercice",
+          "type": "category",
+          "values": "deputies/values/yes_no.csv",
+          "column": "in_office"
+        },
+        {
+          "title": "Circonscription",
+          "type": "code",
+          "column": "constituency"
+        },
+        {
+          "title": "Région",
+          "type": "category",
+          "values": "deputies/values/region.csv",
+          "column": "region"
+        },
+        {
+          "title": "Département",
+          "type": "text",
+          "column": "department"
+        },
+        {
+          "title": "N° de département",
+          "type": "code",
+          "column": "department_number"
+        },
+        {
+          "title": "N° de circonscription",
+          "type": "code",
+          "column": "constituency_number"
+        },
+        {
+          "title": "Périodes de mandat",
+          "type": "list",
+          "column": "mandate_periods"
+        },
+        {
+          "title": "Groupe politique",
+          "type": "category",
+          "values": "deputies/values/group.csv",
+          "column": "group"
+        }
+      ]
+    },
+    {
+      "file": "seats/hemicycle.csv",
+      "entity": "seat",
+      "key": "seat",
+      "rows": 582,
+      "size": 19154,
+      "gzipSize": 7413,
+      "features": [
+        {
+          "title": "x",
+          "type": "number",
+          "column": "x"
+        },
+        {
+          "title": "y",
+          "type": "number",
+          "column": "y"
+        },
+        {
+          "title": "Député",
+          "type": "reference",
+          "entity": "deputy",
+          "column": "deputy"
+        },
+        {
+          "title": "Circonscription",
+          "type": "code",
+          "column": "constituency"
+        }
+      ],
+      "layout": {
+        "background": "seats/hemicycle.svg"
+      }
+    },
+    {
+      "file": "votes/votes.csv",
+      "entity": "vote",
+      "key": "vote_id",
+      "rows": 3,
+      "size": 4280960,
+      "gzipSize": 229122,
+      "features": [
+        {
+          "title": "Numéro",
+          "type": "number",
+          "column": "number"
+        },
+        {
+          "title": "Date",
+          "type": "date",
+          "column": "date"
+        },
+        {
+          "title": "Objet",
+          "type": "text",
+          "column": "title"
+        },
+        {
+          "title": "Type de scrutin",
+          "type": "category",
+          "values": "votes/values/kind.csv",
+          "column": "kind"
+        },
+        {
+          "title": "Résultat",
+          "type": "category",
+          "values": "votes/values/result.csv",
+          "column": "result"
+        },
+        {
+          "title": "Vote majeur",
+          "type": "category",
+          "values": "votes/values/yes_no.csv",
+          "column": "major"
+        },
+        {
+          "title": "Texte",
+          "type": "text",
+          "column": "bill"
+        },
+        {
+          "title": "Fichier des positions",
+          "type": "code",
+          "column": "file"
+        },
+        {
+          "title": "Scrutin sur le site de l'Assemblée",
+          "type": "link",
+          "column": "url"
+        }
+      ]
+    },
+    {
+      "file": "deputies/votes/other.csv",
+      "entity": "deputy",
+      "key": "deputy_id",
+      "rows": 654,
+      "size": 1186343,
+      "gzipSize": 56996,
+      "columnsOf": {
+        "entity": "vote",
+        "count": 2,
+        "feature": {
+          "title": "Position de vote",
+          "type": "category",
+          "values": "deputies/values/vote_position.csv"
+        }
+      }
+    },
+    {
+      "file": "deputies/votes/projet-de-loi-d-urgence-pour-la-protection-et-la-souverainete-agricoles.csv",
+      "entity": "deputy",
+      "key": "deputy_id",
+      "rows": 654,
+      "size": 1723817,
+      "gzipSize": 38140,
+      "columnsOf": {
+        "entity": "vote",
+        "count": 1,
+        "feature": {
+          "title": "Position de vote",
+          "type": "category",
+          "values": "deputies/values/vote_position.csv"
+        }
+      }
+    }
+  ]
+}
