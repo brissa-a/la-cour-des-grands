@@ -27,17 +27,58 @@ test("the link preview robots of the networks are recognised by their user agent
     assert.equal(isLinkPreviewCrawler(agent), false, agent)
 })
 
-test("Traefik gives exactly the robots the service recognises a rate limit of their own, on every host whose pages it limits, and leaves the data to its own limit whatever the User-Agent", () => {
-  const compose = readFileSync(new URL("../deploy/docker-compose.yml", import.meta.url), "utf8")
-  const label = (router: string, key: string) => new RegExp(`routers\\.${router}\\.${key}=(.*)`).exec(compose)?.[1]
-  const limits = (middleware: string) => Number(new RegExp(`middlewares\\.${middleware}\\.ratelimit\\.average=([0-9]+)$`, "m").exec(compose)?.[1] ?? 0) > 0
-  const routers = [...new Set([...compose.matchAll(/traefik\.http\.routers\.([^.]+)\./g)].map(([, name]) => name ?? ""))]
-  const limitedHosts = routers.filter(router => label(router, "middlewares")?.split(",").includes("lcdg-ratelimit")).map(router => label(router, "rule"))
+const compose = readFileSync(new URL("../deploy/docker-compose.yml", import.meta.url), "utf8")
+const label = (key: string) => new RegExp(`traefik\\.http\\.${key.replaceAll(".", "\\.")}=(.*)`).exec(compose)?.[1]
+const routers = [...new Set([...compose.matchAll(/traefik\.http\.routers\.([^.]+)\./g)].map(([, name]) => name ?? ""))]
+const rule = (router: string) => label(`routers.${router}.rule`) ?? assert.fail(`${router} has no rule`)
+
+type Request = { readonly host: string; readonly path: string; readonly userAgent: string }
+
+const MATCHERS: Readonly<Record<string, (request: Request, first: string, second: string) => boolean>> = {
+  Host: ({ host }, name) => host === name,
+  PathPrefix: ({ path }, prefix) => path.startsWith(prefix),
+  HeaderRegexp: ({ userAgent }, header, pattern) => (header === "User-Agent" ? new RegExp(pattern).test(userAgent) : assert.fail(`a header this test does not send: ${header}`)),
+}
+
+const matches = (routerRule: string, request: Request) =>
+  routerRule.split(" && ").every(term => {
+    const [, not, name = "", values = ""] = /^(!?)(\w+)\((.*)\)$/.exec(term) ?? assert.fail(`a rule term this test cannot read: ${term}`)
+    const [first = "", second = ""] = Array.from(values.matchAll(/`([^`]*)`/g), ([, value = ""]) => value)
+    const matcher = MATCHERS[name] ?? assert.fail(`a matcher this test does not know: ${name}`)
+    return matcher(request, first, second) !== (not === "!")
+  })
+
+// As Traefik v3 chooses: the highest priority among the routers whose rule matches, a router without one ranking by its rule's length.
+function routerFor(request: Request): string {
+  const priority = (router: string) => Number(label(`routers.${router}.priority`) ?? rule(router).length)
+  const [chosen, next] = routers.filter(router => matches(rule(router), request)).sort((a, b) => priority(b) - priority(a))
+  if (chosen === undefined) return assert.fail(`no router for ${JSON.stringify(request)}`)
+  if (next !== undefined) assert.notEqual(priority(chosen), priority(next), `${chosen} or ${next}: Traefik's choice is left to chance`)
+  return chosen
+}
+
+const rateLimits = (router: string) =>
+  (label(`routers.${router}.middlewares`) ?? "").split(",").filter(middleware => Number(label(`middlewares.${middleware}.ratelimit.average`) ?? 0) > 0).join(",")
+
+test("Traefik tells the link preview robots by the service's very pattern, on every host whose pages it limits", () => {
+  const limitedHosts = routers.filter(router => label(`routers.${router}.middlewares`)?.split(",").includes("lcdg-ratelimit")).map(rule)
   const crawlers = routers.flatMap(router => {
-    const [, host, pattern, rest] = /^(Host\(`[^`]*`\)) && HeaderRegexp\(`User-Agent`, `([^`]*)`\)(.*)$/.exec(label(router, "rule") ?? "") ?? []
-    return host === undefined ? [] : [{ host, pattern, rest, limited: label(router, "middlewares")?.split(",").some(limits) ?? false }]
+    const [, host, pattern] = /^(Host\(`[^`]*`\)) && HeaderRegexp\(`User-Agent`, `([^`]*)`\)/.exec(rule(router)) ?? []
+    return host === undefined ? [] : [{ host, pattern }]
   })
   assert.deepEqual(new Set(crawlers.map(({ host }) => host)), new Set(limitedHosts))
   assert.equal(crawlers.length, limitedHosts.length)
-  for (const crawler of crawlers) assert.deepEqual(crawler, { host: crawler.host, pattern: LINK_PREVIEW_AGENT_PATTERN, rest: " && !PathPrefix(`/data/`)", limited: true })
+  for (const { pattern } of crawlers) assert.equal(pattern, LINK_PREVIEW_AGENT_PATTERN)
+})
+
+test("Traefik rate-limits every request to the site whatever its User-Agent: pages, images and data each by their own limit, a link preview robot's pages and images by another, its data as a browser's", () => {
+  const browser = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+  const robot = "Twitterbot/1.0"
+  const [page, image, data] = ["/", "/og/0123456789abcdef0123456789abcdef01234567/c0da0f04899d/e3b0c442.jpg", "/data/v2/current.json"] as const
+  const limit = (path: string, userAgent: string) => rateLimits(routerFor({ host: "cour-des-grands.fr", path, userAgent }))
+  const limits = { page: limit(page, browser), image: limit(image, browser), data: limit(data, browser), robots: limit(page, robot) }
+  for (const [requests, middlewares] of Object.entries(limits)) assert.notEqual(middlewares, "", requests)
+  assert.equal(new Set(Object.values(limits)).size, 4, JSON.stringify(limits))
+  assert.equal(limit(image, robot), limits.robots)
+  assert.equal(limit(data, robot), limits.data)
 })
