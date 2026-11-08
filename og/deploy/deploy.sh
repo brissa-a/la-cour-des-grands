@@ -66,7 +66,7 @@ if ! docker --context "$CONTEXT" volume inspect "$DATA_VOLUME" >/dev/null 2>&1; 
 fi
 
 # compose up replaces the scheduler only when its configuration or its image changed, as compose itself compares them. A run in progress
-# would then hold the replacement up to its stop_grace_period, 50 minutes when it cuts out photos: on SIGTERM its wrapper ends it in
+# would then hold the replacement up to its stop_grace_period, an hour when it cuts out photos: on SIGTERM its wrapper ends it in
 # seconds, the cutout in progress killed and the lock released, then alerts. Otherwise the run goes on.
 stop_run_in_progress() {
   local now next

@@ -170,9 +170,10 @@ services:
     build:
       context: ../..
       dockerfile: pipeline/deploy/Dockerfile
-    # On SIGTERM the scheduler waits for the run in progress: minutes, but up to 30 minutes of new cutouts, then the one in progress
-    # (10 at most), then the rest of the run. Killed sooner, a run leaves its lock behind. deploy.sh stops a run in progress itself.
-    stop_grace_period: 50m
+    # On SIGTERM the scheduler waits for the run in progress: the other files (a minute most nights, a few when the large sources are
+    # downloaded again), then up to 30 minutes of new cutouts and the one in progress (10 at most), then the rest of the run and its
+    # alert (a minute or two when ntfy fails). Killed sooner, a run leaves its lock behind. deploy.sh stops a run in progress itself.
+    stop_grace_period: 60m
     tmpfs:
       - /tmp:size=64m
     # A run without new cutouts peaks at 1.6 GB. A cutout (bria) took some 8.8 GB on a Mac and was never measured here; it runs once the
