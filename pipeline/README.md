@@ -25,9 +25,10 @@ A run holds `<root>/v2/.lock` from start to end, since two runs would share `cac
 
 The `photos` job downloads each deputy's official photo (`output/photos/originals/`, refreshed after 24 hours; when the Assemblée nationale cannot serve it, the previous one is kept, and a deputy without one gets no photo), then cuts out the ones whose cutout is missing or was made from another photo or model, with [BRIA RMBG 2.0](https://huggingface.co/briaai/RMBG-2.0) on the CPU, deputies in office first. A cutout never stops the data from being published:
 
-- each cutout runs in a process of its own (`src/photos/cutoutChild.ts`), killed after 10 minutes: when the kernel kills it for memory, the run goes on;
+- the cutouts start once every other data file is built, so that none runs beside the address files (1.7 to 2 GB);
+- each cutout runs in a process of its own (`src/photos/cutoutChild.ts`), killed after 10 minutes, which makes itself the kernel's first pick (`oom_score_adj` 1000) before loading onnxruntime: when the kernel kills it for memory, the run goes on;
 - a run starts no new cutout after 30 minutes of them; the photos left wait for the next run;
-- a photo whose cutout failed is tried again after 7 days, or as soon as its official photo or the model changes (`failures.json`);
+- a photo whose cutout failed is tried again after 7 days, or as soon as its official photo or the model changes (`failures.json`). Each cutout is recorded there as failed before it starts, and cleared when it succeeds: a run killed during a cutout does not start with the same photo the next night;
 - until its cutout is done, a deputy keeps the previous cutout, or gets the official photo as is, background included, as webp (`uncut/`): the site shows it as it would a cutout. A photo that cannot be read at all is left out.
 
 `last.json` counts the cutouts that failed during the run, and the photos still waiting.
