@@ -48,6 +48,7 @@
     "src/photos/officialPhoto.ts",
     "src/publication/interrupt.ts",
     "src/photos/cutouts.ts",
+    "src/photos/photosJob.ts",
     "src/photos/registry.ts",
     "src/scheduled/commands.ts"
   ],
