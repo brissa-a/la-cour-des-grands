@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the front here, then on the Dedibox: builds the service and pipeline images, creates the data volume if missing, stops a pipeline
-# run in progress, starts the pipeline's scheduler, fills the data root with a first run when it holds no version, checks the new service
-# has a data version to serve, (re)starts it, then checks it from outside.
+# run in progress when its scheduler is to be replaced, starts the scheduler, fills the data root with a first run when it holds no
+# version, checks the new service has a data version to serve, (re)starts it, then checks it from outside.
 #   og/deploy/deploy.sh
 #   LCDG_PHOTOS_FROM=<pipeline checkout>/output/photos og/deploy/deploy.sh   first deploy: cutouts made elsewhere, spared to the box
 #   LCDG_CUTOUTS_ON_BOX=1 og/deploy/deploy.sh   first deploy without them: the nightly runs cut out some 650 photos on the box, 30 min a night
@@ -52,7 +52,7 @@ holds_a_version() {
 }
 first_deploy=false
 if ! holds_a_version; then first_deploy=true; fi
-if [[ $first_deploy == true && -z ${LCDG_PHOTOS_FROM:-} && -z ${LCDG_CUTOUTS_ON_BOX:-} ]]; then
+if [[ $first_deploy == true && -z ${LCDG_PHOTOS_FROM:-} && ${LCDG_CUTOUTS_ON_BOX:-} != 1 ]]; then
   echo "$DATA_VOLUME holds no data version, and LCDG_PHOTOS_FROM names no cutouts: the box's nightly runs would cut out some 650 photos," >&2
   echo "30 minutes a night for days, each cutout never measured on the box (some 8.8 GB on a Mac); the official photos stand in meanwhile." >&2
   echo "Give LCDG_PHOTOS_FROM=<pipeline checkout>/output/photos, or LCDG_CUTOUTS_ON_BOX=1 to accept that." >&2
@@ -65,19 +65,15 @@ if ! docker --context "$CONTEXT" volume inspect "$DATA_VOLUME" >/dev/null 2>&1; 
   docker --context "$CONTEXT" run --rm --network none --user 0:0 --cap-drop ALL --cap-add CHOWN --volume "$DATA_VOLUME:/data" "lcdg-pipeline:$LCDG_TAG" chown "$PIPELINE_USER" /data
 fi
 
-# A run in progress would hold the scheduler's replacement up to its stop_grace_period, 50 minutes when it cuts out photos. On SIGTERM its
-# wrapper ends it in seconds, the cutout in progress killed and the lock released, then alerts. The image has no ps nor kill.
+# compose up replaces the scheduler only when its configuration or its image changed, as compose itself compares them. A run in progress
+# would then hold the replacement up to its stop_grace_period, 50 minutes when it cuts out photos: on SIGTERM its wrapper ends it in
+# seconds, the cutout in progress killed and the lock released, then alerts. Otherwise the run goes on.
 stop_run_in_progress() {
-  if [[ $(docker --context "$CONTEXT" inspect --format '{{.State.Running}}' "$PIPELINE_CONTAINER" 2>/dev/null) != true ]]; then return 0; fi
-  docker --context "$CONTEXT" exec "$PIPELINE_CONTAINER" node -e '
-    const { readdirSync, readFileSync } = require("node:fs")
-    for (const pid of readdirSync("/proc").filter(name => /^[0-9]+$/.test(name))) {
-      let args = []
-      try { args = readFileSync("/proc/" + pid + "/cmdline", "utf8").split("\0") } catch {}
-      if (args[0] !== "node" || args[args.indexOf("src/scheduled/main.ts") + 1] !== "run") continue
-      process.kill(Number(pid), "SIGTERM")
-      console.log("Stopped the pipeline run in progress (" + args.join(" ").trim() + "): an alert follows; run it again once deployed.")
-    }'
+  local now next
+  now=$(docker --context "$CONTEXT" inspect --format '{{.State.Running}} {{index .Config.Labels "com.docker.compose.config-hash"}} {{.Image}}' "$PIPELINE_CONTAINER" 2>/dev/null) || return 0
+  next="true $(compose config --hash lcdg-pipeline | cut -d' ' -f2) $(docker --context "$CONTEXT" image inspect --format '{{.Id}}' "lcdg-pipeline:$LCDG_TAG")"
+  if [[ $now != "true "* || $now == "$next" ]]; then return 0; fi
+  docker --context "$CONTEXT" exec -i "$PIPELINE_CONTAINER" node --input-type=module-typescript - < "$here/stopRun.ts"
 }
 
 # The scheduler refuses to start without a token ntfy accepts or a data root it can write: the same check here stops the deploy,
@@ -94,7 +90,9 @@ if [[ $first_deploy == true ]]; then
   compose run --rm --no-TTY lcdg-pipeline node src/scheduled/main.ts run --skip-new-cutouts
 fi
 
-docker --context "$CONTEXT" run --rm --network none --read-only --volume "$DATA_VOLUME:/data:ro" "lcdg-og:$LCDG_TAG" node og/src/checkData.ts ${LCDG_ALLOW_OLDER_VERSION:+--allow-older-version}
+allow_older=
+if [[ ${LCDG_ALLOW_OLDER_VERSION:-} == 1 ]]; then allow_older=--allow-older-version; fi
+docker --context "$CONTEXT" run --rm --network none --read-only --volume "$DATA_VOLUME:/data:ro" "lcdg-og:$LCDG_TAG" node og/src/checkData.ts ${allow_older:+"$allow_older"}
 compose up --detach --no-build --wait --wait-timeout 300
 compose ps
 
