@@ -27,16 +27,17 @@ test("the link preview robots of the networks are recognised by their user agent
     assert.equal(isLinkPreviewCrawler(agent), false, agent)
 })
 
-test("Traefik spares from its rate limits exactly the robots the service recognises, on every host whose pages it limits", () => {
+test("Traefik gives exactly the robots the service recognises a rate limit of their own, on every host whose pages it limits, and leaves the data to its own limit whatever the User-Agent", () => {
   const compose = readFileSync(new URL("../deploy/docker-compose.yml", import.meta.url), "utf8")
   const label = (router: string, key: string) => new RegExp(`routers\\.${router}\\.${key}=(.*)`).exec(compose)?.[1]
+  const limits = (middleware: string) => Number(new RegExp(`middlewares\\.${middleware}\\.ratelimit\\.average=([0-9]+)$`, "m").exec(compose)?.[1] ?? 0) > 0
   const routers = [...new Set([...compose.matchAll(/traefik\.http\.routers\.([^.]+)\./g)].map(([, name]) => name ?? ""))]
   const limitedHosts = routers.filter(router => label(router, "middlewares")?.split(",").includes("lcdg-ratelimit")).map(router => label(router, "rule"))
   const crawlers = routers.flatMap(router => {
-    const [, host, pattern] = /^(Host\(`[^`]*`\)) && HeaderRegexp\(`User-Agent`, `([^`]*)`\)$/.exec(label(router, "rule") ?? "") ?? []
-    return host === undefined ? [] : [{ host, pattern }]
+    const [, host, pattern, rest] = /^(Host\(`[^`]*`\)) && HeaderRegexp\(`User-Agent`, `([^`]*)`\)(.*)$/.exec(label(router, "rule") ?? "") ?? []
+    return host === undefined ? [] : [{ host, pattern, rest, limited: label(router, "middlewares")?.split(",").some(limits) ?? false }]
   })
   assert.deepEqual(new Set(crawlers.map(({ host }) => host)), new Set(limitedHosts))
   assert.equal(crawlers.length, limitedHosts.length)
-  for (const { pattern } of crawlers) assert.equal(pattern, LINK_PREVIEW_AGENT_PATTERN)
+  for (const crawler of crawlers) assert.deepEqual(crawler, { host: crawler.host, pattern: LINK_PREVIEW_AGENT_PATTERN, rest: " && !PathPrefix(`/data/`)", limited: true })
 })

@@ -156,7 +156,7 @@ test("as many data requests from one browser as a page showing the photos makes 
   assert.deepEqual([...new Set(statuses)], [200])
 })
 
-test("a burst of image requests from one link preview robot is never answered 429", async () => {
+test("a burst of image requests from one link preview robot, past what a browser may ask, is never answered 429", async () => {
   const image = tag(await page("", CRAWLERS[4]), "og:image")
   const statuses: number[] = []
   for (let wave = 0; wave < 8; wave++) {
