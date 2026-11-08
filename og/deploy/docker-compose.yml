@@ -105,7 +105,8 @@ services:
       - traefik.http.middlewares.lcdg-og-inflight.inflightreq.sourcecriterion.ipstrategy.depth=0
       # Link preview robots, spared /og/'s limit: the service's render quota per client and its generic image protect the renders. A robot
       # asks a few files per shared link (the page, its image, maybe a redirect for each): 200 at once is 50 links shared together behind
-      # one address, then 2 a second, per client IP. The data, which robots do not read, keeps its own limit whatever the User-Agent.
+      # one address, then 2 a second, per client IP. A bucket left alone for 1 to 2 s starts full again: an address pausing that long
+      # between its bursts of 200 gets some 100 a second. The data, which robots do not read, keeps its own limit whatever the User-Agent.
       # The pattern is og/src/crawlers.ts's, which a test keeps in step.
       - traefik.http.routers.lcdg-crawlers.rule=Host(`cour-des-grands.fr`) && HeaderRegexp(`User-Agent`, `facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|Discordbot|WhatsApp|Cardyb|Mastodon|Pleroma|Akkoma|Misskey|TelegramBot|SkypeUriPreview|redditbot|Pinterestbot|Embedly|Iframely|vkShare`) && !PathPrefix(`/data/`)
       - traefik.http.routers.lcdg-crawlers.priority=1000
@@ -176,10 +177,10 @@ services:
     stop_grace_period: 60m
     tmpfs:
       - /tmp:size=64m
-    # A run without new cutouts peaks at 1.6 GB. A cutout (bria) took some 8.8 GB on a Mac and was never measured here; it runs once the
-    # other files are built, in a child process the kernel kills first when this limit is reached (oom_score_adj 1000), and the data is
-    # published all the same only while this limit leaves the pipeline a wide margin above its own peak: at 2.5 GB, measured locally while
-    # the cutouts still ran beside the address files (1.7 to 2 GB), the kernel killed the pipeline next. Lowering it needs measuring again.
+    # Without cutouts a run peaks at 1.5 to 1.6 GB, its wrapper included. Cutouts start once the other files are built, each in a child
+    # process the kernel kills first when this limit is reached (oom_score_adj 1000, from some 100 MB): the run then publishes all the
+    # same while this limit stays 0.3 GB at least above that peak (measured on emulated amd64 at 1800m, 2000m and 2500m, once each, never
+    # lower). A cutout (bria) took some 8.8 GB on a Mac and was never measured here: one that succeeds needs some 5 to 9 GB more.
     mem_limit: 8g
     memswap_limit: 8g
     cpus: 2
