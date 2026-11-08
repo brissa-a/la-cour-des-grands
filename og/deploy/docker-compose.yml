@@ -175,8 +175,10 @@ services:
     stop_grace_period: 50m
     tmpfs:
       - /tmp:size=64m
-    # A run without new cutouts peaks at 1.6 GB. A cutout (bria) took some 8.8 GB on a Mac and was never measured here; it runs in a child
-    # process the kernel kills first when this limit is reached (oom_score_adj 1000), and the data is published all the same.
+    # A run without new cutouts peaks at 1.6 GB. A cutout (bria) took some 8.8 GB on a Mac and was never measured here; it runs once the
+    # other files are built, in a child process the kernel kills first when this limit is reached (oom_score_adj 1000), and the data is
+    # published all the same only while this limit leaves the pipeline a wide margin above its own peak: at 2.5 GB, measured locally while
+    # the cutouts still ran beside the address files (1.7 to 2 GB), the kernel killed the pipeline next. Lowering it needs measuring again.
     mem_limit: 8g
     memswap_limit: 8g
     cpus: 2
