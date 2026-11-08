@@ -8,6 +8,7 @@ import { type Candidate, type PhotoChoice, choosePhotos } from "../photos/cutout
 import { officialPhoto } from "../photos/officialPhoto.ts";
 import { PHOTO_FILES } from "../photos/paths.ts";
 import { deputies, inOffice } from "./deputies.ts";
+import { filesWithoutPhotos } from "./withoutPhotos.ts";
 
 const PARALLEL_DOWNLOADS = 8;
 
@@ -36,6 +37,10 @@ export const photos = job({
       modelPath: briaModel,
       files: PHOTO_FILES,
       processes: cutoutProcesses,
+      // The address files take 1.7 to 2 GB: a cutout on top of them would leave the kernel no choice but to kill the pipeline too.
+      otherJobsDone: async () => {
+        await Promise.all(filesWithoutPhotos.map((file) => file.result()));
+      },
       today: today(),
       clockMs: () => performance.now(),
       log: (line) => console.log(line),

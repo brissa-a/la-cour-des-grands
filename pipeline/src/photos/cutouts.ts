@@ -21,14 +21,16 @@ export type CutoutPlan = {
   readonly files: PhotoFiles;
   readonly model: string;
   readonly cutOut: (original: string, cutout: string) => Promise<Attempt>;
+  readonly otherJobsDone: () => Promise<void>;
   readonly budgetMs: number;
-  readonly elapsedMs: () => number;
+  readonly clockMs: () => number;
   readonly today: IsoDate;
   readonly log: (line: string) => void;
 };
 
 export const RETRY_AFTER_DAYS = 7;
 const DAY_MS = 86_400_000;
+export const RUN_ENDED = "the run ended during this cutout, most likely killed for lack of memory";
 
 async function orEmpty<T>(load: Promise<Map<DeputyId, T>>, log: (line: string) => void): Promise<Map<DeputyId, T>> {
   return load.catch((error: unknown) => {
@@ -88,10 +90,17 @@ export async function choosePhotos(candidates: readonly Candidate[], plan: Cutou
 
   const failed: FailedCutout[] = [];
   await mkdir(files.dir, { recursive: true });
-  if (todo.length > 0) log(`  ${todo.length} photos to cut out with ${model}, for ${plan.budgetMs / 60_000} min at most`);
+  if (todo.length > 0) {
+    log(`  ${todo.length} photos to cut out with ${model} once the other files are built, for ${plan.budgetMs / 60_000} min at most`);
+    await plan.otherJobsDone();
+  }
+  const started = plan.clockMs();
   for (const [i, candidate] of todo.entries()) {
-    if (plan.elapsedMs() >= plan.budgetMs) break;
+    if (plan.clockMs() - started >= plan.budgetMs) break;
     const { id, original } = candidate;
+    // Recorded before the cutout starts: a run killed during it must not start with the same photo the next night.
+    failures.set(id, { model, failedOn: today, originalSha256: original.sha256, reason: RUN_ENDED });
+    await save(files.failures, failures);
     const result = await attempt(candidate, plan);
     const progress = `${i + 1}/${todo.length}`;
     if (result.kind === "done") {

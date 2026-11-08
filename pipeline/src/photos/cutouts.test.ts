@@ -7,7 +7,7 @@ import { type IsoDate, isoDate } from "../core/types.ts";
 import { type DeputyId, deputyId } from "../jobs/deputies.ts";
 import { temporaryDir } from "../publication/snapshots.fixture.ts";
 import type { Attempt } from "./child.ts";
-import { type Candidate, type CutoutPlan, RETRY_AFTER_DAYS, choosePhotos } from "./cutouts.ts";
+import { type Candidate, type CutoutPlan, RETRY_AFTER_DAYS, RUN_ENDED, choosePhotos } from "./cutouts.ts";
 import { type PhotoFiles, photoFiles } from "./paths.ts";
 import { type Failure, loadFailures, loadRegistry, save } from "./registry.ts";
 
@@ -48,8 +48,9 @@ function plan(files: PhotoFiles, outcome: (id: DeputyId) => Attempt | "done with
         await writeFile(cutout, result.kind === "done" ? CUT : "half a cutout");
         return result;
       },
+      otherJobsDone: () => Promise.resolve(),
       budgetMs: 60_000,
-      elapsedMs: () => 0,
+      clockMs: () => 0,
       today: TODAY,
       log: (line) => run.lines.push(line),
       ...overrides,
@@ -98,7 +99,7 @@ test("a new photo is cut out, recorded, and published from its cutout; a current
   assert.equal(await readFile(photos.cutout(fresh.id), "utf8"), CUT);
   assert.deepEqual((await loadRegistry(photos.registry)).get(fresh.id), { model: MODEL, date: TODAY, originalSha256: fresh.original.sha256 });
   assert.deepEqual(await readdir(photos.dir), ["PA1.webp", "PA2.webp", "failures.json", "originals", "registry.json"]);
-  assert.deepEqual(run.lines, ["  1 photos to cut out with bria-rmbg, for 1 min at most", "  cutout of PA1 done (1/1)"]);
+  assert.deepEqual(run.lines, ["  1 photos to cut out with bria-rmbg once the other files are built, for 1 min at most", "  cutout of PA1 done (1/1)"]);
   const again = plan(photos, done);
   await choosePhotos([fresh, current], again.plan);
   assert.deepEqual([again.run.attempted, again.run.lines], [[], []]);
@@ -163,7 +164,7 @@ test("once its budget is spent the run starts no other cutout, and the photos le
       elapsed += 40_000;
       return done();
     },
-    { elapsedMs: () => elapsed },
+    { clockMs: () => elapsed },
   );
   const choice = await choosePhotos(candidates, cutting);
   assert.deepEqual(run.attempted, ["PA1", "PA2"]);
@@ -174,6 +175,41 @@ test("once its budget is spent the run starts no other cutout, and the photos le
   const nothing = await choosePhotos([...candidates, await photo(photos, deputyId("PA4"), 200)], skipped.plan);
   assert.deepEqual([skipped.run.attempted, nothing.cutouts], [[], { failed: [], waiting: 2 }]);
   assert.deepEqual([nothing.published.get(deputyId("PA3")), nothing.published.get(deputyId("PA4"))], [photos.uncut(deputyId("PA3")), photos.uncut(deputyId("PA4"))]);
+});
+
+test("no cutout starts before the other files are built, and the budget counts from then", async () => {
+  const photos = await files();
+  const candidates = await Promise.all([1, 2].map((n) => photo(photos, deputyId(`PA${n}`), 50 * n)));
+  let now = 0;
+  let built = (): void => undefined;
+  const { plan: cutting, run } = plan(photos, done, {
+    otherJobsDone: () =>
+      new Promise((resolve) => {
+        built = resolve;
+      }),
+    clockMs: () => now,
+  });
+  const choosing = choosePhotos(candidates, cutting);
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.deepEqual(run.attempted, []);
+  now = 120_000;
+  built();
+  assert.deepEqual((await choosing).cutouts, { failed: [], waiting: 0 });
+  assert.deepEqual(run.attempted, ["PA1", "PA2"]);
+});
+
+test("a run killed during a cutout leaves that photo failed, so the next run starts with another one", async () => {
+  const photos = await files();
+  const [killedWith, next] = await Promise.all([1, 2].map((n) => photo(photos, deputyId(`PA${n}`), 50 * n)));
+  if (killedWith === undefined || next === undefined) throw new Error("two photos");
+  const dying = plan(photos, done, { cutOut: () => new Promise<Attempt>(() => undefined) });
+  void choosePhotos([killedWith, next], dying.plan);
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.deepEqual((await loadFailures(photos.failures)).get(killedWith.id), { model: MODEL, failedOn: TODAY, originalSha256: killedWith.original.sha256, reason: RUN_ENDED });
+  const { plan: nextNight, run } = plan(photos, done);
+  const choice = await choosePhotos([killedWith, next], nextNight);
+  assert.deepEqual(run.attempted, ["PA2"]);
+  assert.deepEqual(choice.published.get(killedWith.id), photos.uncut(killedWith.id));
 });
 
 test("deputies in office are cut out first, and among them the photos that never failed before those that did", async () => {

@@ -2,13 +2,10 @@ import { hostname } from "node:os";
 import { catalog } from "./core/catalog.ts";
 import { OUTPUT_DIR } from "./core/csv.ts";
 import type { Job } from "./core/job.ts";
-import { communeConstituencyTable, constituencyContours, electoralRollFiles } from "./jobs/address/published.ts";
-import { communes } from "./jobs/communes.ts";
-import { hemicycle } from "./jobs/hemicycle.ts";
 import { init } from "./jobs/init.ts";
-import { links } from "./jobs/links.ts";
 import { cutoutProcesses, photos } from "./jobs/photos.ts";
-import { majorVotes, votesByBill, votesCatalog } from "./jobs/votes.ts";
+import { votesCatalog } from "./jobs/votes.ts";
+import { filesWithoutPhotos } from "./jobs/withoutPhotos.ts";
 import { options } from "./argv.ts";
 import { endOnInterrupt } from "./publication/interrupt.ts";
 import { mirror } from "./publication/mirror.ts";
@@ -18,18 +15,7 @@ import { runOnce } from "./publication/run.ts";
 import type { Built } from "./publication/runs.ts";
 import { snapshotSources } from "./publication/sources.ts";
 
-const files = [
-  init,
-  hemicycle,
-  communes,
-  links,
-  votesCatalog,
-  majorVotes,
-  votesByBill,
-  communeConstituencyTable,
-  constituencyContours,
-  electoralRollFiles,
-];
+const files = [init, ...filesWithoutPhotos];
 const all = catalog(files);
 
 const jobs: Job<unknown>[] = [photos, ...files, all];
