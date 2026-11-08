@@ -30,7 +30,7 @@ export type CutoutPlan = {
 
 export const RETRY_AFTER_DAYS = 7;
 const DAY_MS = 86_400_000;
-export const RUN_ENDED = "the run ended during this cutout, most likely killed for lack of memory";
+const RUN_ENDED = "the run ended during this cutout, most likely killed for lack of memory";
 
 async function orEmpty<T>(load: Promise<Map<DeputyId, T>>, log: (line: string) => void): Promise<Map<DeputyId, T>> {
   return load.catch((error: unknown) => {

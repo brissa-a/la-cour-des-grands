@@ -7,7 +7,7 @@ import { type IsoDate, isoDate } from "../core/types.ts";
 import { type DeputyId, deputyId } from "../jobs/deputies.ts";
 import { temporaryDir } from "../publication/snapshots.fixture.ts";
 import type { Attempt } from "./child.ts";
-import { type Candidate, type CutoutPlan, RETRY_AFTER_DAYS, RUN_ENDED, choosePhotos } from "./cutouts.ts";
+import { type Candidate, type CutoutPlan, RETRY_AFTER_DAYS, choosePhotos } from "./cutouts.ts";
 import { type PhotoFiles, photoFiles } from "./paths.ts";
 import { type Failure, loadFailures, loadRegistry, save } from "./registry.ts";
 
@@ -205,7 +205,12 @@ test("a run killed during a cutout leaves that photo failed, so the next run sta
   const dying = plan(photos, done, { cutOut: () => new Promise<Attempt>(() => undefined) });
   void choosePhotos([killedWith, next], dying.plan);
   await new Promise((resolve) => setTimeout(resolve, 50));
-  assert.deepEqual((await loadFailures(photos.failures)).get(killedWith.id), { model: MODEL, failedOn: TODAY, originalSha256: killedWith.original.sha256, reason: RUN_ENDED });
+  assert.deepEqual((await loadFailures(photos.failures)).get(killedWith.id), {
+    model: MODEL,
+    failedOn: TODAY,
+    originalSha256: killedWith.original.sha256,
+    reason: "the run ended during this cutout, most likely killed for lack of memory",
+  });
   const { plan: nextNight, run } = plan(photos, done);
   const choice = await choosePhotos([killedWith, next], nextNight);
   assert.deepEqual(run.attempted, ["PA2"]);
