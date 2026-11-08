@@ -74,6 +74,7 @@ type Options = {
   readonly fallback?: Buffer | null
   readonly disk?: "works" | "full"
   readonly downloads?: DownloadLimits
+  readonly maxConnections?: number
 }
 
 type Running = {
@@ -89,7 +90,7 @@ type Running = {
 }
 
 const LIMITS: QueueLimits = { concurrency: 1, capacity: 4, perClient: 4, timeoutMs: 12_000 }
-const DOWNLOADS: DownloadLimits = { perClient: 64, waiting: 64, waitMs: 5_000 }
+const DOWNLOADS: DownloadLimits = { perClient: 64, waiting: 64, waitMs: 5_000, total: 1_000 }
 
 function full(cache: DiskCache): DiskCache {
   return { ...cache, put: () => Promise.reject(new Error("ENOSPC: no space left on device, write")) }
@@ -97,7 +98,7 @@ function full(cache: DiskCache): DiskCache {
 
 const RENDER_CLOCK_MS = 1_234
 
-async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_000, releases = () => READY, pointer = POINTER, fallback = FALLBACK, disk = "works", downloads = DOWNLOADS }: Options = {}): Promise<Running> {
+async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_000, releases = () => READY, pointer = POINTER, fallback = FALLBACK, disk = "works", downloads = DOWNLOADS, maxConnections = 1_000 }: Options = {}): Promise<Running> {
   const renders: CaptureTarget[] = []
   const lines: RenderLine[] = []
   const errors: unknown[] = []
@@ -134,7 +135,7 @@ async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_00
     fallback: () => fallback,
     health: () => ({ status: "ok" }),
     logError: error => errors.push(error),
-  })
+  }, maxConnections)
   const sockets: Socket[] = []
   server.on("connection", (socket: Socket) => sockets.push(socket))
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve))
@@ -572,12 +573,34 @@ test("a download its client stops reading queues at most 32 KB of its file on th
   }
 })
 
+test("past its connection limit, the service closes a new connection at once, and takes new ones again once one closes", { timeout: 20_000 }, async () => {
+  const bounded = await startService({ maxConnections: 2 })
+  const kept = [connect(bounded.port, "127.0.0.1"), connect(bounded.port, "127.0.0.1")]
+  try {
+    await Promise.all(kept.map(socket => once(socket, "connect")))
+    await eventually(() => bounded.sockets.length === 2, "both connections accepted")
+    const third = connect(bounded.port, "127.0.0.1")
+    const closed = new Promise(resolve => third.once("close", resolve))
+    third.on("error", () => undefined)
+    third.write(`GET /healthz HTTP/1.1\r\nHost: og\r\n\r\n`)
+    let answered = ""
+    third.on("data", (chunk: Buffer) => (answered += chunk.toString()))
+    await closed
+    assert.deepEqual([answered, bounded.sockets.length], ["", 2])
+    kept[0]?.destroy()
+    await eventually(() => bounded.sockets.some(socket => socket.destroyed), "the service saw it close")
+    assert.equal((await raw(bounded.port, "/healthz")).status, 200)
+  } finally {
+    for (const socket of kept) socket.destroy()
+  }
+})
+
 const SCHOOL = { "x-real-ip": "203.0.113.7" }
 const HUGE = `/data/v2/${CURRENT}/votes/huge.csv`
 const VOTES_PATH = `/data/v2/${CURRENT}/votes/votes.csv`
 
 test("past its limit, a client's data downloads wait for one of its own to end, and get 503 with Retry-After once kept waiting too long; other clients are served meanwhile", { timeout: 20_000 }, async () => {
-  const limited = await startService({ downloads: { perClient: 2, waiting: 1, waitMs: 100 } })
+  const limited = await startService({ downloads: { ...DOWNLOADS, perClient: 2, waiting: 1, waitMs: 100 } })
   const slow = [await held(limited.port, HUGE, SCHOOL), await held(limited.port, HUGE, SCHOOL)]
   try {
     const since = performance.now()
@@ -600,7 +623,7 @@ test("past its limit, a client's data downloads wait for one of its own to end, 
 })
 
 test("a data file answered in full, plain from the disk or compressed from memory, gives its place back to its client", { timeout: 20_000 }, async () => {
-  const one = await startService({ downloads: { perClient: 1, waiting: 0, waitMs: 60_000 } })
+  const one = await startService({ downloads: { ...DOWNLOADS, perClient: 1, waiting: 0, waitMs: 60_000 } })
   const statuses = []
   for (const encoding of ["identity", "br", "identity", "br"]) statuses.push((await raw(one.port, VOTES_PATH, "GET", { ...SCHOOL, "accept-encoding": encoding })).status)
   assert.deepEqual(statuses, [200, 200, 200, 200])

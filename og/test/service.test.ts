@@ -50,14 +50,14 @@ async function startService(captured: ReadDataFile = FILES.read, served: DataFil
     releases: () => releases,
     pointer: () => POINTER,
     data: served,
-    downloads: perClientDownloads({ perClient: 256, waiting: 4096, waitMs: 30_000 }),
+    downloads: perClientDownloads({ perClient: 256, waiting: 4096, waitMs: 30_000, total: 8192 }),
     images,
     fallback: () => GENERIC,
     health: () => ({ status: "ok" }),
     logError: error => {
       throw error
     },
-  })
+  }, 4096)
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve))
   const address = server.address()
   assert.ok(address !== null && typeof address === "object")

@@ -1,6 +1,7 @@
 import type { ClientId } from "./client.ts"
 
-export type DownloadLimits = { readonly perClient: number; readonly waiting: number; readonly waitMs: number }
+// `total` counts every client's downloads, running and waiting: past it, a request is refused at once, whatever its client holds.
+export type DownloadLimits = { readonly perClient: number; readonly waiting: number; readonly waitMs: number; readonly total: number }
 
 export type Entry = "started" | "refused"
 
@@ -14,7 +15,7 @@ export type Downloads = {
 
 type Line = { running: number; readonly queue: Set<() => void> }
 
-export function perClientDownloads({ perClient, waiting, waitMs }: DownloadLimits): Downloads {
+export function perClientDownloads({ perClient, waiting, waitMs, total }: DownloadLimits): Downloads {
   const lines = new Map<ClientId, Line>()
   let running = 0
   let queued = 0
@@ -36,6 +37,10 @@ export function perClientDownloads({ perClient, waiting, waitMs }: DownloadLimit
   return {
     enter: (client, done) => {
       if (done.aborted) return Promise.resolve("refused")
+      if (running + queued >= total) {
+        refused += 1
+        return Promise.resolve("refused")
+      }
       const line = lines.get(client) ?? { running: 0, queue: new Set() }
       lines.set(client, line)
       if (line.running < perClient) {

@@ -20,8 +20,9 @@ import { parseTemplate } from "./tags.ts"
 const CACHE_MAX_BYTES = 2 * 1024 ** 3
 const COMPRESSED_DATA = { keptBytes: 32 * 1024 ** 2, compressions: 2 } as const
 // A browser asks Traefik for at most 250 files at once on its HTTP/2 connection, so one never waits; a client that does not read its answers
-// holds 256 at most, some 100 KB each in buffers, and its next requests wait their turn, then get 503.
-const DOWNLOADS = { perClient: 256, waiting: 1024, waitMs: 30_000 } as const
+// holds 256 at most, some 100 KB each in buffers, and its next requests wait their turn, then get 503. The total bounds what clients at
+// many addresses hold together: one such client leaves 256 places to the others.
+const DOWNLOADS = { perClient: 256, waiting: 512, waitMs: 30_000, total: 1024 } as const
 // The pipeline replaces the pointer by a rename, which ends a watch on the file; reading a local file every 30 s costs nothing.
 const POINTER_POLL_MS = 30_000
 const REQUEST_WAIT_MS = 8_000
@@ -31,6 +32,9 @@ const FALLBACK_RETRY_MS = 60_000
 // default of 511 waiting to be accepted, each connection dropped waits a second or more for its handshake again. Capped by
 // net.core.somaxconn, raised to match in docker-compose.yml.
 const LISTEN_BACKLOG = 16384
+// Above what the downloads hold (1024 at most) and Traefik's idle ones (200): a class of 30 loading the photos at once lost none, while
+// three addresses sending 20,000 requests each, answered at once, killed the service by their connections alone.
+const MAX_CONNECTIONS = 4096
 
 function log(event: string, fields: Readonly<Record<string, unknown>> = {}): void {
   console.log(JSON.stringify({ at: new Date().toISOString(), event, ...fields }))
@@ -85,7 +89,7 @@ const server = createService({
   fallback: fallback.image,
   health: () => ({ status: "ok", data: watch.state().kind, version: currentVersion(), pointed: watch.pointed(), render, renders: { running: queue.running(), waiting: queue.waiting(), clients: queue.clients(), ...images.health() }, downloads: downloads.counts(), cacheBytes: cache.bytes() }),
   logError: error => log("error", { reason: error instanceof Error ? (error.stack ?? error.message) : reasonOf(error) }),
-})
+}, MAX_CONNECTIONS)
 
 server.listen({ port: config.port, backlog: LISTEN_BACKLOG }, () => log("listening", { port: config.port, origin: config.origin, render, browser: config.browser.kind, dataRoot: config.dataRoot }))
 

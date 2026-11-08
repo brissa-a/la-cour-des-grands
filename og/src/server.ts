@@ -158,8 +158,10 @@ function answeredSignal(request: IncomingMessage, response: ServerResponse): Abo
   return answered.signal
 }
 
-export function createService(deps: ServiceDeps): Server {
-  return createServer({ highWaterMark: STREAM_CHUNK_BYTES }, (request, response) => {
+// Traefik opens a connection to the service for each request in flight: past `maxConnections` open, the next one is closed at once, and
+// Traefik answers 502, so that what thousands of requests at once cost stays bounded.
+export function createService(deps: ServiceDeps, maxConnections: number): Server {
+  const server = createServer({ highWaterMark: STREAM_CHUNK_BYTES }, (request, response) => {
     const answered = answeredSignal(request, response)
     handle(request, answered, deps).then(
       answer => send(response, answer, answered),
@@ -169,4 +171,6 @@ export function createService(deps: ServiceDeps): Server {
       },
     )
   })
+  server.maxConnections = maxConnections
+  return server
 }

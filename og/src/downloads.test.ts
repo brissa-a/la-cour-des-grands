@@ -5,6 +5,8 @@ import { perClientDownloads, type DownloadLimits } from "./downloads.ts"
 
 const SCHOOL = clientId("203.0.113.7")
 const OTHER = clientId("198.51.100.1")
+const THIRD = clientId("192.0.2.44")
+const ANY_TOTAL = 1_000
 
 function settled<T>(promise: Promise<T>): Promise<T | "waiting"> {
   return Promise.race([promise, new Promise<"waiting">(resolve => setImmediate(() => resolve("waiting")))])
@@ -29,7 +31,7 @@ function started(limits: DownloadLimits) {
 }
 
 test("a client runs its limit of downloads at once; the next ones wait in line and start, first come first, as places free up", { timeout: 2_000 }, async () => {
-  const { downloads, enter } = started({ perClient: 2, waiting: 4, waitMs: 60_000 })
+  const { downloads, enter } = started({ perClient: 2, waiting: 4, waitMs: 60_000, total: ANY_TOTAL })
   const running = [enter(), enter()]
   assert.deepEqual(await Promise.all(running.map(one => one.entry)), ["started", "started"])
   const [first, second] = [enter(), enter()]
@@ -45,7 +47,7 @@ test("a client runs its limit of downloads at once; the next ones wait in line a
 })
 
 test("a download that ends gives back its own place only, the client's others still counting against its limit", { timeout: 2_000 }, async () => {
-  const { downloads, enter } = started({ perClient: 2, waiting: 1, waitMs: 60_000 })
+  const { downloads, enter } = started({ perClient: 2, waiting: 1, waitMs: 60_000, total: ANY_TOTAL })
   const [ending, staying] = [enter(), enter()]
   assert.deepEqual(await Promise.all([ending.entry, staying.entry]), ["started", "started"])
   ending.done.abort()
@@ -57,7 +59,7 @@ test("a download that ends gives back its own place only, the client's others st
 })
 
 test("a request kept waiting past the bound is refused, and its place in line freed", { timeout: 2_000 }, async () => {
-  const { downloads, enter } = started({ perClient: 1, waiting: 4, waitMs: 50 })
+  const { downloads, enter } = started({ perClient: 1, waiting: 4, waitMs: 50, total: ANY_TOTAL })
   const running = enter()
   assert.equal(await running.entry, "started")
   const since = performance.now()
@@ -69,7 +71,7 @@ test("a request kept waiting past the bound is refused, and its place in line fr
 })
 
 test("once its line is full, a client's next request is refused at once", { timeout: 2_000 }, async () => {
-  const { downloads, enter } = started({ perClient: 1, waiting: 2, waitMs: 60_000 })
+  const { downloads, enter } = started({ perClient: 1, waiting: 2, waitMs: 60_000, total: ANY_TOTAL })
   const all = [enter(), enter(), enter()]
   assert.deepEqual(await Promise.all(all.map(one => settled(one.entry))), ["started", "waiting", "waiting"])
   assert.equal(await enter().entry, "refused")
@@ -79,7 +81,7 @@ test("once its line is full, a client's next request is refused at once", { time
 })
 
 test("a request whose connection closes while it waits leaves the line, and the next in line takes the place it would have had", { timeout: 2_000 }, async () => {
-  const { downloads, enter } = started({ perClient: 1, waiting: 4, waitMs: 60_000 })
+  const { downloads, enter } = started({ perClient: 1, waiting: 4, waitMs: 60_000, total: ANY_TOTAL })
   const [running, leaving, next] = [enter(), enter(), enter()]
   assert.equal(await running.entry, "started")
   leaving.done.abort()
@@ -92,14 +94,34 @@ test("a request whose connection closes while it waits leaves the line, and the 
 })
 
 test("a request whose connection has already closed takes no place", { timeout: 2_000 }, async () => {
-  const downloads = perClientDownloads({ perClient: 1, waiting: 0, waitMs: 60_000 })
+  const downloads = perClientDownloads({ perClient: 1, waiting: 0, waitMs: 60_000, total: ANY_TOTAL })
   assert.equal(await downloads.enter(SCHOOL, AbortSignal.abort()), "refused")
   assert.deepEqual(downloads.counts(), { clients: 0, running: 0, waiting: 0, waited: 0, refused: 0 })
   assert.equal(await downloads.enter(SCHOOL, new AbortController().signal), "started")
 })
 
 test("one client's downloads never hold back another's", { timeout: 2_000 }, async () => {
-  const { downloads, enter } = started({ perClient: 1, waiting: 0, waitMs: 60_000 })
+  const { downloads, enter } = started({ perClient: 1, waiting: 0, waitMs: 60_000, total: ANY_TOTAL })
   assert.deepEqual(await Promise.all([enter(SCHOOL).entry, enter(SCHOOL).entry, enter(OTHER).entry]), ["started", "refused", "started"])
   assert.deepEqual(downloads.counts(), { clients: 2, running: 2, waiting: 0, waited: 0, refused: 1 })
+})
+
+test("past the total of every client's downloads, running and waiting, a request is refused at once, even from a client holding none", { timeout: 2_000 }, async () => {
+  const { downloads, enter } = started({ perClient: 2, waiting: 2, waitMs: 60_000, total: 4 })
+  const school = [enter(SCHOOL), enter(SCHOOL), enter(SCHOOL)]
+  assert.deepEqual(await Promise.all(school.map(one => settled(one.entry))), ["started", "started", "waiting"])
+  const other = enter(OTHER)
+  assert.equal(await other.entry, "started")
+  assert.equal(await enter(THIRD).entry, "refused")
+  assert.equal(await enter(SCHOOL).entry, "refused")
+  assert.deepEqual(downloads.counts(), { clients: 2, running: 3, waiting: 1, waited: 1, refused: 2 })
+  school[2]?.done.abort()
+  const third = enter(THIRD)
+  assert.equal(await third.entry, "started")
+  assert.deepEqual(downloads.counts(), { clients: 3, running: 4, waiting: 0, waited: 1, refused: 2 })
+  other.done.abort()
+  const last = enter(SCHOOL)
+  assert.equal(await settled(last.entry), "waiting")
+  for (const one of [...school, third, last]) one.done.abort()
+  assert.deepEqual(downloads.counts(), { clients: 0, running: 0, waiting: 0, waited: 2, refused: 2 })
 })

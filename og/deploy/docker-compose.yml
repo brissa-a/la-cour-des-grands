@@ -26,8 +26,10 @@ services:
       dockerfile: og/deploy/Dockerfile
     tmpfs:
       - /tmp:size=16m
-    mem_limit: 384m
-    memswap_limit: 384m
+    # Some 110 MB at rest; the service bounds what clients hold (src/main.ts): three addresses that read nothing took it to some 300 MB,
+    # and its 1024 downloads all held by clients that do not read would add some 140 MB to that rest.
+    mem_limit: 512m
+    memswap_limit: 512m
     cpus: 1
     pids_limit: 64
     sysctls:
@@ -73,8 +75,10 @@ services:
       # The service compresses its own text; this only catches text it would send plain, never the JPEGs.
       - traefik.http.middlewares.lcdg-compress.compress.includedcontenttypes=text/html,text/css,text/javascript,application/json,image/svg+xml,text/plain
       # The data, immutable but for current.json, per client IP. A page showing the photos asks for some 600 files at once: a class of
-      # 30 behind one address, all at once, some 18,000. The service holds 256 answers in progress per address and 1024 waiting;
-      # this bounds what one address can throw at it in one go, then to 100 a second. A bucket left alone for 2 s starts full again.
+      # 30 behind one address, all at once, some 18,000. The service holds 256 answers in progress per address, 512 waiting and 1024
+      # in all; this bounds what one address can throw at it in one go, then to 100 a second. A bucket left alone for 2 s starts full
+      # again. Traefik pays for each request in flight: an address holding 20,000 unread costs it some 2 GB; a class of 30 loading at
+      # once, 1.6 GB and 8,000 of its 28,000 ports toward the service in TIME_WAIT for 60 s; a burst of 20,000 quick answers, 16,000.
       - traefik.http.routers.lcdg-data.rule=Host(`cour-des-grands.fr`) && PathPrefix(`/data/`)
       - traefik.http.routers.lcdg-data.entrypoints=websecure
       - traefik.http.routers.lcdg-data.tls.certresolver=ledns
