@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { test } from "node:test"
+import { afterEach, test } from "node:test"
 import { clientId } from "./client.ts"
 import { perClientDownloads, type DownloadLimits } from "./downloads.ts"
 
@@ -10,12 +10,19 @@ function settled<T>(promise: Promise<T>): Promise<T | "waiting"> {
   return Promise.race([promise, new Promise<"waiting">(resolve => setImmediate(() => resolve("waiting")))])
 }
 
+// A test failing with requests still waiting would otherwise keep the file running until their wait ends.
+const entered: AbortController[] = []
+afterEach(() => {
+  for (const done of entered.splice(0)) done.abort()
+})
+
 function started(limits: DownloadLimits) {
   const downloads = perClientDownloads(limits)
   return {
     downloads,
     enter: (client = SCHOOL) => {
       const done = new AbortController()
+      entered.push(done)
       return { done, entry: downloads.enter(client, done.signal) }
     },
   }

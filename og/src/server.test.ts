@@ -138,8 +138,10 @@ async function startService({ behaviour = "draw", limits = LIMITS, waitMs = 8_00
   const sockets: Socket[] = []
   server.on("connection", (socket: Socket) => sockets.push(socket))
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve))
+  // A test failing while it holds downloads open still lets the file end: server.close() alone would wait for them.
   after(() => {
     for (const release of hanging) release()
+    server.closeAllConnections()
     server.close()
   })
   const address = server.address()
@@ -342,10 +344,11 @@ test("one client, as Traefik names it in X-Real-Ip, waits past its share behind 
   await settle()
   const late = await raw(stuck.port, second ?? "", "GET", { "x-real-ip": "203.0.113.7" })
   assert.deepEqual([late.status, late.headers["cache-control"], late.body.toString()], [200, "public, max-age=60", "generic image"])
-  void raw(stuck.port, third ?? "", "GET", { "x-real-ip": "198.51.100.1" })
+  const other = raw(stuck.port, third ?? "", "GET", { "x-real-ip": "198.51.100.1" })
   await settle()
   assert.deepEqual([stuck.queue.running(), stuck.queue.waiting(), stuck.queue.clients()], [1, 2, 2])
   await asking
+  await other
 })
 
 test("an image drawn while the disk refuses to keep it is still served, logged as unsaved, and drawn again next time", async () => {
@@ -551,13 +554,22 @@ test("a data file sent plain goes out from the disk as it is read, byte for byte
   await eventually(async () => (await openDescriptorsOn(join(SNAPSHOT, "votes", "large.csv"))) + (await openDescriptorsOn(join(SNAPSHOT, "votes", "huge.csv"))) === 0, "both files closed")
 })
 
-test("a connection takes no more of an answer once 16 KB of it wait for a slow client", async () => {
+test("a download its client stops reading queues at most 32 KB of its file on the connection, read 16 KB at a time", { timeout: 20_000 }, async () => {
   const running = await startService()
-  await raw(running.port, `/data/v2/${CURRENT}/votes/votes.csv`)
-  assert.deepEqual(
-    running.sockets.map(socket => socket.writableHighWaterMark),
-    [16 * 1024],
-  )
+  const slow = await held(running.port, HUGE, {})
+  try {
+    const [socket] = running.sockets
+    assert.ok(socket !== undefined)
+    await eventually(() => socket.writableLength > 0, "the kernel's buffers are full")
+    let queued = 0
+    for (let poll = 0; poll < 20; poll += 1) {
+      queued = Math.max(queued, socket.writableLength)
+      await new Promise(resolve => setTimeout(resolve, 10))
+    }
+    assert.ok(queued <= 32 * 1024, `${queued} bytes queued`)
+  } finally {
+    slow.close()
+  }
 })
 
 const SCHOOL = { "x-real-ip": "203.0.113.7" }
@@ -567,20 +579,23 @@ const VOTES_PATH = `/data/v2/${CURRENT}/votes/votes.csv`
 test("past its limit, a client's data downloads wait for one of its own to end, and get 503 with Retry-After once kept waiting too long; other clients are served meanwhile", { timeout: 20_000 }, async () => {
   const limited = await startService({ downloads: { perClient: 2, waiting: 1, waitMs: 100 } })
   const slow = [await held(limited.port, HUGE, SCHOOL), await held(limited.port, HUGE, SCHOOL)]
-  const since = performance.now()
-  const refused = await raw(limited.port, VOTES_PATH, "GET", SCHOOL)
-  assert.ok(performance.now() - since >= 90, "it waited first")
-  assert.deepEqual(
-    [refused.status, refused.headers["retry-after"], refused.headers.connection, refused.headers["cache-control"], refused.headers["access-control-allow-origin"], refused.headers["content-security-policy"], refused.body.toString()],
-    [503, "30", "close", "no-store", "*", "default-src 'none'; style-src 'unsafe-inline'; sandbox", "Trop de téléchargements en cours, réessayez plus tard\n"],
-  )
-  assert.equal((await raw(limited.port, VOTES_PATH, "GET", { "x-real-ip": "198.51.100.1" })).status, 200)
-  assert.equal((await raw(limited.port, "/data/v2/current.json", "GET", SCHOOL)).status, 200)
-  const next = raw(limited.port, VOTES_PATH, "GET", SCHOOL)
-  await eventually(() => limited.downloads.counts().waiting === 1, "the school's next download waits")
-  slow[0]?.close()
-  assert.equal((await next).status, 200)
-  for (const one of slow) one.close()
+  try {
+    const since = performance.now()
+    const refused = await raw(limited.port, VOTES_PATH, "GET", SCHOOL)
+    assert.ok(performance.now() - since >= 90, "it waited first")
+    assert.deepEqual(
+      [refused.status, refused.headers["retry-after"], refused.headers.connection, refused.headers["cache-control"], refused.headers["access-control-allow-origin"], refused.headers["content-security-policy"], refused.body.toString()],
+      [503, "30", "close", "no-store", "*", "default-src 'none'; style-src 'unsafe-inline'; sandbox", "Trop de téléchargements en cours, réessayez plus tard\n"],
+    )
+    assert.equal((await raw(limited.port, VOTES_PATH, "GET", { "x-real-ip": "198.51.100.1" })).status, 200)
+    assert.equal((await raw(limited.port, "/data/v2/current.json", "GET", SCHOOL)).status, 200)
+    const next = raw(limited.port, VOTES_PATH, "GET", SCHOOL)
+    await eventually(() => limited.downloads.counts().waiting === 1, "the school's next download waits")
+    slow[0]?.close()
+    assert.equal((await next).status, 200)
+  } finally {
+    for (const one of slow) one.close()
+  }
   await eventually(() => limited.downloads.counts().clients === 0, "every place given back")
 })
 
