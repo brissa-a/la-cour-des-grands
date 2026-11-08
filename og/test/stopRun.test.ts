@@ -49,3 +49,13 @@ test("the stop deploy.sh sends to the scheduler ends a run's wrapper by SIGTERM,
     for (const child of [wrapper, check, shell]) child.kill("SIGKILL")
   }
 })
+
+test("the stop fails when the kernel refuses to signal a run's wrapper: only a process already gone is passed over",{ timeout: 20_000 }, async () => {
+  const proc = join(scratch, "proc-refused")
+  await listed(proc, GONE, ["node", "src/scheduled/main.ts", "run"])
+  const refused = `process.kill = () => { throw Object.assign(new Error("kill EPERM"), { code: "EPERM", errno: -1, syscall: "kill" }) }`
+  const stop = spawnSync(process.execPath, ["--import", `data:text/javascript,${encodeURIComponent(refused)}`, "--input-type=module-typescript", "-", proc], { input: await readFile(STOP_RUN), encoding: "utf8" })
+  assert.equal(stop.status, 1)
+  assert.match(stop.stderr, /EPERM/)
+  assert.equal(stop.stdout, "")
+})

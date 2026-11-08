@@ -8,6 +8,7 @@ import { after, test } from "node:test"
 const DEPLOY = new URL("../deploy/deploy.sh", import.meta.url).pathname
 const STOP_RUN = await readFile(new URL("../deploy/stopRun.ts", import.meta.url), "utf8")
 const TOKEN = "tk_not_a_real_token"
+const CUTOUTS_STREAM = "the cutouts as tar writes them"
 
 // The box as the fake docker answers it: the data volume, and the scheduler's container against what compose would make of it now.
 type Box = {
@@ -48,6 +49,13 @@ appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "${tool}", args, tok
 if ("${tool}" !== "git" || args.includes("rev-parse")) process.stdout.write(${JSON.stringify(output)})
 `
 
+const FAKE_TAR = `#!/usr/bin/env node
+const { appendFileSync } = require("node:fs")
+appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "tar", args: process.argv.slice(2), token: process.env.NTFY_TOKEN ?? null, stdin: "" }) + "\\n")
+process.stdout.write(${JSON.stringify(CUTOUTS_STREAM)})
+process.exitCode = Number(process.env.FAKE_TAR_STATUS ?? 0)
+`
+
 function isStrings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string")
 }
@@ -66,7 +74,7 @@ async function deploy(box: Box, env: Readonly<Record<string, string>> = {}): Pro
   await mkdir(bin)
   await mkdir(join(run, "home", ".config", "ntfy"), { recursive: true })
   await writeFile(join(run, "home", ".config", "ntfy", "lcdg_pipeline-token"), TOKEN)
-  const tools = { docker: FAKE_DOCKER, npm: FAKE_TOOL("npm", ""), curl: FAKE_TOOL("curl", '{"status":"ok","data":"ready"}'), git: FAKE_TOOL("git", "0123456789ab\n") }
+  const tools = { docker: FAKE_DOCKER, npm: FAKE_TOOL("npm", ""), curl: FAKE_TOOL("curl", '{"status":"ok","data":"ready"}'), git: FAKE_TOOL("git", "0123456789ab\n"), tar: FAKE_TAR }
   for (const [name, script] of Object.entries(tools)) {
     await writeFile(join(bin, name), script)
     await chmod(join(bin, name), 0o755)
@@ -144,4 +152,30 @@ test("a redeploy checks the data the new service would serve strictly, unless LC
     assert.equal(check.endsWith("checkData.ts --allow-older-version"), flag, check)
     assert.equal(check.endsWith("checkData.ts"), !flag, check)
   }
+})
+
+test("every container that only reads the data volume runs without network, read-only, the volume mounted read-only", { timeout: 60_000 }, async () => {
+  const { status, calls } = await deploy(AGAIN)
+  assert.equal(status, 0)
+  const readers = calls.filter(call => call.tool === "docker" && /checkData\.ts|test -f \/data\/v2\/current\.json/.test(call.args.join(" ")))
+  assert.equal(readers.length, 2)
+  const pairs = (args: readonly string[]) => args.slice(0, -1).map((arg, index) => `${arg} ${args[index + 1] ?? ""}`)
+  for (const { args } of readers) {
+    assert.ok(pairs(args).includes("--network none") && args.includes("--read-only") && pairs(args).includes("--volume lcdg-data:/data:ro"), args.join(" "))
+  }
+})
+
+test("a first deploy pours the cutouts LCDG_PHOTOS_FROM names into the pipeline's output before its first run, and stops there when tar fails on the Mac", { timeout: 60_000 }, async () => {
+  const photos = await mkdtemp(join(scratch, "photos-"))
+  await writeFile(join(photos, "registry.json"), "{}")
+  const POUR = "run --rm --no-TTY lcdg-pipeline tar -C output/photos -xf -"
+  const copied = await deploy(FIRST, { LCDG_PHOTOS_FROM: photos })
+  assert.equal(copied.status, 0, copied.stderr)
+  assert.deepEqual(copied.calls.filter(call => call.tool === "tar").map(call => call.args), [["--no-xattrs", "-C", photos, "-cf", "-", "."]])
+  assert.equal(copied.calls.find(call => call.args.join(" ").includes(POUR))?.stdin, CUTOUTS_STREAM)
+  assert.ok(at(copied.calls, POUR) < at(copied.calls, "run --skip-new-cutouts"))
+  const failed = await deploy(FIRST, { LCDG_PHOTOS_FROM: photos, FAKE_TAR_STATUS: "2" })
+  assert.equal(failed.status, 2)
+  at(failed.calls, POUR)
+  assert.deepEqual(lines(failed.calls).filter(line => /--skip-new-cutouts|checkData\.ts|--wait-timeout/.test(line)), [])
 })
