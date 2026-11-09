@@ -14,6 +14,8 @@ const SCRIPT = "export const answer = 42\n".repeat(50)
 
 const KINDS = [
   [".css", "text/css; charset=utf-8", true],
+  [".csv", "text/csv; charset=utf-8", true],
+  [".geojson", "application/geo+json", true],
   [".html", "text/html; charset=utf-8", true],
   [".ico", "image/x-icon", true],
   [".jpg", "image/jpeg", false],

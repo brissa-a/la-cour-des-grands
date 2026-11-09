@@ -36,7 +36,7 @@ Renders: 2 at a time, 12 s each at most; a request waits 8 s for its image, then
 
 ## Checks
 
-`npm run check`, `npm run lint`, `npm test`, `npm run test:integration` (needs the front built and Chromium; draws from `test/data`, a small data root that `node test/makeDataRoot.ts <lcdg-data>/v2 <lcdg-nobg>/v2 test/data` builds; `test/deploy.test.ts` runs `deploy/deploy.sh` against fake `docker`, `npm`, `curl` and `git`), `npm run test:live` (the deployed site as crawlers see it; `LIVE_ORIGIN` defaults to `https://cour-des-grands.fr`), `npm run mutate` (on a scratch copy of `web/` and `server/`: it runs in place).
+`npm run check`, `npm run lint`, `npm test`, `npm run test:integration` (needs the front built and Chromium; draws from `test/data`, a small data root that `node test/makeDataRoot.ts <lcdg-data>/v2 <lcdg-nobg>/v2 test/data` builds; `test/deploy.test.ts` runs `deploy/deploy.sh` against fake `docker`, `npm`, `curl` and `git`, and reads `deploy/docker-compose.yml` as `docker compose config` resolves it: the Docker CLI, no daemon), `npm run test:live` (the deployed site as crawlers see it; `LIVE_ORIGIN` defaults to `https://cour-des-grands.fr`), `npm run mutate` (on a scratch copy of `web/` and `server/`: it runs in place).
 
 ## Deploy
 
