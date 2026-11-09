@@ -4,9 +4,9 @@ Status: increment 1 done (PR #3), increment 2 in progress (2a and 2b done), incr
 
 ## Goal
 
-Replace the current front (`react-app/`, Create React App, React 17, Material-UI 4) with a new one that reads the v2 data `pipeline/` publishes on the Dedibox, served by `og/` under `/data/v2/` on the site's own origin.
+Replace the current front (`react-app/`, Create React App, React 17, Material-UI 4) with a new one that reads the v2 data `pipeline/` publishes on the Dedibox, served by `server/` under `/data/v2/` on the site's own origin.
 
-The new front serves cour-des-grands.fr from the Dedibox, through `og/`; lcdg.kxv.fr, its first address, redirects there. The first site (Firebase) stays a fallback until its certificates expire, and keeps reading `deputes.json` and `scrutins.json`, which must not change until it is removed.
+The new front serves cour-des-grands.fr from the Dedibox, through `server/`; lcdg.kxv.fr, its first address, redirects there. The first site (Firebase) stays a fallback until its certificates expire, and keeps reading `deputes.json` and `scrutins.json`, which must not change until it is removed.
 
 ## Decisions
 
@@ -234,7 +234,7 @@ Electoral roll extracted in September 2022, polling stations 2022, INSEE contour
 LCDG_DATA_ROOT=<path to a data root> npm run dev
 ```
 
-The same line can go in `web/.env.development.local`, which git ignores. `og/test/data` is a small data root: three scrutins and one photo.
+The same line can go in `web/.env.development.local`, which git ignores. `server/test/data` is a small data root: three scrutins and one photo.
 
 ### Done when
 

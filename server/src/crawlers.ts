@@ -21,7 +21,7 @@ const LINK_PREVIEW_AGENTS = [
   "vkShare",
 ] as const
 
-// Traefik's crawler router matches the same pattern, in og/deploy/docker-compose.yml.
+// Traefik's crawler router matches the same pattern, in server/deploy/docker-compose.yml.
 export const LINK_PREVIEW_AGENT_PATTERN = LINK_PREVIEW_AGENTS.join("|")
 
 const LINK_PREVIEW_AGENT = new RegExp(LINK_PREVIEW_AGENT_PATTERN)

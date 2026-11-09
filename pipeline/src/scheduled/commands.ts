@@ -37,7 +37,7 @@ export type Host = {
 
 function tokenOrNull(host: Host): NtfyToken | null {
   const token = ntfyToken(host.env.NTFY_TOKEN);
-  if (token === null) host.error(`NTFY_TOKEN holds no ntfy token: without it no alert would go out. Run add-publisher.sh ${NTFY_USER} on the Mac, then deploy with og/deploy/deploy.sh.`);
+  if (token === null) host.error(`NTFY_TOKEN holds no ntfy token: without it no alert would go out. Run add-publisher.sh ${NTFY_USER} on the Mac, then deploy with server/deploy/deploy.sh.`);
   return token;
 }
 

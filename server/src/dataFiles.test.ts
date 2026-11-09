@@ -9,7 +9,7 @@ import { eventually, given, SHA as VERSION } from "./fixture.test.ts"
 import { compressedOffLoop } from "./site.ts"
 import { dataFile, type DataFile, type OpenedFile } from "./snapshot.ts"
 
-const scratch = await mkdtemp(join(tmpdir(), "og-data-files-"))
+const scratch = await mkdtemp(join(tmpdir(), "server-data-files-"))
 after(() => rm(scratch, { recursive: true, force: true }))
 
 const CSV = "deputy_id,group\n" + "PA720892,LFI-NFP\n".repeat(400)

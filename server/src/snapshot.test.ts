@@ -8,7 +8,7 @@ import { dataVersion } from "../../web/src/data/version.ts"
 import { given, NEW as OTHER, openDescriptorsOn, SHA as VERSION } from "./fixture.test.ts"
 import { dataAddress, dataFile, keptVersions, modifiedAt, openSnapshotFile, readPointer, readSnapshotFile, snapshotReader } from "./snapshot.ts"
 
-const scratch = await mkdtemp(join(tmpdir(), "og-snapshot-"))
+const scratch = await mkdtemp(join(tmpdir(), "server-snapshot-"))
 after(() => rm(scratch, { recursive: true, force: true }))
 
 const POINTER = `{"version":"${VERSION}","publishedAt":"2026-11-07T04:00:00.000Z"}\n`

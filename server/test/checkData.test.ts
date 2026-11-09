@@ -7,7 +7,7 @@ import { text } from "node:stream/consumers"
 import { after, test } from "node:test"
 import { DATA_ROOT, VERSION } from "./dataRoot.ts"
 
-const scratch = await mkdtemp(join(tmpdir(), "og-check-data-"))
+const scratch = await mkdtemp(join(tmpdir(), "server-check-data-"))
 after(() => rm(scratch, { recursive: true, force: true }))
 
 const UNLOADABLE = "b".repeat(40)

@@ -22,7 +22,7 @@ import { parseTemplate } from "../src/tags.ts"
 import { DATA_ROOT, POINTER, VERSION } from "./dataRoot.ts"
 import { jpegSize } from "./jpeg.ts"
 
-const scratch = await mkdtemp(join(tmpdir(), "og-service-"))
+const scratch = await mkdtemp(join(tmpdir(), "server-service-"))
 const site = await loadSite(new URL("../../web/dist/", import.meta.url).pathname)
 const render = renderId(site.index, CAPTURE_SETTINGS)
 const releases: Releases = { kind: "ready", current: { version: VERSION, data: await loadShareData(snapshotReader(DATA_ROOT, VERSION)) }, previous: null }

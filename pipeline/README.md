@@ -115,7 +115,7 @@ Every run writes `<root>/v2/.runs/last.json`:
 
 ## On the Dedibox
 
-The service `lcdg-pipeline` of og's compose project (`og/deploy/docker-compose.yml`, deployed by `og/deploy/deploy.sh`) runs this image (`deploy/Dockerfile`): uid 10002, read-only, the data root on the volume `lcdg-data` at `/data`, `cache/` and `output/` on the volumes `lcdg_pipeline-cache` and `lcdg_pipeline-output`, 2 CPUs at a quarter of the default weight, 8 GB of memory. [supercronic](https://github.com/aptible/supercronic) runs `node src/scheduled/main.ts run` every night at 04:30, Paris time (`deploy/crontab`), and waits on `SIGTERM` for the run in progress.
+The service `lcdg-pipeline` of the server's compose project (`server/deploy/docker-compose.yml`, deployed by `server/deploy/deploy.sh`) runs this image (`deploy/Dockerfile`): uid 10002, read-only, the data root on the volume `lcdg-data` at `/data`, `cache/` and `output/` on the volumes `lcdg_pipeline-cache` and `lcdg_pipeline-output`, 2 CPUs at a quarter of the default weight, 8 GB of memory. [supercronic](https://github.com/aptible/supercronic) runs `node src/scheduled/main.ts run` every night at 04:30, Paris time (`deploy/crontab`), and waits on `SIGTERM` for the run in progress.
 
 `src/scheduled/main.ts` wraps a run of the pipeline with alerts to Alexis's phone, through https://ntfy.kxv.fr as the user `lcdg_pipeline`, whose token is `NTFY_TOKEN`:
 
@@ -144,4 +144,4 @@ npm test
 npm run mutate
 ```
 
-To run the front or og against a local build, set `LCDG_DATA_ROOT` to the data root itself (`<root>`, not `<root>/v2/<version>/`): both read `v2/current.json`, then the version it names.
+To run the front or the server against a local build, set `LCDG_DATA_ROOT` to the data root itself (`<root>`, not `<root>/v2/<version>/`): both read `v2/current.json`, then the version it names.

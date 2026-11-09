@@ -180,8 +180,8 @@ test("without an ntfy token neither check nor run goes further, and both say how
     assert.equal(await check({ ...tokenless, env }), 78);
     assert.equal(await run([], { ...tokenless, env }), 78);
     assert.deepEqual(recorded.errors, [
-      "NTFY_TOKEN holds no ntfy token: without it no alert would go out. Run add-publisher.sh lcdg_pipeline on the Mac, then deploy with og/deploy/deploy.sh.",
-      "NTFY_TOKEN holds no ntfy token: without it no alert would go out. Run add-publisher.sh lcdg_pipeline on the Mac, then deploy with og/deploy/deploy.sh.",
+      "NTFY_TOKEN holds no ntfy token: without it no alert would go out. Run add-publisher.sh lcdg_pipeline on the Mac, then deploy with server/deploy/deploy.sh.",
+      "NTFY_TOKEN holds no ntfy token: without it no alert would go out. Run add-publisher.sh lcdg_pipeline on the Mac, then deploy with server/deploy/deploy.sh.",
     ]);
     assert.deepEqual([recorded.sent, recorded.priorities], [[], []]);
   }

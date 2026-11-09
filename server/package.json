@@ -1,5 +1,5 @@
 {
-  "name": "lcdg-og",
+  "name": "lcdg-server",
   "private": true,
   "type": "module",
   "engines": {

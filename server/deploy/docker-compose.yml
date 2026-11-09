@@ -1,9 +1,9 @@
-# Runs on the Dedibox through deploy.sh: docker --context abysshopper compose -f og/deploy/docker-compose.yml.
+# Runs on the Dedibox through deploy.sh: docker --context abysshopper compose -f server/deploy/docker-compose.yml.
 # Service names are DNS aliases on the networks they join: they must be unique on the server.
 name: lcdg
 
 x-confined: &confined
-  image: lcdg-og:${LCDG_TAG:-latest}
+  image: lcdg-server:${LCDG_TAG:-latest}
   restart: unless-stopped
   # Reaps the processes Chromium leaves behind when a browser is recycled or crashes.
   init: true
@@ -19,11 +19,11 @@ x-confined: &confined
       max-file: "3"
 
 services:
-  lcdg-og:
+  lcdg-server:
     <<: *confined
     build:
       context: ../..
-      dockerfile: og/deploy/Dockerfile
+      dockerfile: server/deploy/Dockerfile
     tmpfs:
       - /tmp:size=16m
     # Some 110 MB at rest; the service bounds what clients hold (src/main.ts): three addresses that read nothing took it to some 300 MB,
@@ -42,7 +42,7 @@ services:
       PORT: "8080"
       CHROMIUM_ENDPOINT: ws://lcdg-chromium:3000/capture
     volumes:
-      - cache:/app/og/cache
+      - cache:/app/server/cache
       - data:/data:ro
     networks:
       - edge
@@ -107,7 +107,7 @@ services:
       # asks a few files per shared link (the page, its image, maybe a redirect for each): 200 at once is 50 links shared together behind
       # one address, then 2 a second, per client IP. A bucket left alone for 1 to 2 s starts full again: an address pausing that long
       # between its bursts of 200 gets some 100 a second. The data, which robots do not read, keeps its own limit whatever the User-Agent.
-      # The pattern is og/src/crawlers.ts's, which a test keeps in step.
+      # The pattern is server/src/crawlers.ts's, which a test keeps in step.
       - traefik.http.routers.lcdg-crawlers.rule=Host(`cour-des-grands.fr`) && HeaderRegexp(`User-Agent`, `facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|Discordbot|WhatsApp|Cardyb|Mastodon|Pleroma|Akkoma|Misskey|TelegramBot|SkypeUriPreview|redditbot|Pinterestbot|Embedly|Iframely|vkShare`) && !PathPrefix(`/data/`)
       - traefik.http.routers.lcdg-crawlers.priority=1000
       - traefik.http.routers.lcdg-crawlers.entrypoints=websecure
@@ -140,13 +140,13 @@ services:
       - traefik.http.middlewares.lcdg-kxv-redirect.redirectregex.permanent=false
 
   # Chromium runs without its own sandbox (Playwright's default): Docker's seccomp profile denies the user namespaces
-  # it needs. So it runs here, on an internal network that reaches nothing but lcdg-og: no Internet, no Traefik, no other project.
+  # it needs. So it runs here, on an internal network that reaches nothing but lcdg-server: no Internet, no Traefik, no other project.
   lcdg-chromium:
     <<: *confined
     pull_policy: never
     # The Playwright server can sit on SIGTERM once browsers have come and gone.
     stop_grace_period: 5s
-    command: ["node", "og/node_modules/playwright-core/cli.js", "run-server", "--port", "3000", "--host", "0.0.0.0", "--path", "/capture", "--max-clients", "4"]
+    command: ["node", "server/node_modules/playwright-core/cli.js", "run-server", "--port", "3000", "--host", "0.0.0.0", "--path", "/capture", "--max-clients", "4"]
     # Chromium keeps its profile and, with --disable-dev-shm-usage, its shared memory here.
     tmpfs:
       - /tmp:size=256m
@@ -163,7 +163,7 @@ services:
       start_period: 10s
       retries: 3
 
-  # Builds the data every night into lcdg-data, which lcdg-og serves, and tells Alexis's phone how it went (ntfy, user lcdg_pipeline).
+  # Builds the data every night into lcdg-data, which lcdg-server serves, and tells Alexis's phone how it went (ntfy, user lcdg_pipeline).
   # Its own image and network: the Internet for its downloads and ntfy, nothing of Traefik's or of the capture.
   lcdg-pipeline:
     <<: *confined
@@ -189,7 +189,7 @@ services:
     pids_limit: 256
     environment:
       LCDG_DATA_ROOT: /data
-      NTFY_TOKEN: ${NTFY_TOKEN:?the token of the ntfy user lcdg_pipeline, which og/deploy/deploy.sh reads from ~/.config/ntfy/lcdg_pipeline-token}
+      NTFY_TOKEN: ${NTFY_TOKEN:?the token of the ntfy user lcdg_pipeline, which server/deploy/deploy.sh reads from ~/.config/ntfy/lcdg_pipeline-token}
     volumes:
       - data:/data
       - pipeline-cache:/app/pipeline/cache

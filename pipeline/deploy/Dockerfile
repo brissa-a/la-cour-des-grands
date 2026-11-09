@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build context: the repository root, filtered by Dockerfile.dockerignore. Built and run by og/deploy/deploy.sh, in the compose project of og.
+# Build context: the repository root, filtered by Dockerfile.dockerignore. Built and run by server/deploy/deploy.sh, in the compose project of server/.
 
 FROM node:24.21.0-slim
 ENV NODE_ENV=production \
@@ -18,7 +18,7 @@ COPY pipeline/assets assets
 COPY pipeline/src src
 COPY pipeline/deploy/crontab pipeline/deploy/scheduler.sh deploy/
 RUN supercronic -test deploy/crontab
-# A user of its own: lcdg-og (uid 10001) reads what it writes through the modes the pipeline sets, and cannot change it.
+# A user of its own: lcdg-server (uid 10001) reads what it writes through the modes the pipeline sets, and cannot change it.
 # The folders are those of the volumes, which take this ownership when first mounted empty.
 RUN groupadd --gid 10002 pipeline \
  && useradd --uid 10002 --gid pipeline --no-create-home --home-dir /tmp --shell /usr/sbin/nologin pipeline \

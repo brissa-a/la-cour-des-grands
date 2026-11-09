@@ -7,10 +7,10 @@ ENV NODE_ENV=production \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 WORKDIR /app
 
-COPY og/package.json og/package-lock.json og/
+COPY server/package.json server/package-lock.json server/
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefix og --omit=dev --ignore-scripts --no-audit --no-fund \
- && node og/node_modules/playwright-core/cli.js install --with-deps --only-shell chromium \
+    npm ci --prefix server --omit=dev --ignore-scripts --no-audit --no-fund \
+ && node server/node_modules/playwright-core/cli.js install --with-deps --only-shell chromium \
  && rm -rf /var/lib/apt/lists/*
 
 # The service imports the front's shared code from web/src, which reads CSV with papaparse.
@@ -20,13 +20,13 @@ RUN --mount=type=cache,target=/root/.npm \
 
 COPY web/src web/src
 COPY web/dist web/dist
-COPY og/src og/src
+COPY server/src server/src
 # A user of its own, whose uid no account on the host shares.
 RUN groupadd --gid 10001 lcdg \
  && useradd --uid 10001 --gid lcdg --no-create-home --home-dir /tmp --shell /usr/sbin/nologin lcdg \
- && install -d -o lcdg -g lcdg og/cache
+ && install -d -o lcdg -g lcdg server/cache
 
 USER lcdg
 ENV HOME=/tmp
 EXPOSE 8080
-CMD ["node", "og/src/main.ts"]
+CMD ["node", "server/src/main.ts"]

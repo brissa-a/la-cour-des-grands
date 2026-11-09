@@ -18,7 +18,7 @@ type Box = {
 
 type Call = { readonly tool: string; readonly args: readonly string[]; readonly token: string | null; readonly stdin: string }
 
-const scratch = await mkdtemp(join(tmpdir(), "og-deploy-"))
+const scratch = await mkdtemp(join(tmpdir(), "server-deploy-"))
 after(() => rm(scratch, { recursive: true, force: true }))
 
 const FAKE_DOCKER = `#!/usr/bin/env node
@@ -151,6 +151,22 @@ test("a redeploy checks the data the new service would serve strictly, unless LC
     const check = lines(calls)[at(calls, "checkData.ts")] ?? ""
     assert.equal(check.endsWith("checkData.ts --allow-older-version"), flag, check)
     assert.equal(check.endsWith("checkData.ts"), !flag, check)
+  }
+})
+
+test("only the switch, once the data is checked, removes the containers of services the compose file no longer names", { timeout: 60_000 }, async () => {
+  const { status, calls } = await deploy(AGAIN)
+  assert.equal(status, 0)
+  const removing = lines(calls).flatMap((line, index) => (line.split(" ").includes("--remove-orphans") ? [index] : []))
+  assert.deepEqual(removing, [at(calls, "--wait-timeout 300")])
+  assert.ok(at(calls, "checkData.ts") < at(calls, "--wait-timeout 300"))
+})
+
+test("a deploy removes no image, those of earlier deploys being what a rollback starts", { timeout: 60_000 }, async () => {
+  for (const [box, env] of [[AGAIN, {}], [FIRST, { LCDG_CUTOUTS_ON_BOX: "1" }]] as const) {
+    const { status, calls } = await deploy(box, env)
+    assert.equal(status, 0)
+    assert.deepEqual(lines(calls).filter(line => /\bprune\b|\brmi\b|\bimage rm\b|--rmi\b/.test(line)), [])
   }
 })
 

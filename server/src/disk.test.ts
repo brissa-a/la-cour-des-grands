@@ -8,7 +8,7 @@ import { openDiskCache, removeTemporaries, writeAtomically } from "./disk.ts"
 import { given, NEW, OLD, RENDER, viewOf } from "./fixture.test.ts"
 import type { DataVersion } from "../../web/src/data/version.ts"
 
-const scratch = await mkdtemp(join(tmpdir(), "og-disk-"))
+const scratch = await mkdtemp(join(tmpdir(), "server-disk-"))
 after(() => rm(scratch, { recursive: true, force: true }))
 
 const QUERIES = ["", "vote=VTANR5L17V1", "vote=VTANR5L17V242", "deputy=PA720892", "deputy=PA720614", "chart=deputies%2Finit.csv%3Aage"].map(search => viewOf(search).image)

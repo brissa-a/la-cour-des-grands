@@ -14,9 +14,9 @@ test("the public origin the tags are built on is an https origin, or http on loo
 })
 
 test("the configuration defaults to cour-des-grands.fr on port 8080 with the front built next door and the data in /data, and refuses a bad origin or port", () => {
-  assert.deepEqual(readConfig({}, "/app/og"), { port: 8080, origin: "https://cour-des-grands.fr", dist: "/app/web/dist", cacheDir: "/app/og/cache", dataRoot: "/data", browser: { kind: "launch" } })
+  assert.deepEqual(readConfig({}, "/app/server"), { port: 8080, origin: "https://cour-des-grands.fr", dist: "/app/web/dist", cacheDir: "/app/server/cache", dataRoot: "/data", browser: { kind: "launch" } })
   assert.deepEqual(
-    readConfig({ PORT: "3000", PUBLIC_ORIGIN: "https://lcdg.kxv.fr", DIST_DIR: "/srv/dist", CACHE_DIR: "/var/cache/og", LCDG_DATA_ROOT: "../data-root", CHROMIUM_ENDPOINT: "ws://lcdg-chromium:3000/" }, "/app/og"),
+    readConfig({ PORT: "3000", PUBLIC_ORIGIN: "https://lcdg.kxv.fr", DIST_DIR: "/srv/dist", CACHE_DIR: "/var/cache/og", LCDG_DATA_ROOT: "../data-root", CHROMIUM_ENDPOINT: "ws://lcdg-chromium:3000/" }, "/app/server"),
     {
       port: 3000,
       origin: "https://lcdg.kxv.fr",
@@ -26,8 +26,8 @@ test("the configuration defaults to cour-des-grands.fr on port 8080 with the fro
       browser: { kind: "connect", endpoint: "ws://lcdg-chromium:3000/" },
     },
   )
-  assert.throws(() => readConfig({ PUBLIC_ORIGIN: "http://lcdg.kxv.fr" }, "/app/og"), /PUBLIC_ORIGIN/)
-  for (const port of ["0", "65536", "80.5", "http", ""]) assert.throws(() => readConfig({ PORT: port }, "/app/og"), /PORT/, port)
+  assert.throws(() => readConfig({ PUBLIC_ORIGIN: "http://lcdg.kxv.fr" }, "/app/server"), /PUBLIC_ORIGIN/)
+  for (const port of ["0", "65536", "80.5", "http", ""]) assert.throws(() => readConfig({ PORT: port }, "/app/server"), /PORT/, port)
   assert.deepEqual([readConfig({ PORT: "1" }, "/").port, readConfig({ PORT: "65535" }, "/").port], [1, 65_535])
 })
 
@@ -36,5 +36,5 @@ test("Chromium is launched here unless CHROMIUM_ENDPOINT names the ws:// address
   assert.deepEqual(browserSource("ws://lcdg-chromium:3000"), { kind: "connect", endpoint: "ws://lcdg-chromium:3000/" })
   assert.deepEqual(browserSource("wss://chromium.example/capture"), { kind: "connect", endpoint: "wss://chromium.example/capture" })
   for (const text of ["http://lcdg-chromium:3000/", "lcdg-chromium:3000", "ws://user@lcdg-chromium:3000/", "ws://:secret@lcdg-chromium:3000/", "not a url"]) assert.equal(browserSource(text), null, text)
-  assert.throws(() => readConfig({ CHROMIUM_ENDPOINT: "http://lcdg-chromium:3000/" }, "/app/og"), /CHROMIUM_ENDPOINT/)
+  assert.throws(() => readConfig({ CHROMIUM_ENDPOINT: "http://lcdg-chromium:3000/" }, "/app/server"), /CHROMIUM_ENDPOINT/)
 })

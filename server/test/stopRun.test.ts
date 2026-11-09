@@ -9,7 +9,7 @@ import { after, test } from "node:test"
 const STOP_RUN = new URL("../deploy/stopRun.ts", import.meta.url)
 const GONE = 99_999_999
 
-const scratch = await mkdtemp(join(tmpdir(), "og-stop-run-"))
+const scratch = await mkdtemp(join(tmpdir(), "server-stop-run-"))
 after(() => rm(scratch, { recursive: true, force: true }))
 
 function idle(): ChildProcess {

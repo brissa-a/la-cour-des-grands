@@ -20,7 +20,7 @@ import { createService } from "./server.ts"
 import { loadSite } from "./site.ts"
 import { parseTemplate } from "./tags.ts"
 
-const scratch = await mkdtemp(join(tmpdir(), "og-server-"))
+const scratch = await mkdtemp(join(tmpdir(), "server-http-"))
 after(() => rm(scratch, { recursive: true, force: true }))
 const dist = join(scratch, "dist")
 await mkdir(join(dist, "assets"), { recursive: true })
@@ -582,7 +582,7 @@ test("past its connection limit, the service closes a new connection at once, an
     const third = connect(bounded.port, "127.0.0.1")
     const closed = new Promise(resolve => third.once("close", resolve))
     third.on("error", () => undefined)
-    third.write(`GET /healthz HTTP/1.1\r\nHost: og\r\n\r\n`)
+    third.write(`GET /healthz HTTP/1.1\r\nHost: server\r\n\r\n`)
     let answered = ""
     third.on("data", (chunk: Buffer) => (answered += chunk.toString()))
     await closed
@@ -634,7 +634,7 @@ test("a download queued behind another on a pipelined connection gives back its 
   const piped = await startService()
   const socket = connect(piped.port, "127.0.0.1")
   await once(socket, "connect")
-  const ask = `GET ${HUGE} HTTP/1.1\r\nHost: og\r\nX-Real-Ip: 203.0.113.7\r\n\r\n`
+  const ask = `GET ${HUGE} HTTP/1.1\r\nHost: server\r\nX-Real-Ip: 203.0.113.7\r\n\r\n`
   socket.write(ask + ask)
   await once(socket, "data")
   socket.pause()

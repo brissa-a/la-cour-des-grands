@@ -1,7 +1,7 @@
 *
-!og/package.json
-!og/package-lock.json
-!og/src
+!server/package.json
+!server/package-lock.json
+!server/src
 !web/package.json
 !web/package-lock.json
 !web/src

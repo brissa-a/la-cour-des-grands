@@ -7,7 +7,7 @@ import { after, test } from "node:test"
 import { brotliCompressSync, brotliDecompressSync, gunzipSync } from "node:zlib"
 import { bodyFor, encoded, loadSite, preferredEncoding, siteFile } from "./site.ts"
 
-const scratch = await mkdtemp(join(tmpdir(), "og-site-"))
+const scratch = await mkdtemp(join(tmpdir(), "server-site-"))
 after(() => rm(scratch, { recursive: true, force: true }))
 
 const SCRIPT = "export const answer = 42\n".repeat(50)
