@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, type RefObject } from "react"
-import type { Deputy, DeputyId } from "../data/assembly.ts"
+import type { DeputyId, SeatedDeputy } from "../data/assembly.ts"
 import type { StageInput } from "../embed/chrome.ts"
 import type { Scene } from "../forms/form.ts"
 import type { Places } from "../forms/registry.ts"
@@ -29,7 +29,7 @@ type Placed = { id: DeputyId; point: Point; motion: Motion }
 type Props = {
   svgRef: RefObject<SVGSVGElement | null>
   viewBox: string
-  deputies: readonly Deputy[]
+  deputies: readonly SeatedDeputy[]
   scene: Scene
   places: Places
   highlighted: ReadonlySet<DeputyId>
@@ -257,7 +257,7 @@ function Rings({
 }
 
 type DotProps = {
-  deputy: Deputy
+  deputy: SeatedDeputy
   position: Point
   radius: number
   hollow: boolean

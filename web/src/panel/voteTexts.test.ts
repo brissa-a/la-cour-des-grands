@@ -3,7 +3,7 @@ import { test } from "node:test"
 import { isoDate } from "../data/isoDate.ts"
 import { voteId } from "../votes/voteId.ts"
 import type { Vote } from "../votes/votes.ts"
-import { majorsTitle, votePlaceholder } from "./voteTexts.ts"
+import { majorsTitle, undrawnNotes, votePlaceholder } from "./voteTexts.ts"
 
 test("the vote search counts the scrutins it searches when the catalog says how many, value first", () => {
   assert.equal(votePlaceholder(8672), "8 672 scrutins · n° ou mots du titre")
@@ -25,4 +25,13 @@ test("the list shown before typing counts the major votes it opens on", () => {
   })
   assert.equal(majorsTitle([vote(1, true), vote(2, false), vote(3, true)]), "2 votes majeurs · les plus récents d'abord")
   assert.equal(majorsTitle([]), "0 votes majeurs · les plus récents d'abord")
+})
+
+test("each reason voters are not drawn gets its own note, counted value first, and a reason no voter has gets none", () => {
+  assert.deepEqual(undrawnNotes({ vacant: 2, unseated: 1, unseatedSuccessor: 0 }), [
+    "2 non dessinés · circonscription vacante aujourd'hui, siège inconnu",
+    "1 non dessiné · siège pas encore attribué",
+  ])
+  assert.deepEqual(undrawnNotes({ vacant: 0, unseated: 0, unseatedSuccessor: 1 }), ["1 non dessiné · siège du successeur pas encore attribué"])
+  assert.deepEqual(undrawnNotes({ vacant: 0, unseated: 0, unseatedSuccessor: 0 }), [])
 })
