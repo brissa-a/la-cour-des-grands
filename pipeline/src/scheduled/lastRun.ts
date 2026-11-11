@@ -80,10 +80,14 @@ function unseatedOf(value: unknown): readonly DeputyId[] | null {
 
 const refusalsOf = (value: unknown): readonly string[] => list(value, "refusals").map((refusal, i) => text(refusal, `refusals[${i}]`));
 
+// Only dated: the version of the pipeline that wrote it may have written its other fields in another form.
+export type EarlierRun = { readonly status: "earlier"; readonly startedAt: Date };
+
 // The summary .runs/last.json the pipeline writes at the end of a run (runs.ts), read back by another process.
-export function lastRun(content: string): LastRun {
+export function lastRun(content: string, since: Date): LastRun | EarlierRun {
   const run = record(parseJson(content), "last.json");
   const startedAt = instant(run.startedAt, "startedAt");
+  if (startedAt < since) return { status: "earlier", startedAt };
   const status = fieldOf(run, "status");
   switch (status) {
     case "published":

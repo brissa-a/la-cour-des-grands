@@ -29,8 +29,8 @@ async function freshRun(path: string, spawnedAt: Date): Promise<RunRecord> {
     return { kind: "none", reason: isMissing(error) ? `no ${path}` : `${path} is unreadable: ${reasonOf(error)}` };
   }
   try {
-    const run = lastRun(content);
-    if (run.startedAt < spawnedAt) return { kind: "none", reason: `${path} is from an earlier run, started ${run.startedAt.toISOString()}` };
+    const run = lastRun(content, spawnedAt);
+    if (run.status === "earlier") return { kind: "none", reason: `${path} is from an earlier run, started ${run.startedAt.toISOString()}` };
     return { kind: "fresh", run };
   } catch (error) {
     return { kind: "none", reason: `${path} is not a run summary: ${reasonOf(error)}` };

@@ -186,8 +186,8 @@ test("a run refused by the lock names its holder and leaves the lock alone", asy
   assert.match(garbled.body, /\/v2\/\.lock: pid 7\.\n/);
 });
 
-test("a failure that leaves only an older, unreadable or malformed run summary is not taken for a run", async () => {
-  const older = JSON.stringify({ startedAt: "2026-11-06T03:30:00.000Z", status: "unchanged", version: VERSION, counts: { deputies: 654, votes: 9759, newVotes: 0 }, cutouts: null, unseated: null });
+test("a failure that leaves only an unreadable or malformed run summary, or one of an earlier run even in an earlier version's form, is not taken for a run", async () => {
+  const older = JSON.stringify({ startedAt: "2026-11-06T03:30:00.000Z", finishedAt: "2026-11-06T03:52:00.000Z", status: "published", exitCode: 0, version: VERSION, previousVersion: null, forced: false, counts: { deputies: 654, votes: 9759, newVotes: 0 }, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, error: null });
   const run = await scenario("silent-failure", undefined, (v2) => writeFile(`${v2}/.runs/last.json`, older));
   assert.deepEqual([run.code, run.topic, run.title], [1, "/lcdg_pipeline-failed", "Run failed (exit 1)"]);
   assert.match(run.body, /It recorded no run: .+\/last\.json is from an earlier run, started 2026-11-06T03:30:00\.000Z\./);

@@ -14,7 +14,7 @@ const finishedAt = new Date("2026-11-07T03:31:00.000Z");
 const cutouts = { failed: [{ id: deputyId("PA1008"), reason: "killed by SIGKILL, most likely for lack of memory" }], waiting: 2 };
 const unseated = [deputyId("PA796046"), deputyId("PA1")];
 
-const readBack = (result: RunResult) => lastRun(JSON.stringify(summary(result, startedAt, finishedAt), null, 1) + "\n");
+const readBack = (result: RunResult) => lastRun(JSON.stringify(summary(result, startedAt, finishedAt), null, 1) + "\n", startedAt);
 
 test("every run summary the pipeline writes reads back with its status, versions, counts, refusals, warning, cutouts, deputies without a seat and error", () => {
   assert.deepEqual(readBack({ status: "published", version, previous, counts, override: null, warning: null, cutouts, unseated }), {
@@ -107,13 +107,33 @@ test("a run summary that is not one is refused with what is wrong, never read as
     [JSON.stringify({ ...valid, unseated: ["PA1", 796046] }), /^Error: unseated\[1\] is not a string$/],
     [JSON.stringify({ ...valid, unseated: ["796046"] }), /^Error: Invalid deputy id: 796046$/],
   ] as const)
-    assert.throws(() => lastRun(content), error, content);
+    assert.throws(() => lastRun(content, startedAt), error, content);
 });
 
 test("a published run counts as forced only when the summary says true", () => {
   const written = summary({ status: "published", version, previous, counts, override: null, warning: null, cutouts: null, unseated: null }, startedAt, finishedAt);
   for (const forced of [false, "true", 1, null]) {
-    const run = lastRun(JSON.stringify({ ...written, forced }));
+    const run = lastRun(JSON.stringify({ ...written, forced }), startedAt);
     assert.ok(run.status === "published" && !run.forced, String(forced));
   }
+});
+
+test("a summary of an earlier run is only dated, even in the form an earlier version of the pipeline wrote, which a summary of the run itself may not have", () => {
+  const earlierStart = new Date("2026-11-06T03:30:00.000Z");
+  const writtenBeforeUnseated = JSON.stringify({
+    startedAt: earlierStart.toISOString(),
+    finishedAt: "2026-11-06T03:52:00.000Z",
+    status: "published",
+    exitCode: 0,
+    version,
+    previousVersion: previous,
+    forced: false,
+    counts,
+    refusals: [],
+    warning: null,
+    cutouts: { failed: [], waiting: 0 },
+    error: null,
+  });
+  assert.deepEqual(lastRun(writtenBeforeUnseated, startedAt), { status: "earlier", startedAt: earlierStart });
+  assert.throws(() => lastRun(writtenBeforeUnseated, earlierStart), /^Error: unseated is not a list$/);
 });
