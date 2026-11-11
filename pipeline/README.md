@@ -17,7 +17,7 @@ npm run pipeline -- --data-root /path/to/data-root   # or LCDG_DATA_ROOT=/path/t
 | `--publish-rejected <version>` | Publishes a snapshot the guards refused, as is, once you have inspected it. Runs no job. Never used by the scheduled run. |
 | `--push-to-remote` | After a run that publishes or finds nothing new, mirrors the current snapshot, photos included, to `v2/` on `main` of [brissa-a/lcdg-data](https://github.com/brissa-a/lcdg-data). Refused (exit 1, after `last.json`) while `https://cour-des-grands.fr/data/v2/current.json` names no version: a site that still reads its data from that repository cannot resolve the snapshot's relative photo paths. |
 
-State kept between runs, next to the code: `cache/` (downloads, refreshed after 24 hours) and `output/photos/` (cutouts, `registry.json`, `failures.json`, and `uncut/`, the official photos as webp; losing it means cutting out every photo again). `output/v2/` is the working copy of the last build: only the files its `catalog.json` lists are published.
+State kept between runs, next to the code: `cache/` (downloads: `cache/sources/`, the deputies, votes and communes, fetched again once 12 hours old, so the 07:00 run reuses a copy written after 19:00 the day before; `cache/downloads/`, pinned by sha256, kept) and `output/photos/` (cutouts, `registry.json`, `failures.json`, and `uncut/`, the official photos as webp; losing it means cutting out every photo again). `output/v2/` is the working copy of the last build: only the files its `catalog.json` lists are published.
 
 A run holds `<root>/v2/.lock` from start to end, since two runs would share `cache/` and `output/` as well as the data root: a run started meanwhile exits with 4 and changes nothing. The lock is released on exit, and on `SIGINT` and `SIGTERM`, which also kill the cutout in progress; after a `SIGKILL` or an out-of-memory kill it stays, its content names the process that held it, and the next runs exit with 4 until it is deleted by hand. A single-job run takes no lock.
 
@@ -107,15 +107,16 @@ Every run writes `<root>/v2/.runs/last.json`:
  "refusals": ["one sentence per refusal"],
  "warning": null,
  "cutouts": { "failed": [{ "id": "PA1008", "reason": "killed by SIGKILL, most likely for lack of memory" }], "waiting": 2 },
+ "unseated": ["PA796046"],
  "error": null
 }
 ```
 
-`counts` and `cutouts` are `null` on failure, and `cutouts` for a `--publish-rejected` run, which computes none. `cutouts.waiting` counts the photos still without a cutout of their current photo, besides those that failed. `newVotes` is `null` when there was no previous version. `warning` names a retention that failed after the publication or the refusal was settled. `forced` is `true` for a `--publish-rejected` run, whose `refusals` are those it overrode. When the data root is not a directory, the run exits with 1 and writes nothing. A `--push-to-remote` mirror that fails exits with 1 after `last.json` has recorded the publication.
+`counts`, `cutouts` and `unseated` are `null` on failure, and `cutouts` and `unseated` for a `--publish-rejected` run, which builds no file. `unseated` lists the deputies in office the Assemblée has not given a seat yet, as it publishes a deputy who just took office for a day or so: they are in `deputies/` but on no seat of `seats/hemicycle.csv`, and their constituency is not shown vacant. `cutouts.waiting` counts the photos still without a cutout of their current photo, besides those that failed. `newVotes` is `null` when there was no previous version. `warning` names a retention that failed after the publication or the refusal was settled. `forced` is `true` for a `--publish-rejected` run, whose `refusals` are those it overrode. When the data root is not a directory, the run exits with 1 and writes nothing. A `--push-to-remote` mirror that fails exits with 1 after `last.json` has recorded the publication.
 
 ## On the Dedibox
 
-The service `lcdg-pipeline` of the server's compose project (`server/deploy/docker-compose.yml`, deployed by `server/deploy/deploy.sh`) runs this image (`deploy/Dockerfile`): uid 10002, read-only, the data root on the volume `lcdg-data` at `/data`, `cache/` and `output/` on the volumes `lcdg_pipeline-cache` and `lcdg_pipeline-output`, 2 CPUs at a quarter of the default weight, 8 GB of memory. [supercronic](https://github.com/aptible/supercronic) runs `node src/scheduled/main.ts run` every night at 04:30, Paris time (`deploy/crontab`), and waits on `SIGTERM` for the run in progress.
+The service `lcdg-pipeline` of the server's compose project (`server/deploy/docker-compose.yml`, deployed by `server/deploy/deploy.sh`) runs this image (`deploy/Dockerfile`): uid 10002, read-only, the data root on the volume `lcdg-data` at `/data`, `cache/` and `output/` on the volumes `lcdg_pipeline-cache` and `lcdg_pipeline-output`, 2 CPUs at a quarter of the default weight, 8 GB of memory. [supercronic](https://github.com/aptible/supercronic) runs `node src/scheduled/main.ts run` every night at 07:00, Paris time (`deploy/crontab`), once the Assemblée serves its exports of the night, regenerated around 02:33 and cached 4 hours, and waits on `SIGTERM` for the run in progress.
 
 `src/scheduled/main.ts` wraps a run of the pipeline with alerts to Alexis's phone, through https://ntfy.kxv.fr as the user `lcdg_pipeline`, whose token is `NTFY_TOKEN`:
 
@@ -129,6 +130,7 @@ The service `lcdg-pipeline` of the server's compose project (`server/deploy/dock
 | Published or unchanged: version, counts, new votes, the photos still waiting for a cutout | `lcdg_pipeline-done` | 2 (low) |
 | Published or unchanged, but cutouts failed: how many, the first five with their reason | `lcdg_pipeline-done` | 3 |
 | Published, old versions not pruned (exit 5) | `lcdg_pipeline-done` | 3 |
+| Published or unchanged, but deputies in office have no seat: how many, the first ten | `lcdg_pipeline-done` | 3 |
 | Refused by the guards (exit 3): each refusal from `last.json`, the command that publishes the candidate anyway | `lcdg_pipeline-rejected` | 4 (high) |
 | Another run holds the lock (exit 4): its holder, the command that frees it | `lcdg_pipeline-locked` | 3 |
 | Any other end: failure recorded in `last.json`, exit without a fresh `last.json`, a kill (out of memory when cgroup v2's `memory.events` counted one), with the end of the error output | `lcdg_pipeline-failed` | 4 (high) |

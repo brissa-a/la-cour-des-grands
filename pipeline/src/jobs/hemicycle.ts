@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { csv, writeOutput } from "../core/csv.ts";
-import { job } from "../core/job.ts";
+import { type Job, job } from "../core/job.ts";
 import { entity } from "../core/entity.ts";
 import type { ConstituencyCode } from "./address/codes.ts";
 import { type Deputy, type DeputyId, type SeatNumber, deputies, inOffice, lastMandate, seatNumber } from "./deputies.ts";
@@ -67,18 +67,25 @@ export function vacantConstituencySeats(
   return constituencyBySeat;
 }
 
-export function roomSeats(deputies: readonly Deputy[], chronologicalBallots: readonly Pick<Ballot, "id" | "seats">[]): Seat[] {
+// The Assemblée publishes a deputy who just took office without a seat until it gives her one, the next day or so.
+export type Room = { readonly seats: Seat[]; readonly unseated: readonly DeputyId[] };
+
+export function roomSeats(deputies: readonly Deputy[], chronologicalBallots: readonly Pick<Ballot, "id" | "seats">[]): Room {
   const holderBySeat = new Map<SeatNumber, Deputy>();
   const holderByConstituency = new Map<ConstituencyCode, DeputyId>();
+  const unseated: DeputyId[] = [];
   for (const d of deputies.filter(inOffice)) {
     const { seat, constituency } = lastMandate(d);
-    if (seat === null) throw new Error(`No seat for ${d.id}`);
-    const other = holderBySeat.get(seat);
-    if (other !== undefined) throw new Error(`Seat ${seat} held by both ${other.id} and ${d.id}`);
     const sameConstituency = holderByConstituency.get(constituency);
     if (sameConstituency !== undefined) throw new Error(`Constituency ${constituency} held by both ${sameConstituency} and ${d.id}`);
-    holderBySeat.set(seat, d);
     holderByConstituency.set(constituency, d.id);
+    if (seat === null) {
+      unseated.push(d.id);
+      continue;
+    }
+    const other = holderBySeat.get(seat);
+    if (other !== undefined) throw new Error(`Seat ${seat} held by both ${other.id} and ${d.id}`);
+    holderBySeat.set(seat, d);
   }
   const plan = [...seatPositions()].filter(([number]) => number < FIRST_NON_SEAT);
   const unknown = [...holderBySeat.keys()].filter((n) => !plan.some(([number]) => number === n));
@@ -95,7 +102,7 @@ export function roomSeats(deputies: readonly Deputy[], chronologicalBallots: rea
   const emptySeats = new Set(plan.map(([number]) => number).filter((number) => !holderBySeat.has(number)));
   const vacant = vacantConstituencySeats(emptySeats, new Set(holderByConstituency.keys()), sittings);
 
-  return plan
+  const seats = plan
     .map(([number, position]) => {
       const holder = holderBySeat.get(number);
       return {
@@ -106,13 +113,30 @@ export function roomSeats(deputies: readonly Deputy[], chronologicalBallots: rea
       };
     })
     .sort((a, b) => a.number - b.number);
+  return { seats, unseated };
 }
 
-export const seats = job({
-  name: "seats",
-  dependencies: { deputies, ballots },
-  run: ({ deputies, ballots }) => roomSeats(deputies, ballots),
-});
+type RoomSources = { readonly deputies: Job<readonly Deputy[]>; readonly ballots: Job<readonly Pick<Ballot, "id" | "seats">[]> };
+
+export function roomJobs(sources: RoomSources) {
+  const room = job({
+    name: "room",
+    dependencies: sources,
+    run: ({ deputies, ballots }) => {
+      const built = roomSeats(deputies, ballots);
+      if (built.unseated.length > 0) console.warn(`In office without a seat, so out of the hemicycle: ${built.unseated.join(", ")}`);
+      return built;
+    },
+  });
+  const seats = job({
+    name: "seats",
+    dependencies: { room },
+    run: ({ room }) => room.seats,
+  });
+  return { room, seats };
+}
+
+export const { room, seats } = roomJobs({ deputies, ballots });
 
 export const seat = entity({
   name: "seat",

@@ -8,7 +8,7 @@ import { type DeputyId, deputy, deputyId } from "./deputies.ts";
 const deputiesPageData = source({
   name: "get-deputes-data.json",
   url: "https://www.assemblee-nationale.fr/dyn/ajax/deputes/get-deputes-data",
-  maxAgeHours: 24,
+  maxAgeHours: 12,
 });
 
 const communesByDeputy = job({

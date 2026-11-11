@@ -1,2 +1,3 @@
 CRON_TZ=Europe/Paris
-30 4 * * * node src/scheduled/main.ts run
+# The Assemblée regenerates its exports around 02:33 and serves them behind a 4-hour HTTP cache: at 07:00 the new ones are out.
+0 7 * * * node src/scheduled/main.ts run

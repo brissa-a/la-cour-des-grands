@@ -12,7 +12,7 @@ const startedAt = new Date("2026-11-07T03:30:00.000Z");
 const LOCK = "/data/v2/.lock";
 const EXEC = "docker --context abysshopper exec lcdg-lcdg-pipeline-1";
 
-const published: LastRun = { status: "published", startedAt, version, previousVersion: previous, forced: false, counts, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 } };
+const published: LastRun = { status: "published", startedAt, version, previousVersion: previous, forced: false, counts, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [] };
 
 function observed(overrides: Partial<Observed>): Observed {
   return { exit: { kind: "code", code: 0 }, record: { kind: "fresh", run: published }, lockPath: LOCK, holder: null, lockReleased: false, outOfMemory: false, stderr: "", ...overrides };
@@ -35,7 +35,7 @@ test("a publication sends a quiet summary: new votes, version, counts and the ve
 });
 
 test("an unchanged run sends a quiet summary naming the version still current", () => {
-  assert.deepEqual(notificationFor(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: null }) })), {
+  assert.deepEqual(notificationFor(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: null, unseated: null }) })), {
     topic: "done",
     priority: 2,
     title: "Data unchanged",
@@ -77,7 +77,7 @@ test("failed cutouts raise the summary of a publication or an unchanged run, nam
     "Cutouts: 1 failed, 0 still waiting. Until theirs is done, these deputies keep their previous cutout, or the official photo.",
     "- PA1: killed by SIGKILL, most likely for lack of memory",
   ]);
-  const unchanged = notificationFor(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: failedCutouts(7) }) }));
+  const unchanged = notificationFor(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: failedCutouts(7), unseated: [] }) }));
   assert.deepEqual([unchanged.priority, unchanged.title, unchanged.tags], [3, "Data unchanged, cutouts failed: 7", ["warning"]]);
   assert.deepEqual(unchanged.body.split("\n").slice(-3), ["- PA4: Input file is missing", "- PA5: Input file is missing", "- and 2 more, listed in .runs/last.json"]);
   const five = notificationFor(observed({ record: fresh({ ...published, cutouts: failedCutouts(5) }) }));
@@ -86,11 +86,37 @@ test("failed cutouts raise the summary of a publication or an unchanged run, nam
   assert.deepEqual([both.priority, both.title], [3, "Data published: 3 new votes, old versions not pruned, cutouts failed: 1"]);
 });
 
+const unseated = (count: number) => Array.from({ length: count }, (_, i) => deputyId(`PA79604${i}`));
+
+test("deputies in office without a seat raise the summary of a publication or an unchanged run, naming the first ten", () => {
+  assert.deepEqual(notificationFor(observed({ record: fresh({ ...published, unseated: [deputyId("PA796046")], cutouts: failedCutouts(1) }) })), {
+    topic: "done",
+    priority: 3,
+    title: "Data published: 3 new votes, cutouts failed: 1, without a seat: 1",
+    body: [
+      `Version ${version} (654 deputies, 9759 votes).`,
+      `Previous version ${previous}.`,
+      "In office without a seat, so out of the hemicycle until the Assemblée gives them one: PA796046.",
+      "Cutouts: 1 failed, 4 still waiting. Until theirs is done, these deputies keep their previous cutout, or the official photo.",
+      "- PA1: killed by SIGKILL, most likely for lack of memory",
+    ].join("\n"),
+    tags: ["warning"],
+  });
+  const ten = notificationFor(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: null, unseated: unseated(10) }) }));
+  assert.deepEqual([ten.priority, ten.title, ten.tags], [3, "Data unchanged, without a seat: 10", ["warning"]]);
+  assert.equal(ten.body.split("\n").at(-1), `In office without a seat, so out of the hemicycle until the Assemblée gives them one: ${unseated(10).join(", ")}.`);
+  const eleven = notificationFor(observed({ record: fresh({ ...published, unseated: unseated(11) }) }));
+  assert.equal(
+    eleven.body.split("\n").at(-1),
+    `In office without a seat, so out of the hemicycle until the Assemblée gives them one: ${unseated(10).join(", ")} and 1 more, listed in .runs/last.json.`,
+  );
+});
+
 test("photos only waiting for their cutout are said in the summary, which stays quiet", () => {
   const waiting = notificationFor(observed({ record: fresh({ ...published, cutouts: { failed: [], waiting: 3 } }) }));
   assert.deepEqual([waiting.priority, waiting.title, waiting.tags], [2, "Data published: 3 new votes", ["white_check_mark"]]);
   assert.equal(waiting.body.split("\n").at(-1), "Cutouts: 0 failed, 3 still waiting. Until theirs is done, these deputies keep their previous cutout, or the official photo.");
-  const none = notificationFor(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: null }) }));
+  const none = notificationFor(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: null, unseated: null }) }));
   assert.equal(none.body, `${version} is still the current version (654 deputies, 9759 votes).`);
 });
 
@@ -104,6 +130,7 @@ test("a refusal by the guards is an alert listing each refusal and the command t
     refusals: ["1 votes against 2 in the current version", "deputies/init.csv is empty"],
     warning: "EACCES",
     cutouts: null,
+    unseated: null,
   };
   assert.deepEqual(notificationFor(observed({ exit: { kind: "code", code: 3 }, record: fresh(run) })), {
     topic: "rejected",
@@ -118,13 +145,14 @@ test("a refusal by the guards is an alert listing each refusal and the command t
     ].join("\n"),
     tags: ["no_entry"],
   });
-  const firstRefused = notificationFor(observed({ exit: { kind: "code", code: 3 }, record: fresh({ ...run, previousVersion: null, warning: null, cutouts: failedCutouts(1) }) }));
+  const firstRefused = notificationFor(observed({ exit: { kind: "code", code: 3 }, record: fresh({ ...run, previousVersion: null, warning: null, cutouts: failedCutouts(1), unseated: [deputyId("PA796046")] }) }));
   assert.equal(
     firstRefused.body,
     [
       `Candidate ${version} (654 deputies, 9759 votes) was set aside, no version stays current:`,
       "- 1 votes against 2 in the current version",
       "- deputies/init.csv is empty",
+      "In office without a seat, so out of the hemicycle until the Assemblée gives them one: PA796046.",
       "Cutouts: 1 failed, 4 still waiting. Until theirs is done, these deputies keep their previous cutout, or the official photo.",
       "- PA1: killed by SIGKILL, most likely for lack of memory",
       `Once inspected, publish it with: ${EXEC} node src/scheduled/main.ts run --publish-rejected ${version}`,
@@ -164,7 +192,7 @@ test("an exit that does not match the recorded outcome, or comes with no fresh s
     [5, { kind: "none", reason: "no /data/v2/.runs/last.json" }],
     [0, fresh({ status: "failed", startedAt, error: "boom" })],
     [3, fresh(published)],
-    [5, fresh({ status: "rejected", startedAt, version, previousVersion: null, counts, refusals: [], warning: null, cutouts: null })],
+    [5, fresh({ status: "rejected", startedAt, version, previousVersion: null, counts, refusals: [], warning: null, cutouts: null, unseated: null })],
     [7, fresh(published)],
   ] as const) {
     const notification = notificationFor(observed({ exit: { kind: "code", code: exit }, record }));

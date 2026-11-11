@@ -12,7 +12,7 @@ import { type DeputyId, type SeatNumber, deputy, deputyId, inOfficeOn, seatNumbe
 const scrutins = source({
   name: "scrutins.zip",
   url: "https://data.assemblee-nationale.fr/static/openData/repository/17/loi/scrutins/Scrutins.json.zip",
-  maxAgeHours: 24,
+  maxAgeHours: 12,
 });
 
 export type VoteId = string & { readonly __brand: "VoteId" };

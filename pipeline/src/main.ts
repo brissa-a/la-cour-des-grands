@@ -2,6 +2,7 @@ import { hostname } from "node:os";
 import { catalog } from "./core/catalog.ts";
 import { OUTPUT_DIR } from "./core/csv.ts";
 import type { Job } from "./core/job.ts";
+import { room } from "./jobs/hemicycle.ts";
 import { init } from "./jobs/init.ts";
 import { cutoutProcesses, photos } from "./jobs/photos.ts";
 import { votesCatalog } from "./jobs/votes.ts";
@@ -36,10 +37,12 @@ const counted = { deputies: snapshotPath(init.name), votes: snapshotPath(votesCa
 const now = () => new Date();
 
 async function build(): Promise<Built> {
-  if (options.publishRejected !== null) return { ...(await publishRejected(root, options.publishRejected, counted, now)), cutouts: null };
+  if (options.publishRejected !== null)
+    return { ...(await publishRejected(root, options.publishRejected, counted, now)), cutouts: null, unseated: null };
   await all.result();
   const { published, cutouts } = await photos.result();
-  return { ...(await publish({ root, sources: await snapshotSources(OUTPUT_DIR, published), counted, now })), cutouts };
+  const { unseated } = await room.result();
+  return { ...(await publish({ root, sources: await snapshotSources(OUTPUT_DIR, published), counted, now })), cutouts, unseated };
 }
 
 process.exit(
