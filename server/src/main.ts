@@ -1,0 +1,101 @@
+import { readFile } from "node:fs/promises"
+import { join } from "node:path"
+import { canonicalView, renderId } from "./canonical.ts"
+import { CAPTURE_SETTINGS } from "./capture.ts"
+import { readConfig } from "./config.ts"
+import { createDataFiles } from "./dataFiles.ts"
+import { openDiskCache, removeTemporaries, writeAtomically } from "./disk.ts"
+import { perClientDownloads } from "./downloads.ts"
+import { createFallback } from "./fallback.ts"
+import { createImages } from "./images.ts"
+import { renderQueue } from "./queue.ts"
+import { reasonOf } from "./reason.ts"
+import { retained, watchReleases, type Releases } from "./releases.ts"
+import { createRenderer } from "./renderer.ts"
+import { createService } from "./server.ts"
+import { loadSite } from "./site.ts"
+import { dataRootSource } from "./snapshot.ts"
+import { parseTemplate } from "./tags.ts"
+
+const CACHE_MAX_BYTES = 2 * 1024 ** 3
+const COMPRESSED_DATA = { keptBytes: 32 * 1024 ** 2, compressions: 2 } as const
+// A browser asks Traefik for at most 250 files at once on its HTTP/2 connection, so one never waits; a client that does not read its answers
+// holds 256 at most, some 100 KB each in buffers, and its next requests wait their turn, then get 503. The total bounds what clients at
+// many addresses hold together: one such client leaves 256 places to the others.
+const DOWNLOADS = { perClient: 256, waiting: 512, waitMs: 30_000, total: 1024 } as const
+// The pipeline replaces the pointer by a rename, which ends a watch on the file; reading a local file every 30 s costs nothing.
+const POINTER_POLL_MS = 30_000
+const REQUEST_WAIT_MS = 8_000
+const QUEUE = { concurrency: 2, capacity: 12, perClient: 2, timeoutMs: 12_000 } as const
+const FALLBACK_RETRY_MS = 60_000
+// Traefik opens a connection to the service for each request in flight, thousands at once for a class loading the photos: past Node's
+// default of 511 waiting to be accepted, each connection dropped waits a second or more for its handshake again. Capped by
+// net.core.somaxconn, raised to match in docker-compose.yml.
+const LISTEN_BACKLOG = 16384
+// Above what the downloads hold (1024 at most) and Traefik's idle ones (200): a class of 30 loading the photos at once lost none, while
+// three addresses sending 20,000 requests each, answered at once, killed the service by their connections alone.
+const MAX_CONNECTIONS = 4096
+
+function log(event: string, fields: Readonly<Record<string, unknown>> = {}): void {
+  console.log(JSON.stringify({ at: new Date().toISOString(), event, ...fields }))
+}
+
+const config = readConfig(process.env, join(import.meta.dirname, ".."))
+const site = await loadSite(config.dist)
+const render = renderId(site.index, CAPTURE_SETTINGS)
+const fallbackFile = join(config.cacheDir, "fallback.jpg")
+await removeTemporaries(config.cacheDir).catch(() => undefined)
+
+let state: () => Releases = () => ({ kind: "starting" })
+const currentVersion = () => {
+  const now = state()
+  return now.kind === "ready" ? now.current.version : null
+}
+
+const cache = await openDiskCache(join(config.cacheDir, "images"), CACHE_MAX_BYTES, render, currentVersion)
+const data = createDataFiles(config.dataRoot, COMPRESSED_DATA)
+const downloads = perClientDownloads(DOWNLOADS)
+const renderer = createRenderer(site, data.read, config.browser)
+const queue = renderQueue<Buffer>(QUEUE)
+const images = createImages({ releases: () => state(), cache, queue, render: renderer.render, renderId: render, waitMs: REQUEST_WAIT_MS, log: line => log("render", line), now: () => performance.now() })
+const fallback = createFallback({
+  draw: release => images.image(release, canonicalView(new URLSearchParams(), release.data)),
+  save: jpeg => writeAtomically(fallbackFile, jpeg),
+  saved: await readFile(fallbackFile).catch(() => null),
+  retryMs: FALLBACK_RETRY_MS,
+  log,
+})
+
+const watch = watchReleases({
+  ...dataRootSource(config.dataRoot),
+  onRelease: async ready => {
+    const version = ready.current.version
+    await cache.keep(retained(ready).map(release => release.version)).catch((error: unknown) => log("cache-keep-failed", { version, reason: reasonOf(error) }))
+    fallback.follow(ready.current)
+  },
+  log,
+  everyMs: POINTER_POLL_MS,
+})
+state = watch.state
+
+const server = createService({
+  site,
+  page: { template: parseTemplate(site.index), origin: config.origin, render },
+  releases: watch.state,
+  pointer: watch.pointer,
+  data,
+  downloads,
+  images,
+  fallback: fallback.image,
+  health: () => ({ status: "ok", data: watch.state().kind, version: currentVersion(), pointed: watch.pointed(), render, renders: { running: queue.running(), waiting: queue.waiting(), clients: queue.clients(), ...images.health() }, downloads: downloads.counts(), cacheBytes: cache.bytes() }),
+  logError: error => log("error", { reason: error instanceof Error ? (error.stack ?? error.message) : reasonOf(error) }),
+}, MAX_CONNECTIONS)
+
+server.listen({ port: config.port, backlog: LISTEN_BACKLOG }, () => log("listening", { port: config.port, origin: config.origin, render, browser: config.browser.kind, dataRoot: config.dataRoot }))
+
+process.once("SIGTERM", () => {
+  watch.stop()
+  fallback.stop()
+  server.close()
+  void renderer.close().finally(() => process.exit(0))
+})

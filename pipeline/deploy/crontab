@@ -1,0 +1,2 @@
+CRON_TZ=Europe/Paris
+30 4 * * * node src/scheduled/main.ts run

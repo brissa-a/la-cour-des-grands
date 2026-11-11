@@ -1,0 +1,655 @@
+deputy_id,photo,last_name,first_name,civility,birth_date,age,in_office,constituency,region,department,department_number,constituency_number,mandate_periods,group
+PA1008,photos/PA1008.webp,David,Alain,M.,1949-06-02,77,yes,33-4,Nouvelle-Aquitaine,Gironde,33,4,2024-07-08/,Socialistes et apparentés
+PA1327,photos/PA1327.webp,Forissier,Nicolas,M.,1961-02-17,65,no,36-2,Centre-Val de Loire,Indre,36,2,2024-07-08/2025-11-12,Droite Républicaine
+PA1567,photos/PA1567.webp,Guedj,Jérôme,M.,1972-01-23,54,yes,91-6,Ile-de-France,Essonne,91,6,2024-07-08/,Socialistes et apparentés
+PA1592,photos/PA1592.webp,Habib,David,M.,1961-03-16,65,yes,64-3,Nouvelle-Aquitaine,Pyrénées-Atlantiques,64,3,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA1630,photos/PA1630.webp,Herbillon,Michel,M.,1951-03-06,75,yes,94-8,Ile-de-France,Val-de-Marne,94,8,2024-07-08/,Droite Républicaine
+PA1654,photos/PA1654.webp,Hollande,François,M.,1954-08-12,72,yes,19-1,Nouvelle-Aquitaine,Corrèze,19,1,2024-07-08/,Socialistes et apparentés
+PA227089,photos/PA227089.webp,Létard,Valérie,Mme,1962-10-13,64,yes,59-21,Hauts-de-France,Nord,59,21,2024-07-08/2024-10-21|2025-11-06/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA266793,photos/PA266793.webp,Bony,Jean-Yves,M.,1955-03-11,71,yes,15-2,Auvergne-Rhône-Alpes,Cantal,15,2,2024-07-08/,Droite Républicaine
+PA266797,photos/PA266797.webp,Gosselin,Philippe,M.,1966-10-23,60,yes,50-1,Normandie,Manche,50,1,2024-07-08/,Droite Républicaine
+PA266808,photos/PA266808.webp,Rolland,Vincent,M.,1970-02-01,56,yes,73-2,Auvergne-Rhône-Alpes,Savoie,73,2,2024-07-08/,Droite Républicaine
+PA267042,photos/PA267042.webp,Favennec-Bécot,Yannick,M.,1958-08-12,68,yes,53-3,Pays de la Loire,Mayenne,53,3,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA267200,photos/PA267200.webp,Huyghe,Sébastien,M.,1969-10-25,57,yes,59-5,Hauts-de-France,Nord,59,5,2024-07-08/,Ensemble pour la République
+PA267285,photos/PA267285.webp,Wauquiez,Laurent,M.,1975-04-12,51,yes,43-1,Auvergne-Rhône-Alpes,Haute-Loire,43,1,2024-07-08/,Droite Républicaine
+PA267306,photos/PA267306.webp,Chassaigne,André,M.,1950-07-02,76,no,63-5,Auvergne-Rhône-Alpes,Puy-de-Dôme,63,5,2024-07-08/2025-03-31,Gauche Démocrate et Républicaine
+PA267318,photos/PA267318.webp,Grelier,Jean-Carles,M.,1966-03-15,60,yes,72-5,Pays de la Loire,Sarthe,72,5,2024-07-08/,Les Démocrates
+PA267561,photos/PA267561.webp,Barèges,Brigitte,Mme,1953-05-01,73,no,82-1,Occitanie,Tarn-et-Garonne,82,1,2024-07-08/2025-07-11,UDR
+PA267763,photos/PA267763.webp,Bataille,Jean-Pierre,M.,1963-10-24,63,yes,59-15,Hauts-de-France,Nord,59,15,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA267780,photos/PA267780.webp,Firmin Le Bodo,Agnès,Mme,1968-11-20,57,yes,76-7,Normandie,Seine-Maritime,76,7,2024-07-08/,Horizons & Indépendants
+PA267794,photos/PA267794.webp,Tabarot,Michèle,Mme,1962-10-13,64,yes,06-9,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,9,2024-07-08/,Droite Républicaine
+PA2940,photos/PA2940.webp,Voynet,Dominique,Mme,1958-11-04,68,yes,25-2,Bourgogne-Franche-Comté,Doubs,25,2,2024-07-08/,Écologiste et Social
+PA2952,photos/PA2952.webp,Warsmann,Jean-Luc,M.,1965-10-22,61,yes,08-3,Grand Est,Ardennes,08,3,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA2960,photos/PA2960.webp,Woerth,Éric,M.,1956-01-29,70,no,60-4,Hauts-de-France,Oise,60,4,2024-07-08/2026-03-01,Ensemble pour la République
+PA309643,photos/PA309643.webp,Besse,Véronique,Mme,1963-08-11,63,yes,85-4,Pays de la Loire,Vendée,85,4,2024-07-08/,Non inscrit
+PA330008,photos/PA330008.webp,Breton,Xavier,M.,1962-11-25,63,yes,01-1,Auvergne-Rhône-Alpes,Ain,01,1,2024-07-08/,Droite Républicaine
+PA330240,photos/PA330240.webp,Ciotti,Éric,M.,1965-09-28,61,yes,06-1,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,1,2024-07-08/,Union des droites pour la République
+PA330909,photos/PA330909.webp,Descoeur,Vincent,M.,1962-12-13,63,yes,15-1,Auvergne-Rhône-Alpes,Cantal,15,1,2024-07-08/,Droite Républicaine
+PA331582,photos/PA331582.webp,Vigier,Philippe,M.,1958-02-03,68,yes,28-4,Centre-Val de Loire,Eure-et-Loir,28,4,2024-07-08/,Les Démocrates
+PA331973,photos/PA331973.webp,Got,Pascale,Mme,1961-04-01,65,yes,33-5,Nouvelle-Aquitaine,Gironde,33,5,2024-07-08/,Socialistes et apparentés
+PA332228,photos/PA332228.webp,Benoit,Thierry,M.,1966-09-13,60,yes,35-6,Bretagne,Ille-et-Vilaine,35,6,2024-07-08/,Horizons & Indépendants
+PA332523,photos/PA332523.webp,Dalloz,Marie-Christine,Mme,1958-01-10,68,yes,39-2,Bourgogne-Franche-Comté,Jura,39,2,2024-07-08/2025-02-13|2025-04-07/,Droite Républicaine
+PA333285,photos/PA333285.webp,Garot,Guillaume,M.,1966-05-29,60,yes,53-1,Pays de la Loire,Mayenne,53,1,2024-07-08/,Socialistes et apparentés
+PA335054,photos/PA335054.webp,Karamanli,Marietta,Mme,1964-12-18,61,yes,72-2,Pays de la Loire,Sarthe,72,2,2024-07-08/,Socialistes et apparentés
+PA335612,photos/PA335612.webp,Lecoq,Jean-Paul,M.,1958-10-13,68,yes,76-8,Normandie,Seine-Maritime,76,8,2024-07-08/,Gauche Démocrate et Républicaine
+PA335758,photos/PA335758.webp,Riester,Franck,M.,1974-01-03,52,no,77-5,Ile-de-France,Seine-et-Marne,77,5,2024-07-08/2026-04-16,Ensemble pour la République
+PA335999,photos/PA335999.webp,Batho,Delphine,Mme,1973-03-23,53,yes,79-2,Nouvelle-Aquitaine,Deux-Sèvres,79,2,2024-07-08/,Écologiste et Social
+PA340343,photos/PA340343.webp,Saulignac,Hervé,M.,1970-11-06,55,yes,07-1,Auvergne-Rhône-Alpes,Ardèche,07,1,2024-07-08/,Socialistes et apparentés
+PA341981,photos/PA341981.webp,Récalde,Marie,Mme,1965-03-12,61,yes,33-6,Nouvelle-Aquitaine,Gironde,33,6,2024-07-08/,Socialistes et apparentés
+PA342196,photos/PA342196.webp,Rouaux,Claudia,Mme,1963-10-13,63,yes,35-3,Bretagne,Ille-et-Vilaine,35,3,2024-07-08/,Socialistes et apparentés
+PA342240,photos/PA342240.webp,Bourgeaux,Jean-Luc,M.,1963-04-10,63,yes,35-7,Bretagne,Ille-et-Vilaine,35,7,2024-07-08/,Droite Républicaine
+PA342384,photos/PA342384.webp,Martin,Élisa,Mme,1972-05-15,54,yes,38-3,Auvergne-Rhône-Alpes,Isère,38,3,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA342415,photos/PA342415.webp,Battistel,Marie-Noëlle,Mme,1956-08-20,70,yes,38-4,Auvergne-Rhône-Alpes,Isère,38,4,2024-07-08/,Socialistes et apparentés
+PA345722,photos/PA345722.webp,Le Grip,Constance,Mme,1960-11-14,65,yes,92-6,Ile-de-France,Hauts-de-Seine,92,6,2024-07-08/,Ensemble pour la République
+PA346782,photos/PA346782.webp,Juvin,Philippe,M.,1964-02-01,62,yes,92-3,Ile-de-France,Hauts-de-Seine,92,3,2024-07-01/,Droite Républicaine
+PA368,photos/PA368.webp,Barnier,Michel,M.,1951-01-09,75,yes,75-2,Ile-de-France,Paris,75,2,2025-09-29/,Droite Républicaine
+PA408578,photos/PA408578.webp,Berger,Jean-Didier,M.,1980-01-23,46,no,92-12,Ile-de-France,Hauts-de-Seine,92,12,2024-07-08/2026-03-26,Droite Républicaine
+PA569,photos/PA569.webp,Bonnecarrère,Philippe,M.,1955-07-12,71,yes,81-1,Occitanie,Tarn,81,1,2024-07-08/,Non inscrit
+PA588884,photos/PA588884.webp,Autain,Clémentine,Mme,1973-05-26,53,yes,93-11,Ile-de-France,Seine-Saint-Denis,93,11,2024-07-01/,Écologiste et Social
+PA605694,photos/PA605694.webp,Falorni,Olivier,M.,1972-03-27,54,no,17-1,Nouvelle-Aquitaine,Charente-Maritime,17,1,2024-07-08/2026-04-26,Les Démocrates
+PA605745,photos/PA605745.webp,Sansu,Nicolas,M.,1968-06-17,58,yes,18-2,Centre-Val de Loire,Cher,18,2,2024-07-08/,Gauche Démocrate et Républicaine
+PA605782,photos/PA605782.webp,Marcangeli,Laurent,M.,1980-12-10,45,yes,2A-1,Corse,Corse-du-Sud,2A,1,2024-07-08/2025-01-23|2025-11-06/,Horizons & Indépendants
+PA605991,photos/PA605991.webp,Genevard,Annie,Mme,1956-09-07,70,no,25-5,Bourgogne-Franche-Comté,Doubs,25,5,2024-07-08/2024-10-21,Droite Républicaine
+PA606098,photos/PA606098.webp,Marleix,Olivier,M.,1971-02-06,55,no,28-2,Centre-Val de Loire,Eure-et-Loir,28,2,2024-07-08/2025-07-07,Droite Républicaine
+PA606507,photos/PA606507.webp,Boudié,Florent,M.,1973-09-22,53,no,33-10,Nouvelle-Aquitaine,Gironde,33,10,2024-07-08/2026-07-19,Ensemble pour la République
+PA606545,photos/PA606545.webp,Roumégas,Jean-Louis,M.,1962-06-06,64,yes,34-1,Occitanie,Hérault,34,1,2024-07-08/,Écologiste et Social
+PA606573,photos/PA606573.webp,Dombre Coste,Fanny,Mme,1956-12-26,69,yes,34-3,Occitanie,Hérault,34,3,2024-07-08/,Socialistes et apparentés
+PA606793,photos/PA606793.webp,Baumel,Laurent,M.,1965-08-13,61,yes,37-4,Centre-Val de Loire,Indre-et-Loire,37,4,2024-07-08/,Socialistes et apparentés
+PA607090,photos/PA607090.webp,Vigier,Jean-Pierre,M.,1969-10-22,57,yes,43-2,Auvergne-Rhône-Alpes,Haute-Loire,43,2,2024-07-08/,Droite Républicaine
+PA607193,photos/PA607193.webp,Errante,Sophie,Mme,1971-07-22,55,yes,44-10,Pays de la Loire,Loire-Atlantique,44,10,2024-07-08/,Non inscrit
+PA607395,photos/PA607395.webp,Travert,Stéphane,M.,1969-10-12,57,yes,50-3,Normandie,Manche,50,3,2024-07-08/,Ensemble pour la République
+PA607553,photos/PA607553.webp,Potier,Dominique,M.,1964-03-17,62,yes,54-5,Grand Est,Meurthe-et-Moselle,54,5,2024-07-08/,Socialistes et apparentés
+PA607619,photos/PA607619.webp,Molac,Paul,M.,1962-05-21,64,yes,56-4,Bretagne,Morbihan,56,4,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA607846,photos/PA607846.webp,Darmanin,Gérald,M.,1982-10-11,44,no,59-10,Hauts-de-France,Nord,59,10,2024-07-08/2025-01-23,Ensemble pour la République
+PA608016,photos/PA608016.webp,Louwagie,Véronique,Mme,1961-03-20,65,no,61-2,Normandie,Orne,61,2,2024-07-08/2025-01-23|2025-11-06/2026-04-21,Droite Républicaine
+PA608172,photos/PA608172.webp,Pirès Beaune,Christine,Mme,1964-10-06,62,yes,63-2,Auvergne-Rhône-Alpes,Puy-de-Dôme,63,2,2024-07-08/,Socialistes et apparentés
+PA608264,photos/PA608264.webp,Capdevielle,Colette,Mme,1958-10-14,68,yes,64-5,Nouvelle-Aquitaine,Pyrénées-Atlantiques,64,5,2024-07-08/,Socialistes et apparentés
+PA608416,photos/PA608416.webp,Hetzel,Patrick,M.,1964-07-02,62,yes,67-7,Grand Est,Bas-Rhin,67,7,2024-07-08/2024-10-21|2025-01-24/,Droite Républicaine
+PA608826,photos/PA608826.webp,Duby-Muller,Virginie,Mme,1979-08-16,47,yes,74-4,Auvergne-Rhône-Alpes,Haute-Savoie,74,4,2024-07-08/,Droite Républicaine
+PA609332,photos/PA609332.webp,Faure,Olivier,M.,1968-08-18,58,yes,77-11,Ile-de-France,Seine-et-Marne,77,11,2024-07-01/,Socialistes et apparentés
+PA610002,photos/PA610002.webp,Sas,Eva,Mme,1970-08-13,56,yes,75-8,Ile-de-France,Paris,75,8,2024-07-01/,Écologiste et Social
+PA610654,photos/PA610654.webp,Nilor,Jean-Philippe,M.,1965-05-15,61,yes,972-4,Martinique,Martinique,972,4,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA610968,photos/PA610968.webp,Amirshahi,Pouria,M.,1972-03-27,54,yes,75-5,Ile-de-France,Paris,75,5,2024-07-01/,Écologiste et Social
+PA642695,photos/PA642695.webp,Bothorel,Éric,M.,1966-10-20,60,yes,22-5,Bretagne,Côtes-d'Armor,22,5,2024-07-08/,Ensemble pour la République
+PA642725,photos/PA642725.webp,Liégeon,Eric,M.,1961-01-24,65,yes,25-5,Bourgogne-Franche-Comté,Doubs,25,5,2024-10-22/,Droite Républicaine
+PA642734,photos/PA642734.webp,Gérard,Éric,M.,1962-01-19,64,yes,28-3,Centre-Val de Loire,Eure-et-Loir,28,3,2026-07-26/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA642764,photos/PA642764.webp,Aviragnet,Joël,M.,1956-06-16,70,yes,31-8,Occitanie,Haute-Garonne,31,8,2024-07-08/,Socialistes et apparentés
+PA642847,photos/PA642847.webp,Bazin,Thibault,M.,1984-10-27,42,yes,54-4,Grand Est,Meurthe-et-Moselle,54,4,2024-07-08/,Droite Républicaine
+PA642868,photos/PA642868.webp,Christophe,Paul,M.,1971-02-10,55,no,59-14,Hauts-de-France,Nord,59,14,2024-07-08/2024-10-21|2025-01-24/2026-04-06,Horizons & Indépendants
+PA642935,photos/PA642935.webp,Becht,Olivier,M.,1976-04-28,50,yes,68-5,Grand Est,Haut-Rhin,68,5,2024-07-08/,Ensemble pour la République
+PA642988,photos/PA642988.webp,de Lépinau,Hervé,M.,1969-06-08,57,yes,84-3,Provence-Alpes-Côte d'Azur,Vaucluse,84,3,2024-07-01/,Rassemblement National
+PA643089,photos/PA643089.webp,Thiériot,Jean-Louis,M.,1969-06-26,57,yes,77-3,Ile-de-France,Seine-et-Marne,77,3,2024-07-08/2024-10-27|2025-01-24/,Droite Républicaine
+PA643104,photos/PA643104.webp,Minard,Christelle,Mme,1970-10-04,56,yes,28-2,Centre-Val de Loire,Eure-et-Loir,28,2,2025-07-08/,Droite Républicaine
+PA643143,photos/PA643143.webp,Baptiste,Christian,M.,1962-06-18,64,yes,971-2,Guadeloupe,Guadeloupe,971,2,2024-07-08/,Socialistes et apparentés
+PA643157,photos/PA643157.webp,Naillet,Philippe,M.,1960-08-14,66,yes,974-1,Réunion,Réunion,974,1,2024-07-08/,Socialistes et apparentés
+PA643175,photos/PA643175.webp,Dupont,Stella,Mme,1973-11-03,53,yes,49-2,Pays de la Loire,Maine-et-Loire,49,2,2024-07-08/,Non inscrit
+PA643184,photos/PA643184.webp,Klinkert,Brigitte,Mme,1956-07-22,70,yes,68-1,Grand Est,Haut-Rhin,68,1,2024-07-08/,Ensemble pour la République
+PA643192,photos/PA643192.webp,Jourdan,Chantal,Mme,1958-09-02,68,yes,61-1,Normandie,Orne,61,1,2024-07-08/,Socialistes et apparentés
+PA677483,photos/PA677483.webp,Mazars,Stéphane,M.,1969-03-25,57,no,12-1,Occitanie,Aveyron,12,1,2024-07-08/2026-04-26,Ensemble pour la République
+PA687214,photos/PA687214.webp,Berrios,Sylvain,M.,1968-05-06,58,yes,94-1,Ile-de-France,Val-de-Marne,94,1,2024-07-08/,Horizons & Indépendants
+PA695512,photos/PA695512.webp,Lepers,Guillaume,M.,1978-12-21,47,no,47-3,Nouvelle-Aquitaine,Lot-et-Garonne,47,3,2024-07-08/2026-04-20,Droite Républicaine
+PA712014,photos/PA712014.webp,Ledoux,Vincent,M.,1966-06-21,60,yes,59-10,Hauts-de-France,Nord,59,10,2025-01-24/,Ensemble pour la République
+PA712015,photos/PA712015.webp,Dive,Julien,M.,1985-05-21,41,yes,02-2,Hauts-de-France,Aisne,02,2,2024-07-08/,Droite Républicaine
+PA717161,photos/PA717161.webp,Borne,Élisabeth,Mme,1961-04-18,65,yes,14-6,Normandie,Calvados,14,6,2024-07-08/2025-01-23|2025-11-13/,Ensemble pour la République
+PA717379,photos/PA717379.webp,Maillard,Sylvain,M.,1974-04-28,52,yes,75-1,Ile-de-France,Paris,75,1,2024-07-08/,Ensemble pour la République
+PA718674,photos/PA718674.webp,Givernet,Olga,Mme,1981-10-17,45,yes,01-3,Auvergne-Rhône-Alpes,Ain,01,3,2024-07-08/2024-10-21|2025-01-24/,Ensemble pour la République
+PA718784,photos/PA718784.webp,Pauget,Éric,M.,1970-08-18,56,yes,06-7,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,7,2024-07-08/,Droite Républicaine
+PA718820,photos/PA718820.webp,Cestrières,Pauline,Mme,1977-03-24,49,yes,12-1,Occitanie,Aveyron,12,1,2026-04-27/,Ensemble pour la République
+PA718838,photos/PA718838.webp,Brun,Fabrice,M.,1968-04-02,58,yes,07-3,Auvergne-Rhône-Alpes,Ardèche,07,3,2024-07-08/,Droite Républicaine
+PA718850,photos/PA718850.webp,Cordier,Pierre,M.,1972-05-27,54,yes,08-2,Grand Est,Ardennes,08,2,2024-07-08/,Droite Républicaine
+PA718884,photos/PA718884.webp,Bazin-Malgras,Valérie,Mme,1969-10-31,57,no,10-2,Grand Est,Aube,10,2,2024-07-08/2026-09-30,Droite Républicaine
+PA719024,photos/PA719024.webp,Blanchet,Christophe,M.,1973-04-09,53,yes,14-4,Normandie,Calvados,14,4,2024-07-08/,Les Démocrates
+PA719032,photos/PA719032.webp,Bouyx,Bertrand,M.,1970-05-26,56,yes,14-5,Normandie,Calvados,14,5,2024-07-08/,Horizons & Indépendants
+PA719052,photos/PA719052.webp,Kervran,Loïc,M.,1984-02-11,42,no,18-3,Centre-Val de Loire,Cher,18,3,2024-07-08/2026-09-30,Horizons & Indépendants
+PA719080,photos/PA719080.webp,Marsaud,Sandra,Mme,1974-01-02,52,yes,16-2,Nouvelle-Aquitaine,Charente,16,2,2024-07-08/,Ensemble pour la République
+PA719118,photos/PA719118.webp,Cormier-Bouligeon,François,M.,1972-11-19,53,yes,18-1,Centre-Val de Loire,Cher,18,1,2024-07-08/,Ensemble pour la République
+PA719138,photos/PA719138.webp,Castellani,Michel,M.,1945-09-28,81,yes,2B-1,Corse,Haute-Corse,2B,1,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA719218,photos/PA719218.webp,Berville,Hervé,M.,1990-01-15,36,no,22-2,Bretagne,Côtes-d'Armor,22,2,2024-07-08/2026-08-04,Ensemble pour la République
+PA719272,photos/PA719272.webp,Meunier,Frédérique,Mme,1960-12-08,65,yes,19-2,Nouvelle-Aquitaine,Corrèze,19,2,2024-07-08/,Droite Républicaine
+PA719282,photos/PA719282.webp,Lacombe,Xavier,M.,1965-06-08,61,no,2A-1,Corse,Corse-du-Sud,2A,1,2025-01-24/2025-11-05,Horizons & Indépendants
+PA719286,photos/PA719286.webp,Colombani,Paul-André,M.,1967-08-17,59,yes,2A-2,Corse,Corse-du-Sud,2A,2,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA719338,photos/PA719338.webp,Melchior,Graziella,Mme,1960-04-06,66,yes,29-5,Bretagne,Finistère,29,5,2024-07-08/,Ensemble pour la République
+PA719372,photos/PA719372.webp,Kasbarian,Guillaume,M.,1987-02-28,39,yes,28-1,Centre-Val de Loire,Eure-et-Loir,28,1,2024-07-08/2024-10-21|2025-01-24/,Ensemble pour la République
+PA719388,photos/PA719388.webp,Le Meur,Annaïg,Mme,1973-04-29,53,yes,29-1,Bretagne,Finistère,29,1,2024-07-08/,Ensemble pour la République
+PA719404,photos/PA719404.webp,Le Gac,Didier,M.,1965-07-19,61,yes,29-3,Bretagne,Finistère,29,3,2024-07-08/,Ensemble pour la République
+PA719412,photos/PA719412.webp,Le Feur,Sandrine,Mme,1991-03-18,35,yes,29-4,Bretagne,Finistère,29,4,2024-07-08/,Ensemble pour la République
+PA719436,photos/PA719436.webp,Meizonnet,Nicolas,M.,1983-12-22,42,yes,30-2,Occitanie,Gard,30,2,2024-07-01/,Rassemblement National
+PA719472,photos/PA719472.webp,Cazeneuve,Jean-René,M.,1958-06-09,68,yes,32-1,Occitanie,Gers,32,1,2024-07-08/,Ensemble pour la République
+PA719512,photos/PA719512.webp,Vignon,Corinne,Mme,1963-06-10,63,yes,31-3,Occitanie,Haute-Garonne,31,3,2024-07-08/,Ensemble pour la République
+PA719528,photos/PA719528.webp,Portarrieu,Jean-François,M.,1965-10-14,61,yes,31-5,Occitanie,Haute-Garonne,31,5,2024-07-08/,Horizons & Indépendants
+PA719550,photos/PA719550.webp,Tanguy,Liliana,Mme,1967-03-12,59,yes,29-7,Bretagne,Finistère,29,7,2024-07-08/,Ensemble pour la République
+PA719558,photos/PA719558.webp,Balanant,Erwan,M.,1971-02-21,55,yes,29-8,Bretagne,Finistère,29,8,2024-07-08/,Les Démocrates
+PA719578,photos/PA719578.webp,Prud'homme,Loïc,M.,1969-08-19,57,yes,33-3,Nouvelle-Aquitaine,Gironde,33,3,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA719632,photos/PA719632.webp,Panonacle,Sophie,Mme,1968-12-16,57,yes,33-8,Nouvelle-Aquitaine,Gironde,33,8,2024-07-08/,Ensemble pour la République
+PA719640,photos/PA719640.webp,Mette,Sophie,Mme,1959-09-13,67,yes,33-9,Nouvelle-Aquitaine,Gironde,33,9,2024-07-08/,Les Démocrates
+PA719736,photos/PA719736.webp,Galliard-Minier,Camille,Mme,1975-05-26,51,no,38-1,Auvergne-Rhône-Alpes,Isère,38,1,2025-01-20/2026-03-26,Ensemble pour la République
+PA719756,photos/PA719756.webp,Le Nabour,Christine,Mme,1964-10-28,62,yes,35-5,Bretagne,Ille-et-Vilaine,35,5,2024-07-08/,Horizons & Indépendants
+PA719778,photos/PA719778.webp,Jolivet,François,M.,1966-03-21,60,yes,36-1,Centre-Val de Loire,Indre,36,1,2024-07-08/,Horizons & Indépendants
+PA719798,photos/PA719798.webp,Labaronne,Daniel,M.,1955-07-16,71,yes,37-2,Centre-Val de Loire,Indre-et-Loire,37,2,2024-07-08/,Ensemble pour la République
+PA719822,photos/PA719822.webp,Thillaye,Sabine,Mme,1959-05-18,67,yes,37-5,Centre-Val de Loire,Indre-et-Loire,37,5,2024-07-08/,Les Démocrates
+PA719890,photos/PA719890.webp,Brulebois,Danielle,Mme,1947-07-04,79,yes,39-1,Bourgogne-Franche-Comté,Jura,39,1,2024-07-08/,Ensemble pour la République
+PA719914,photos/PA719914.webp,Darrieussecq,Geneviève,Mme,1956-03-04,70,yes,40-1,Nouvelle-Aquitaine,Landes,40,1,2024-07-08/2024-10-21|2025-01-24/,Les Démocrates
+PA719918,photos/PA719918.webp,Lainé,Fabien,M.,1976-04-15,50,no,40-1,Nouvelle-Aquitaine,Landes,40,1,2024-10-22/2025-01-23,Les Démocrates
+PA719922,photos/PA719922.webp,Causse,Lionel,M.,1971-05-06,55,yes,40-2,Nouvelle-Aquitaine,Landes,40,2,2024-07-08/,Ensemble pour la République
+PA719930,photos/PA719930.webp,Vallaud,Boris,M.,1975-07-25,51,yes,40-3,Nouvelle-Aquitaine,Landes,40,3,2024-07-08/,Socialistes et apparentés
+PA719938,photos/PA719938.webp,Fesneau,Marc,M.,1971-01-11,55,yes,41-1,Centre-Val de Loire,Loir-et-Cher,41,1,2024-07-08/,Les Démocrates
+PA719968,photos/PA719968.webp,Bonnet,Sylvie,Mme,1969-12-21,56,yes,42-4,Auvergne-Rhône-Alpes,Loire,42,4,2024-07-08/,Droite Républicaine
+PA720022,photos/PA720022.webp,Lauzzana,Michel,M.,1957-03-20,69,yes,47-1,Nouvelle-Aquitaine,Lot-et-Garonne,47,1,2024-07-08/,Ensemble pour la République
+PA720038,photos/PA720038.webp,Josso,Sandrine,Mme,1975-09-19,51,yes,44-7,Pays de la Loire,Loire-Atlantique,44,7,2024-07-08/,Les Démocrates
+PA720066,photos/PA720066.webp,Rist,Stéphanie,Mme,1973-08-06,53,no,45-1,Centre-Val de Loire,Loiret,45,1,2024-07-08/2025-11-12|2026-01-26/2026-02-26,Ensemble pour la République
+PA720092,photos/PA720092.webp,Ramos,Richard,M.,1968-03-23,58,yes,45-6,Centre-Val de Loire,Loiret,45,6,2024-07-08/,Les Démocrates
+PA720100,photos/PA720100.webp,Pradié,Aurélien,M.,1986-03-14,40,yes,46-1,Occitanie,Lot,46,1,2024-07-08/,Non inscrit
+PA720138,photos/PA720138.webp,Saint-Paul,Laetitia,Mme,1981-01-21,45,yes,49-4,Pays de la Loire,Maine-et-Loire,49,4,2024-07-08/,Horizons & Indépendants
+PA720146,photos/PA720146.webp,Masséglia,Denis,M.,1981-04-11,45,yes,49-5,Pays de la Loire,Maine-et-Loire,49,5,2024-07-08/,Ensemble pour la République
+PA720154,photos/PA720154.webp,Dubré-Chirat,Nicole,Mme,1951-12-18,74,yes,49-6,Pays de la Loire,Maine-et-Loire,49,6,2024-07-08/,Ensemble pour la République
+PA720162,photos/PA720162.webp,Bolo,Philippe,M.,1967-03-25,59,no,49-7,Pays de la Loire,Maine-et-Loire,49,7,2024-07-08/2026-04-26,Les Démocrates
+PA720190,photos/PA720190.webp,Sorre,Bertrand,M.,1965-05-08,61,yes,50-2,Normandie,Manche,50,2,2024-07-08/,Ensemble pour la République
+PA720230,photos/PA720230.webp,Magnier,Lise,Mme,1984-12-31,41,yes,51-4,Grand Est,Marne,51,4,2024-07-08/,Horizons & Indépendants
+PA720256,photos/PA720256.webp,Bannier,Géraldine,Mme,1979-11-22,46,yes,53-2,Pays de la Loire,Mayenne,53,2,2024-07-08/,Les Démocrates
+PA720334,photos/PA720334.webp,Pahun,Jimmy,M.,1962-05-15,64,yes,56-2,Bretagne,Morbihan,56,2,2024-07-08/,Les Démocrates
+PA720342,photos/PA720342.webp,Le Peih,Nicole,Mme,1959-09-28,67,yes,56-3,Bretagne,Morbihan,56,3,2024-07-08/,Ensemble pour la République
+PA720354,photos/PA720354.webp,Jacques,Jean-Michel,M.,1968-02-29,58,yes,56-6,Bretagne,Morbihan,56,6,2024-07-08/,Ensemble pour la République
+PA720362,photos/PA720362.webp,Belhaddad,Belkhir,M.,1969-07-09,57,yes,57-1,Grand Est,Moselle,57,1,2024-07-08/,Socialistes et apparentés
+PA720370,photos/PA720370.webp,Mendes,Ludovic,M.,1987-04-11,39,yes,57-2,Grand Est,Moselle,57,2,2024-07-08/,Ensemble pour la République
+PA720386,photos/PA720386.webp,Di Filippo,Fabien,M.,1986-08-23,40,no,57-4,Grand Est,Moselle,57,4,2024-07-08/2026-04-20,Droite Républicaine
+PA720390,photos/PA720390.webp,End,Jérôme,M.,1979-04-09,47,yes,57-4,Grand Est,Moselle,57,4,2026-04-21/,Droite Républicaine
+PA720430,photos/PA720430.webp,Bernalicis,Ugo,M.,1989-09-25,37,yes,59-2,Hauts-de-France,Nord,59,2,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA720446,photos/PA720446.webp,Liso,Brigitte,Mme,1959-07-29,67,yes,59-4,Hauts-de-France,Nord,59,4,2024-07-08/,Ensemble pour la République
+PA720468,photos/PA720468.webp,Chenu,Sébastien,M.,1973-04-13,53,yes,59-19,Hauts-de-France,Nord,59,19,2024-07-01/,Rassemblement National
+PA720480,photos/PA720480.webp,Parmentier-Lecocq,Charlotte,Mme,1977-07-17,49,yes,59-6,Hauts-de-France,Nord,59,6,2024-07-08/2024-10-27|2026-03-27/,Horizons & Indépendants
+PA720552,photos/PA720552.webp,Rauch,Isabelle,Mme,1968-08-10,58,yes,57-9,Grand Est,Moselle,57,9,2024-07-08/,Horizons & Indépendants
+PA720560,photos/PA720560.webp,Goulet,Perrine,Mme,1978-03-19,48,yes,58-1,Bourgogne-Franche-Comté,Nièvre,58,1,2024-07-08/,Les Démocrates
+PA720614,photos/PA720614.webp,Le Pen,Marine,Mme,1968-08-05,58,yes,62-11,Hauts-de-France,Pas-de-Calais,62,11,2024-07-01/,Rassemblement National
+PA720644,photos/PA720644.webp,Nury,Jérôme,M.,1972-08-25,54,no,61-3,Normandie,Orne,61,3,2024-07-08/2026-04-14,Droite Républicaine
+PA720668,photos/PA720668.webp,Blairy,Emmanuel,M.,1986-03-14,40,yes,62-1,Hauts-de-France,Pas-de-Calais,62,1,2024-07-01/,Rassemblement National
+PA720720,photos/PA720720.webp,Poueyto,Josy,Mme,1954-01-13,72,yes,64-1,Nouvelle-Aquitaine,Pyrénées-Atlantiques,64,1,2024-07-08/,Les Démocrates
+PA720728,photos/PA720728.webp,Mattei,Jean-Paul,M.,1954-03-21,72,yes,64-2,Nouvelle-Aquitaine,Pyrénées-Atlantiques,64,2,2024-07-08/,Les Démocrates
+PA720822,photos/PA720822.webp,Bilde,Bruno,M.,1976-09-22,50,yes,62-12,Hauts-de-France,Pas-de-Calais,62,12,2024-07-01/,Rassemblement National
+PA720838,photos/PA720838.webp,Bourouaha,Soumya,Mme,1964-03-16,62,yes,93-4,Ile-de-France,Seine-Saint-Denis,93,4,2024-07-08/,Gauche Démocrate et Républicaine
+PA720846,photos/PA720846.webp,Lachaud,Bastien,M.,1980-08-05,46,yes,93-6,Ile-de-France,Seine-Saint-Denis,93,6,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA720892,photos/PA720892.webp,Panot,Mathilde,Mme,1989-01-15,37,yes,94-10,Ile-de-France,Val-de-Marne,94,10,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA720908,photos/PA720908.webp,Moutchou,Naïma,Mme,1980-11-04,46,no,95-4,Ile-de-France,Val-d'Oise,95,4,2024-07-08/2025-11-12,Horizons & Indépendants
+PA720952,photos/PA720952.webp,Taché,Aurélien,M.,1984-05-26,42,yes,95-10,Ile-de-France,Val-d'Oise,95,10,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA720960,photos/PA720960.webp,Serva,Olivier,M.,1974-06-21,52,yes,971-1,Guadeloupe,Guadeloupe,971,1,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA720976,photos/PA720976.webp,Mathiasin,Max,M.,1956-02-24,70,yes,971-3,Guadeloupe,Guadeloupe,971,3,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA720992,photos/PA720992.webp,William,Jiovanny,M.,1985-06-03,41,yes,972-1,Martinique,Martinique,972,1,2024-07-08/,Socialistes et apparentés
+PA721004,photos/PA721004.webp,Lakrafi,Amélia,Mme,1978-03-20,48,yes,099-10,Français établis hors de France,Français établis hors de France,099,10,2024-07-08/,Ensemble pour la République
+PA721024,photos/PA721024.webp,Genetet,Anne,Mme,1963-04-20,63,yes,099-11,Français établis hors de France,Français établis hors de France,099,11,2024-07-08/2024-10-21|2025-01-24/,Ensemble pour la République
+PA721062,photos/PA721062.webp,Ratenon,Jean-Hugues,M.,1967-06-25,59,yes,974-5,Réunion,Réunion,974,5,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA721110,photos/PA721110.webp,Sanquer,Nicole,Mme,1972-06-16,54,yes,987-2,Polynésie française,Polynésie Française,987,2,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA721134,photos/PA721134.webp,Lescure,Roland,M.,1966-11-26,59,no,099-1,Français établis hors de France,Français établis hors de France,099,1,2024-07-08/2025-11-12,Ensemble pour la République
+PA721158,photos/PA721158.webp,Anglade,Pieyre-Alexandre,M.,1986-11-02,40,yes,099-4,Français établis hors de France,Français établis hors de France,099,4,2024-07-08/,Ensemble pour la République
+PA721170,photos/PA721170.webp,Vojetta,Stéphane,M.,1974-07-19,52,no,099-5,Français établis hors de France,Français établis hors de France,099,5,2024-07-08/2025-07-11,Ensemble pour la République
+PA721182,photos/PA721182.webp,Petit,Frédéric,M.,1961-02-10,65,yes,099-7,Français établis hors de France,Français établis hors de France,099,7,2024-07-08/,Les Démocrates
+PA721202,photos/PA721202.webp,Coquerel,Éric,M.,1958-12-30,67,yes,93-1,Ile-de-France,Seine-Saint-Denis,93,1,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA721210,photos/PA721210.webp,Corbière,Alexis,M.,1968-08-17,58,yes,93-7,Ile-de-France,Seine-Saint-Denis,93,7,2024-07-08/,Écologiste et Social
+PA721234,photos/PA721234.webp,Petit,Maud,Mme,1971-11-15,54,yes,94-4,Ile-de-France,Val-de-Marne,94,4,2024-07-08/,Les Démocrates
+PA721270,photos/PA721270.webp,Peu,Stéphane,M.,1962-07-24,64,yes,93-2,Ile-de-France,Seine-Saint-Denis,93,2,2024-07-01/,Gauche Démocrate et Républicaine
+PA721296,photos/PA721296.webp,Gouffier Valente,Guillaume,M.,1986-02-01,40,yes,94-6,Ile-de-France,Val-de-Marne,94,6,2024-07-08/,Ensemble pour la République
+PA721314,photos/PA721314.webp,Schellenberger,Raphaël,M.,1990-02-14,36,yes,68-4,Grand Est,Haut-Rhin,68,4,2024-07-08/,Non inscrit
+PA721336,photos/PA721336.webp,Brocard,Blandine,Mme,1981-11-03,45,yes,69-5,Auvergne-Rhône-Alpes,Rhône,69,5,2024-07-08/,Les Démocrates
+PA721410,photos/PA721410.webp,Bonnivard,Émilie,Mme,1980-08-02,46,yes,73-3,Auvergne-Rhône-Alpes,Savoie,73,3,2024-07-08/,Droite Républicaine
+PA721426,photos/PA721426.webp,Riotton,Véronique,Mme,1969-11-02,57,yes,74-1,Auvergne-Rhône-Alpes,Haute-Savoie,74,1,2024-07-08/,Ensemble pour la République
+PA721442,photos/PA721442.webp,Petex,Christelle,Mme,1980-09-02,46,no,74-3,Auvergne-Rhône-Alpes,Haute-Savoie,74,3,2024-07-08/2025-11-06,Droite Républicaine
+PA721458,photos/PA721458.webp,Roseren,Xavier,M.,1970-01-12,56,yes,74-6,Auvergne-Rhône-Alpes,Haute-Savoie,74,6,2024-07-08/,Horizons & Indépendants
+PA721474,photos/PA721474.webp,Viry,Stéphane,M.,1969-10-14,57,yes,88-1,Grand Est,Vosges,88,1,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA721486,photos/PA721486.webp,Naegelen,Christophe,M.,1983-12-30,42,yes,88-3,Grand Est,Vosges,88,3,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA721584,photos/PA721584.webp,Terlier,Jean,M.,1977-03-02,49,yes,81-3,Occitanie,Tarn,81,3,2024-07-08/,Ensemble pour la République
+PA721612,photos/PA721612.webp,Guillerm,Carole,Mme,1987-01-08,39,yes,92-12,Ile-de-France,Hauts-de-Seine,92,12,2026-03-27/,Les Démocrates
+PA721632,photos/PA721632.webp,Lemoine,Patricia,Mme,1961-12-30,64,yes,77-5,Ile-de-France,Seine-et-Marne,77,5,2026-04-17/,Ensemble pour la République
+PA721750,photos/PA721750.webp,Calvez,Céline,Mme,1979-07-24,47,yes,92-5,Ile-de-France,Hauts-de-Seine,92,5,2024-07-08/,Ensemble pour la République
+PA721764,photos/PA721764.webp,Grégoire,Olivia,Mme,1978-09-30,48,yes,75-12,Ile-de-France,Paris,75,12,2024-07-08/,Ensemble pour la République
+PA721816,photos/PA721816.webp,Boucard,Ian,M.,1988-05-05,38,yes,90-1,Bourgogne-Franche-Comté,Territoire de Belfort,90,1,2024-07-08/,Droite Républicaine
+PA721836,photos/PA721836.webp,Barrot,Jean-Noël,M.,1983-05-13,43,no,78-2,Ile-de-France,Yvelines,78,2,2024-07-08/2024-10-21,Les Démocrates
+PA721844,photos/PA721844.webp,Piron,Béatrice,Mme,1965-08-30,61,yes,78-3,Ile-de-France,Yvelines,78,3,2024-07-08/,Horizons & Indépendants
+PA721852,photos/PA721852.webp,Lebec,Marie,Mme,1990-12-17,35,yes,78-4,Ile-de-France,Yvelines,78,4,2024-07-08/,Ensemble pour la République
+PA721896,photos/PA721896.webp,Faucillon,Elsa,Mme,1981-08-06,45,yes,92-1,Ile-de-France,Hauts-de-Seine,92,1,2024-07-01/,Gauche Démocrate et Républicaine
+PA721908,photos/PA721908.webp,Braun-Pivet,Yaël,Mme,1970-12-07,55,yes,78-5,Ile-de-France,Yvelines,78,5,2024-07-08/,Ensemble pour la République
+PA721916,photos/PA721916.webp,Pouzyreff,Natalia,Mme,1961-02-18,65,yes,78-6,Ile-de-France,Yvelines,78,6,2024-07-08/,Ensemble pour la République
+PA721932,photos/PA721932.webp,Lorho,Marie-France,Mme,1964-12-15,61,yes,84-4,Provence-Alpes-Côte d'Azur,Vaucluse,84,4,2024-07-08/,Rassemblement National
+PA721960,photos/PA721960.webp,Obono,Danièle,Mme,1980-07-12,46,yes,75-17,Ile-de-France,Paris,75,17,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA721984,photos/PA721984.webp,Latombe,Philippe,M.,1975-04-21,51,yes,85-1,Pays de la Loire,Vendée,85,1,2024-07-08/,Les Démocrates
+PA722000,photos/PA722000.webp,Buchou,Stéphane,M.,1974-03-14,52,yes,85-3,Pays de la Loire,Vendée,85,3,2024-07-08/,Ensemble pour la République
+PA722046,photos/PA722046.webp,Bergé,Aurore,Mme,1986-11-13,39,no,78-10,Ile-de-France,Yvelines,78,10,2024-07-08/2025-01-23,Ensemble pour la République
+PA722070,photos/PA722070.webp,Henriet,Pierre,M.,1991-11-26,34,yes,85-5,Pays de la Loire,Vendée,85,5,2024-07-08/,Horizons & Indépendants
+PA722102,photos/PA722102.webp,Vidal,Annie,Mme,1956-09-17,70,yes,76-2,Normandie,Seine-Maritime,76,2,2024-07-08/,Ensemble pour la République
+PA722134,photos/PA722134.webp,Fiévet,Jean-Marie,M.,1964-06-19,62,yes,79-3,Nouvelle-Aquitaine,Deux-Sèvres,79,3,2024-07-08/,Ensemble pour la République
+PA722142,photos/PA722142.webp,Ruffin,François,M.,1975-10-18,51,yes,80-1,Hauts-de-France,Somme,80,1,2024-07-08/,Écologiste et Social
+PA722150,photos/PA722150.webp,Houlié,Sacha,M.,1988-10-08,38,yes,86-2,Nouvelle-Aquitaine,Vienne,86,2,2024-07-08/,Socialistes et apparentés
+PA722162,photos/PA722162.webp,Turquois,Nicolas,M.,1972-07-26,54,yes,86-4,Nouvelle-Aquitaine,Vienne,86,4,2024-07-08/,Les Démocrates
+PA722190,photos/PA722190.webp,Attal,Gabriel,M.,1989-03-16,37,yes,92-10,Ile-de-France,Hauts-de-Seine,92,10,2024-07-08/,Ensemble pour la République
+PA722252,photos/PA722252.webp,Rixain,Marie-Pierre,Mme,1977-01-18,49,yes,91-4,Ile-de-France,Essonne,91,4,2024-07-08/,Ensemble pour la République
+PA722284,photos/PA722284.webp,Fuchs,Bruno,M.,1959-04-07,67,yes,68-6,Grand Est,Haut-Rhin,68,6,2024-07-08/,Les Démocrates
+PA722328,photos/PA722328.webp,Kremer,Eliane,Mme,1956-03-12,70,no,67-7,Grand Est,Bas-Rhin,67,7,2024-10-22/2025-01-23,Droite Républicaine
+PA722336,photos/PA722336.webp,Thiébaut,Vincent,M.,1972-05-23,54,yes,67-9,Grand Est,Bas-Rhin,67,9,2024-07-08/,Horizons & Indépendants
+PA722358,photos/PA722358.webp,Gassilloud,Thomas,M.,1981-05-21,45,yes,69-10,Auvergne-Rhône-Alpes,Rhône,69,10,2024-07-08/,Ensemble pour la République
+PA722366,photos/PA722366.webp,Fugit,Jean-Luc,M.,1969-11-27,56,yes,69-11,Auvergne-Rhône-Alpes,Rhône,69,11,2024-07-08/,Ensemble pour la République
+PA722374,photos/PA722374.webp,Isaac-Sibille,Cyrille,M.,1958-04-30,68,yes,69-12,Auvergne-Rhône-Alpes,Rhône,69,12,2024-07-08/,Les Démocrates
+PA722382,photos/PA722382.webp,Dirx,Benjamin,M.,1979-01-25,47,yes,71-1,Bourgogne-Franche-Comté,Saône-et-Loire,71,1,2024-07-08/,Ensemble pour la République
+PA722390,photos/PA722390.webp,Corneloup,Josiane,Mme,1959-09-30,67,yes,71-2,Bourgogne-Franche-Comté,Saône-et-Loire,71,2,2024-07-08/,Droite Républicaine
+PA736201,photos/PA736201.webp,Taillé-Polian,Sophie,Mme,1974-10-04,52,yes,94-11,Ile-de-France,Val-de-Marne,94,11,2024-07-01/,Écologiste et Social
+PA757225,photos/PA757225.webp,Seo,Mikaele,M.,1971-12-27,54,yes,986-1,Wallis-et-Futuna,Wallis-et-Futuna,986,1,2024-07-01/,Ensemble pour la République
+PA759832,photos/PA759832.webp,Pannier-Runacher,Agnès,Mme,1974-06-19,52,yes,62-2,Hauts-de-France,Pas-de-Calais,62,2,2024-07-08/2024-10-21|2025-11-13/,Ensemble pour la République
+PA774954,photos/PA774954.webp,Blin,Anne-Laure,Mme,1983-06-12,43,yes,49-3,Pays de la Loire,Maine-et-Loire,49,3,2024-07-08/,Droite Républicaine
+PA774958,photos/PA774958.webp,Leseul,Gérard,M.,1960-08-15,66,yes,76-5,Normandie,Seine-Maritime,76,5,2024-07-08/,Socialistes et apparentés
+PA774960,photos/PA774960.webp,Santiago,Isabelle,Mme,1965-09-20,61,yes,94-9,Ile-de-France,Val-de-Marne,94,9,2024-07-01/,Socialistes et apparentés
+PA774962,photos/PA774962.webp,Lebon,Karine,Mme,1985-06-09,41,yes,974-2,Réunion,Réunion,974,2,2024-07-08/,Gauche Démocrate et Républicaine
+PA791812,photos/PA791812.webp,Chikirou,Sophia,Mme,1979-06-03,47,yes,75-6,Ile-de-France,Paris,75,6,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA791824,photos/PA791824.webp,Legrain,Sarah,Mme,1985-11-17,40,yes,75-16,Ile-de-France,Paris,75,16,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA793094,photos/PA793094.webp,Ray,Nicolas,M.,1981-05-14,45,yes,03-3,Auvergne-Rhône-Alpes,Allier,03,3,2024-07-08/,Droite Républicaine
+PA793102,photos/PA793102.webp,Girard,Christian,M.,1952-05-07,74,yes,04-1,Provence-Alpes-Côte d'Azur,Alpes-de-Haute-Provence,04,1,2024-07-08/,Rassemblement National
+PA793122,photos/PA793122.webp,Daubié,Romain,M.,1980-05-05,46,yes,01-2,Auvergne-Rhône-Alpes,Ain,01,2,2024-07-08/,Les Démocrates
+PA793134,photos/PA793134.webp,Buisson,Jérôme,M.,1973-01-15,53,yes,01-4,Auvergne-Rhône-Alpes,Ain,01,4,2024-07-08/,Rassemblement National
+PA793146,photos/PA793146.webp,Dragon,Nicolas,M.,1977-04-19,49,yes,02-1,Hauts-de-France,Aisne,02,1,2024-07-01/,Rassemblement National
+PA793158,photos/PA793158.webp,Beaurain,José,M.,1971-07-27,55,yes,02-4,Hauts-de-France,Aisne,02,4,2024-07-01/,Rassemblement National
+PA793166,photos/PA793166.webp,Dessigny,Jocelyn,M.,1981-06-29,45,yes,02-5,Hauts-de-France,Aisne,02,5,2024-07-01/,Rassemblement National
+PA793174,photos/PA793174.webp,Monnet,Yannick,M.,1975-10-07,51,yes,03-1,Auvergne-Rhône-Alpes,Allier,03,1,2024-07-08/,Gauche Démocrate et Républicaine
+PA793182,photos/PA793182.webp,Bovet,Jorys,M.,1993-03-30,33,yes,03-2,Auvergne-Rhône-Alpes,Allier,03,2,2024-07-08/,Rassemblement National
+PA793194,photos/PA793194.webp,Vuibert,Lionel,M.,1968-08-31,58,yes,08-1,Grand Est,Ardennes,08,1,2024-12-09/,Non inscrit
+PA793210,photos/PA793210.webp,Panifous,Laurent,M.,1976-12-21,49,no,09-2,Occitanie,Ariège,09,2,2024-07-08/2025-11-12,"Libertés, Indépendants, Outre-mer et Territoires"
+PA793214,photos/PA793214.webp,Abadie-Amiel,Audrey,Mme,1974-11-16,51,yes,09-2,Occitanie,Ariège,09,2,2025-11-13/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA793218,photos/PA793218.webp,Guitton,Jordan,M.,1995-01-30,31,yes,10-1,Grand Est,Aube,10,1,2024-07-01/,Rassemblement National
+PA793230,photos/PA793230.webp,Ranc,Angélique,Mme,1988-03-16,38,yes,10-3,Grand Est,Aube,10,3,2024-07-08/,Rassemblement National
+PA793238,photos/PA793238.webp,Barthès,Christophe,M.,1966-10-12,60,no,11-1,Occitanie,Aude,11,1,2024-07-08/2026-04-20,Rassemblement National
+PA793246,photos/PA793246.webp,Falcon,Frédéric,M.,1985-11-23,40,yes,11-2,Occitanie,Aude,11,2,2024-07-08/,Rassemblement National
+PA793254,photos/PA793254.webp,Rancoule,Julien,M.,1993-07-31,33,yes,11-3,Occitanie,Aude,11,3,2024-07-08/,Rassemblement National
+PA793262,photos/PA793262.webp,Alexandre,Laurent,M.,1973-06-09,53,yes,12-2,Occitanie,Aveyron,12,2,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA793270,photos/PA793270.webp,Rousset,Jean-François,M.,1952-09-09,74,yes,12-3,Occitanie,Aveyron,12,3,2024-07-08/,Ensemble pour la République
+PA793290,photos/PA793290.webp,Lelouis,Gisèle,Mme,1952-03-10,74,yes,13-3,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,3,2024-07-08/,Rassemblement National
+PA793298,photos/PA793298.webp,Tivoli,Lionel,M.,1988-02-29,38,yes,06-2,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,2,2024-07-08/,Rassemblement National
+PA793314,photos/PA793314.webp,Masson,Alexandra,Mme,1971-07-02,55,no,06-4,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,4,2024-07-01/2026-04-21,Rassemblement National
+PA793322,photos/PA793322.webp,D'Intorni,Christelle,Mme,1985-05-02,41,yes,06-5,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,5,2024-07-01/,Union des droites pour la République
+PA793330,photos/PA793330.webp,Masson,Bryan,M.,1996-12-21,29,no,06-6,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,6,2024-07-01/2026-04-01,Rassemblement National
+PA793334,photos/PA793334.webp,Tribuiani,Cyril,M.,1981-07-25,45,yes,06-6,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,6,2026-04-02/,Rassemblement National
+PA793342,photos/PA793342.webp,Martin (Alpes-Maritimes),Alexandra,Mme,1968-10-25,58,yes,06-8,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,8,2024-07-08/,Droite Républicaine
+PA793354,photos/PA793354.webp,Mélin,Joëlle,Mme,1950-03-26,76,yes,13-9,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,9,2024-07-08/,Rassemblement National
+PA793362,photos/PA793362.webp,Gonzalez,José,M.,1943-04-28,83,yes,13-10,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,10,2024-07-08/,Rassemblement National
+PA793374,photos/PA793374.webp,Baubry,Romain,M.,1989-01-28,37,yes,13-15,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,15,2024-07-08/,Rassemblement National
+PA793382,photos/PA793382.webp,Taché,Emmanuel,M.,1975-02-20,51,yes,13-16,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,16,2024-07-08/,Rassemblement National
+PA793394,photos/PA793394.webp,Delaporte,Arthur,M.,1991-10-07,35,yes,14-2,Normandie,Calvados,14,2,2024-07-08/,Socialistes et apparentés
+PA793398,photos/PA793398.webp,Patrier-Leitus,Jérémie,M.,1989-03-07,37,yes,14-3,Normandie,Calvados,14,3,2024-07-08/,Horizons & Indépendants
+PA793416,photos/PA793416.webp,Sertin,Freddy,M.,1980-02-07,46,no,14-6,Normandie,Calvados,14,6,2025-01-24/2025-11-12,Ensemble pour la République
+PA793432,photos/PA793432.webp,Allisio,Franck,M.,1980-08-04,46,yes,13-12,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,12,2024-07-01/,Rassemblement National
+PA793444,photos/PA793444.webp,Bompard,Manuel,M.,1986-03-30,40,yes,13-4,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,4,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA793452,photos/PA793452.webp,Davi,Hendrik,M.,1977-12-21,48,yes,13-5,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,5,2024-07-08/,Écologiste et Social
+PA793464,photos/PA793464.webp,Delogu,Sébastien,M.,1987-06-08,39,yes,13-7,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,7,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA793508,photos/PA793508.webp,Brigand,Hubert,M.,1952-07-28,74,yes,21-4,Bourgogne-Franche-Comté,Côte-d'Or,21,4,2024-07-08/,Droite Républicaine
+PA793520,photos/PA793520.webp,Cosson,Mickaël,M.,1975-11-29,50,yes,22-1,Bretagne,Côtes-d'Armor,22,1,2024-07-08/,Les Démocrates
+PA793528,photos/PA793528.webp,Bouloux,Chantal,Mme,1961-06-23,65,yes,22-2,Bretagne,Côtes-d'Armor,22,2,2026-08-05/,Ensemble pour la République
+PA793532,photos/PA793532.webp,Lepvraud,Murielle,Mme,1974-07-15,52,yes,22-4,Bretagne,Côtes-d'Armor,22,4,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA793548,photos/PA793548.webp,Colombier,Caroline,Mme,1957-08-22,69,yes,16-3,Nouvelle-Aquitaine,Charente,16,3,2024-07-08/,Rassemblement National
+PA793556,photos/PA793556.webp,Gervais,Sabine,Mme,1970-05-20,56,yes,17-1,Nouvelle-Aquitaine,Charente-Maritime,17,1,2026-04-27/,Les Démocrates
+PA793572,photos/PA793572.webp,Plassard,Christophe,M.,1967-11-19,58,no,17-5,Nouvelle-Aquitaine,Charente-Maritime,17,5,2024-07-08/2026-09-30,Horizons & Indépendants
+PA793592,photos/PA793592.webp,Grangier,Géraldine,Mme,1975-02-13,51,yes,25-4,Bourgogne-Franche-Comté,Doubs,25,4,2024-07-08/,Rassemblement National
+PA793608,photos/PA793608.webp,Levavasseur,Katiana,Mme,1970-12-09,55,yes,27-2,Normandie,Eure,27,2,2024-07-08/,Rassemblement National
+PA793616,photos/PA793616.webp,Mauvieux,Kévin,M.,1991-09-09,35,yes,27-3,Normandie,Eure,27,3,2024-07-08/,Rassemblement National
+PA793624,photos/PA793624.webp,Brun,Philippe,M.,1991-10-16,35,yes,27-4,Normandie,Eure,27,4,2024-07-08/,Non inscrit
+PA793632,photos/PA793632.webp,Houssin,Timothée,M.,1988-07-29,38,yes,27-5,Normandie,Eure,27,5,2024-07-08/,Rassemblement National
+PA793656,photos/PA793656.webp,Pollet,Lisette,Mme,1968-01-04,58,yes,26-2,Auvergne-Rhône-Alpes,Drôme,26,2,2024-07-08/,Rassemblement National
+PA793664,photos/PA793664.webp,Pochon,Marie,Mme,1990-05-04,36,yes,26-3,Auvergne-Rhône-Alpes,Drôme,26,3,2024-07-08/,Écologiste et Social
+PA793672,photos/PA793672.webp,Loir,Christine,Mme,1977-02-22,49,yes,27-1,Normandie,Eure,27,1,2024-07-08/,Rassemblement National
+PA793696,photos/PA793696.webp,Muller,Serge,M.,1976-02-26,50,yes,24-2,Nouvelle-Aquitaine,Dordogne,24,2,2024-07-08/,Rassemblement National
+PA793708,photos/PA793708.webp,Peytavie,Sébastien,M.,1982-04-17,44,yes,24-4,Nouvelle-Aquitaine,Dordogne,24,4,2024-07-08/,Écologiste et Social
+PA793716,photos/PA793716.webp,Croizier,Laurent,M.,1975-01-29,51,yes,25-1,Bourgogne-Franche-Comté,Doubs,25,1,2024-07-08/,Les Démocrates
+PA793736,photos/PA793736.webp,Clouet,Hadrien,M.,1991-07-13,35,yes,31-1,Occitanie,Haute-Garonne,31,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA793744,photos/PA793744.webp,Stambach-Terrenoir,Anne,Mme,1980-06-23,46,yes,31-2,Occitanie,Haute-Garonne,31,2,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA793756,photos/PA793756.webp,Piquemal,François,M.,1984-12-28,41,yes,31-4,Occitanie,Haute-Garonne,31,4,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA793772,photos/PA793772.webp,Bex,Christophe,M.,1961-11-14,64,yes,31-7,Occitanie,Haute-Garonne,31,7,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA793780,photos/PA793780.webp,Arrighi,Christine,Mme,1959-09-19,67,yes,31-9,Occitanie,Haute-Garonne,31,9,2024-07-08/,Écologiste et Social
+PA793796,photos/PA793796.webp,Taupiac,David,M.,1975-05-13,51,yes,32-2,Occitanie,Gers,32,2,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA793816,photos/PA793816.webp,Thomin,Mélanie,Mme,1984-06-04,42,yes,29-6,Bretagne,Finistère,29,6,2024-07-08/,Socialistes et apparentés
+PA793832,photos/PA793832.webp,Gillet,Yoann,M.,1986-08-29,40,yes,30-1,Occitanie,Gard,30,1,2024-07-08/,Rassemblement National
+PA793844,photos/PA793844.webp,Bordes,Pascale,Mme,1961-10-15,65,no,30-3,Occitanie,Gard,30,3,2024-07-08/2026-04-13,Rassemblement National
+PA793852,photos/PA793852.webp,Meurin,Pierre,M.,1989-11-30,36,yes,30-4,Occitanie,Gard,30,4,2024-07-08/,Rassemblement National
+PA793872,photos/PA793872.webp,Oziol,Nathalie,Mme,1990-02-18,36,yes,34-2,Occitanie,Hérault,34,2,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA793892,photos/PA793892.webp,Galzy,Stéphanie,Mme,1981-10-20,45,yes,34-5,Occitanie,Hérault,34,5,2024-07-08/,Rassemblement National
+PA793904,photos/PA793904.webp,Lopez-Liguori,Aurélien,M.,1993-05-17,33,no,34-7,Occitanie,Hérault,34,7,2024-07-01/2026-04-25,Rassemblement National
+PA793912,photos/PA793912.webp,Carrière,Sylvain,M.,1991-05-21,35,yes,34-8,Occitanie,Hérault,34,8,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA793924,photos/PA793924.webp,Bernadeau,Marie-Sophie,Mme,1980-07-08,46,yes,33-10,Nouvelle-Aquitaine,Gironde,33,10,2026-07-20/,Ensemble pour la République
+PA793928,photos/PA793928.webp,Diaz,Edwige,Mme,1987-10-15,39,no,33-11,Nouvelle-Aquitaine,Gironde,33,11,2024-07-01/2026-09-30,Rassemblement National
+PA793940,photos/PA793940.webp,Cazenave,Thomas,M.,1978-03-06,48,no,33-1,Nouvelle-Aquitaine,Gironde,33,1,2024-07-08/2026-04-26,Ensemble pour la République
+PA793944,photos/PA793944.webp,Martin (Gironde),Alexandra,Mme,1976-07-28,50,yes,33-1,Nouvelle-Aquitaine,Gironde,33,1,2026-04-27/,Ensemble pour la République
+PA793948,photos/PA793948.webp,Thierry,Nicolas,M.,1975-12-08,50,yes,33-2,Nouvelle-Aquitaine,Gironde,33,2,2024-07-08/,Écologiste et Social
+PA793980,photos/PA793980.webp,Fournier,Charles,M.,1968-03-10,58,yes,37-1,Centre-Val de Loire,Indre-et-Loire,37,1,2024-07-08/,Écologiste et Social
+PA793992,photos/PA793992.webp,Alfandari,Henri,M.,1979-10-02,47,yes,37-3,Centre-Val de Loire,Indre-et-Loire,37,3,2024-07-08/,Horizons & Indépendants
+PA794008,photos/PA794008.webp,Chatelain,Cyrielle,Mme,1987-07-15,39,yes,38-2,Auvergne-Rhône-Alpes,Isère,38,2,2024-07-08/,Écologiste et Social
+PA794022,photos/PA794022.webp,Iordanoff,Jérémie,M.,1983-02-02,43,yes,38-5,Auvergne-Rhône-Alpes,Isère,38,5,2024-07-08/,Écologiste et Social
+PA794030,photos/PA794030.webp,Jolly,Alexis,M.,1990-12-22,35,yes,38-6,Auvergne-Rhône-Alpes,Isère,38,6,2024-07-08/,Rassemblement National
+PA794038,photos/PA794038.webp,Neuder,Yannick,M.,1969-03-15,57,yes,38-7,Auvergne-Rhône-Alpes,Isère,38,7,2024-07-08/2025-01-23|2025-11-06/,Droite Républicaine
+PA794042,photos/PA794042.webp,Dezarnaud,Sylvie,Mme,1964-02-23,62,no,38-7,Auvergne-Rhône-Alpes,Isère,38,7,2025-01-24/2025-11-05,Droite Républicaine
+PA794058,photos/PA794058.webp,Gruet,Justine,Mme,1989-10-23,37,yes,39-3,Bourgogne-Franche-Comté,Jura,39,3,2024-07-08/,Droite Républicaine
+PA794082,photos/PA794082.webp,Hignet,Mathilde,Mme,1993-06-10,33,yes,35-4,Bretagne,Ille-et-Vilaine,35,4,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA794094,photos/PA794094.webp,Bouloux,Mickaël,M.,1972-08-16,54,yes,35-8,Bretagne,Ille-et-Vilaine,35,8,2024-07-01/,Socialistes et apparentés
+PA794106,photos/PA794106.webp,Taurinya,Andrée,Mme,1963-06-03,63,yes,42-2,Auvergne-Rhône-Alpes,Loire,42,2,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA794114,photos/PA794114.webp,Mandon,Emmanuel,M.,1965-06-22,61,yes,42-3,Auvergne-Rhône-Alpes,Loire,42,3,2024-07-08/,Les Démocrates
+PA794118,photos/PA794118.webp,Vermorel,Antoine,M.,1993-02-17,33,yes,42-5,Auvergne-Rhône-Alpes,Loire,42,5,2024-07-08/,Droite Républicaine
+PA794130,photos/PA794130.webp,Kerbrat,Andy,M.,1990-10-01,36,yes,44-2,Pays de la Loire,Loire-Atlantique,44,2,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA794138,photos/PA794138.webp,Amiot,Ségolène,Mme,1986-02-23,40,yes,44-3,Pays de la Loire,Loire-Atlantique,44,3,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA794146,photos/PA794146.webp,Laernoes,Julie,Mme,1982-07-03,44,yes,44-4,Pays de la Loire,Loire-Atlantique,44,4,2024-07-08/,Écologiste et Social
+PA794154,photos/PA794154.webp,Raux,Jean-Claude,M.,1967-01-18,59,yes,44-6,Pays de la Loire,Loire-Atlantique,44,6,2024-07-08/,Écologiste et Social
+PA794166,photos/PA794166.webp,Tavel,Matthias,M.,1987-07-06,39,yes,44-8,Pays de la Loire,Loire-Atlantique,44,8,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA794178,photos/PA794178.webp,Taite,Jean-Pierre,M.,1962-03-14,64,no,42-6,Auvergne-Rhône-Alpes,Loire,42,6,2024-07-08/2026-07-08,Droite Républicaine
+PA794182,photos/PA794182.webp,Bonnefoy,Jean-Yves,M.,1959-03-31,67,yes,42-6,Auvergne-Rhône-Alpes,Loire,42,6,2026-07-09/,Droite Républicaine
+PA794198,photos/PA794198.webp,Chudeau,Roger,M.,1949-09-28,77,yes,41-2,Centre-Val de Loire,Loir-et-Cher,41,2,2024-07-08/,Rassemblement National
+PA794206,photos/PA794206.webp,Marion,Christophe,M.,1973-04-25,53,yes,41-3,Centre-Val de Loire,Loir-et-Cher,41,3,2024-07-08/,Ensemble pour la République
+PA794234,photos/PA794234.webp,Gernigon,François,M.,1961-04-02,65,yes,49-1,Pays de la Loire,Maine-et-Loire,49,1,2024-07-08/,Horizons & Indépendants
+PA794262,photos/PA794262.webp,Maussion,Patricia,Mme,1968-09-23,58,yes,49-7,Pays de la Loire,Maine-et-Loire,49,7,2026-04-27/,Les Démocrates
+PA794270,photos/PA794270.webp,Pic,Anna,Mme,1978-06-04,48,yes,50-4,Normandie,Manche,50,4,2024-07-08/,Socialistes et apparentés
+PA794278,photos/PA794278.webp,Albertini,Xavier,M.,1970-01-28,56,yes,51-1,Grand Est,Marne,51,1,2024-07-08/,Horizons & Indépendants
+PA794322,photos/PA794322.webp,Ménagé,Thomas,M.,1992-01-06,34,yes,45-4,Centre-Val de Loire,Loiret,45,4,2024-07-08/,Rassemblement National
+PA794330,photos/PA794330.webp,Brosse,Anthony,M.,1980-11-04,46,yes,45-5,Centre-Val de Loire,Loiret,45,5,2024-07-08/,Ensemble pour la République
+PA794354,photos/PA794354.webp,Laporte,Hélène,Mme,1978-12-29,47,yes,47-2,Nouvelle-Aquitaine,Lot-et-Garonne,47,2,2024-07-08/,Rassemblement National
+PA794418,photos/PA794418.webp,Goulet,Florence,Mme,1961-06-30,65,yes,55-2,Grand Est,Meuse,55,2,2024-07-01/,Rassemblement National
+PA794426,photos/PA794426.webp,Le Hénanff,Anne,Mme,1969-07-22,57,no,56-1,Bretagne,Morbihan,56,1,2024-07-08/2025-11-12,Horizons & Indépendants
+PA794430,photos/PA794430.webp,Criaud,Michel,M.,1962-08-03,64,yes,56-1,Bretagne,Morbihan,56,1,2025-11-13/,Horizons & Indépendants
+PA794434,photos/PA794434.webp,Bentz,Christophe,M.,1987-07-04,39,yes,52-1,Grand Est,Haute-Marne,52,1,2024-07-08/,Rassemblement National
+PA794442,photos/PA794442.webp,Robert-Dehault,Laurence,Mme,1964-01-17,62,yes,52-2,Grand Est,Haute-Marne,52,2,2024-07-01/,Rassemblement National
+PA794466,photos/PA794466.webp,Moulliere,Jean,M.,1994-03-29,32,no,59-6,Hauts-de-France,Nord,59,6,2024-10-28/2026-03-26,Horizons & Indépendants
+PA794470,photos/PA794470.webp,Gérard,Félicie,Mme,1974-01-28,52,yes,59-7,Hauts-de-France,Nord,59,7,2024-07-08/,Horizons & Indépendants
+PA794478,photos/PA794478.webp,Guiraud,David,M.,1992-11-18,33,no,59-8,Hauts-de-France,Nord,59,8,2024-07-08/2026-04-07,La France insoumise - Nouveau Front Populaire
+PA794486,photos/PA794486.webp,Spillebout,Violette,Mme,1972-09-02,54,yes,59-9,Hauts-de-France,Nord,59,9,2024-07-08/,Ensemble pour la République
+PA794494,photos/PA794494.webp,Vicot,Roger,M.,1963-06-01,63,yes,59-11,Hauts-de-France,Nord,59,11,2024-07-08/,Socialistes et apparentés
+PA794502,photos/PA794502.webp,Taverne,Michaël,M.,1979-03-10,47,yes,59-12,Hauts-de-France,Nord,59,12,2024-07-01/,Rassemblement National
+PA794518,photos/PA794518.webp,Marle,Pierre,M.,1954-02-19,72,yes,59-14,Hauts-de-France,Nord,59,14,2024-10-22/2025-01-23|2026-04-07/,Horizons & Indépendants
+PA794530,photos/PA794530.webp,Marchio,Matthieu,M.,1993-06-08,33,yes,59-16,Hauts-de-France,Nord,59,16,2024-07-01/,Rassemblement National
+PA794554,photos/PA794554.webp,Castiglione,Salvatore,M.,1970-02-18,56,no,59-21,Hauts-de-France,Nord,59,21,2024-10-22/2025-11-05,"Libertés, Indépendants, Outre-mer et Territoires"
+PA794562,photos/PA794562.webp,Ballard,Philippe,M.,1960-11-24,65,yes,60-2,Hauts-de-France,Oise,60,2,2024-07-01/,Rassemblement National
+PA794570,photos/PA794570.webp,Sabatou,Alexandre,M.,1993-02-18,33,yes,60-3,Hauts-de-France,Oise,60,3,2024-07-08/,Rassemblement National
+PA794578,photos/PA794578.webp,Ludmann,Véronique,Mme,1963-03-17,63,yes,60-4,Hauts-de-France,Oise,60,4,2026-03-02/,Horizons & Indépendants
+PA794582,photos/PA794582.webp,Pfeffer,Kévin,M.,1990-07-09,36,yes,57-6,Grand Est,Moselle,57,6,2024-07-01/,Rassemblement National
+PA794590,photos/PA794590.webp,Loubet,Alexandre,M.,1994-07-07,32,yes,57-7,Grand Est,Moselle,57,7,2024-07-01/,Rassemblement National
+PA794598,photos/PA794598.webp,Jacobelli,Laurent,M.,1969-10-13,57,yes,57-8,Grand Est,Moselle,57,8,2024-07-08/,Rassemblement National
+PA794658,photos/PA794658.webp,Fait,Philippe,M.,1969-06-24,57,yes,62-4,Hauts-de-France,Pas-de-Calais,62,4,2024-07-08/,Horizons & Indépendants
+PA794670,photos/PA794670.webp,Parmentier,Caroline,Mme,1965-12-16,60,yes,62-9,Hauts-de-France,Pas-de-Calais,62,9,2024-07-08/,Rassemblement National
+PA794678,photos/PA794678.webp,Frappé,Thierry,M.,1952-05-23,74,yes,62-10,Hauts-de-France,Pas-de-Calais,62,10,2024-07-01/,Rassemblement National
+PA794686,photos/PA794686.webp,Maximi,Marianne,Mme,1985-11-13,40,yes,63-1,Auvergne-Rhône-Alpes,Puy-de-Dôme,63,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA794702,photos/PA794702.webp,Lingemann,Delphine,Mme,1972-11-14,53,yes,63-4,Auvergne-Rhône-Alpes,Puy-de-Dôme,63,4,2024-07-08/,Les Démocrates
+PA794710,photos/PA794710.webp,Brugerolles,Julien,M.,1982-07-05,44,yes,63-5,Auvergne-Rhône-Alpes,Puy-de-Dôme,63,5,2025-04-01/,Gauche Démocrate et Républicaine
+PA794718,photos/PA794718.webp,Engrand,Christine,Mme,1955-05-07,71,yes,62-6,Hauts-de-France,Pas-de-Calais,62,6,2024-07-01/,Non inscrit
+PA794734,photos/PA794734.webp,Guiniot,Michel,M.,1954-11-29,71,yes,60-6,Hauts-de-France,Oise,60,6,2024-07-08/,Rassemblement National
+PA794750,photos/PA794750.webp,Liger,Thierry,M.,1970-05-27,56,yes,61-2,Normandie,Orne,61,2,2025-01-24/2025-11-05|2026-04-22/,Droite Républicaine
+PA794762,photos/PA794762.webp,Dogor-Such,Sandrine,Mme,1970-11-08,55,yes,66-3,Occitanie,Pyrénées-Orientales,66,3,2024-07-08/,Rassemblement National
+PA794770,photos/PA794770.webp,Martinez,Michèle,Mme,1968-06-06,58,yes,66-4,Occitanie,Pyrénées-Orientales,66,4,2024-07-08/,Rassemblement National
+PA794778,photos/PA794778.webp,Regol,Sandra,Mme,1978-04-13,48,yes,67-1,Grand Est,Bas-Rhin,67,1,2024-07-08/,Écologiste et Social
+PA794786,photos/PA794786.webp,Fernandes,Emmanuel,M.,1980-08-10,46,yes,67-2,Grand Est,Bas-Rhin,67,2,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA794798,photos/PA794798.webp,Buffet,Françoise,Mme,1953-12-11,72,yes,67-4,Grand Est,Bas-Rhin,67,4,2024-07-08/,Ensemble pour la République
+PA794802,photos/PA794802.webp,Sitzenstuhl,Charles,M.,1988-12-03,37,yes,67-5,Grand Est,Bas-Rhin,67,5,2024-07-08/,Ensemble pour la République
+PA794810,photos/PA794810.webp,Morel,Louise,Mme,1995-10-15,31,yes,67-6,Grand Est,Bas-Rhin,67,6,2024-07-08/,Les Démocrates
+PA794830,photos/PA794830.webp,Ott,Hubert,M.,1964-06-06,62,yes,68-2,Grand Est,Haut-Rhin,68,2,2024-07-08/,Les Démocrates
+PA794838,photos/PA794838.webp,Lemaire,Didier,M.,1975-07-23,51,yes,68-3,Grand Est,Haut-Rhin,68,3,2024-07-08/,Horizons & Indépendants
+PA794854,photos/PA794854.webp,Echaniz,Iñaki,M.,1993-09-02,33,yes,64-4,Nouvelle-Aquitaine,Pyrénées-Atlantiques,64,4,2024-07-08/,Socialistes et apparentés
+PA794870,photos/PA794870.webp,Ferrer,Sylvie,Mme,1967-11-06,58,yes,65-1,Occitanie,Hautes-Pyrénées,65,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA794886,photos/PA794886.webp,Blanc,Sophie,Mme,1968-02-20,58,yes,66-1,Occitanie,Pyrénées-Orientales,66,1,2024-07-08/,Rassemblement National
+PA794894,photos/PA794894.webp,Sabatini,Anaïs,Mme,1990-03-10,36,yes,66-2,Occitanie,Pyrénées-Orientales,66,2,2024-07-01/,Rassemblement National
+PA794906,photos/PA794906.webp,Amard,Gabriel,M.,1967-05-05,59,no,69-6,Auvergne-Rhône-Alpes,Rhône,69,6,2024-07-08/2026-09-30,La France insoumise - Nouveau Front Populaire
+PA794910,photos/PA794910.webp,Hadj-Mimoune,Melouka,Mme,1960-04-27,66,yes,69-6,Auvergne-Rhône-Alpes,Rhône,69,6,2026-10-08/,Socialistes et apparentés
+PA794938,photos/PA794938.webp,Boumertit,Idir,M.,1974-10-04,52,yes,69-14,Auvergne-Rhône-Alpes,Rhône,69,14,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA794946,photos/PA794946.webp,Villedieu,Antoine,M.,1989-03-08,37,yes,70-1,Bourgogne-Franche-Comté,Haute-Saône,70,1,2024-07-08/,Rassemblement National
+PA794954,photos/PA794954.webp,Salmon,Emeric,M.,1973-11-26,52,yes,70-2,Bourgogne-Franche-Comté,Haute-Saône,70,2,2024-07-01/,Rassemblement National
+PA794982,photos/PA794982.webp,Delpech,Julie,Mme,1989-09-25,37,yes,72-1,Pays de la Loire,Sarthe,72,1,2024-07-08/,Ensemble pour la République
+PA794994,photos/PA794994.webp,Portier,Alexandre,M.,1990-04-21,36,yes,69-9,Auvergne-Rhône-Alpes,Rhône,69,9,2024-07-08/2024-10-21|2025-01-24/,Droite Républicaine
+PA795010,photos/PA795010.webp,Garin,Marie-Charlotte,Mme,1995-09-02,31,yes,69-3,Auvergne-Rhône-Alpes,Rhône,69,3,2024-07-01/,Écologiste et Social
+PA795026,photos/PA795026.webp,Violland,Anne-Cécile,Mme,1973-06-10,53,yes,74-5,Auvergne-Rhône-Alpes,Haute-Savoie,74,5,2024-07-08/,Horizons & Indépendants
+PA795046,photos/PA795046.webp,Yadan,Caroline,Mme,1968-08-14,58,yes,099-8,Français établis hors de France,Français établis hors de France,099,8,2024-07-08/,Ensemble pour la République
+PA795050,photos/PA795050.webp,Panosyan-Bouvet,Astrid,Mme,1971-08-13,55,no,75-4,Ile-de-France,Paris,75,4,2024-07-08/2024-10-21|2025-11-06/2026-08-04,Ensemble pour la République
+PA795076,photos/PA795076.webp,Rousseau,Sandrine,Mme,1972-03-08,54,yes,75-9,Ile-de-France,Paris,75,9,2024-07-01/,Écologiste et Social
+PA795084,photos/PA795084.webp,Arenas,Rodrigo,M.,1974-04-24,52,yes,75-10,Ile-de-France,Paris,75,10,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA795100,photos/PA795100.webp,Martineau,Éric,M.,1968-05-08,58,yes,72-3,Pays de la Loire,Sarthe,72,3,2024-07-08/,Les Démocrates
+PA795108,photos/PA795108.webp,Leboucher,Élise,Mme,1982-10-09,44,yes,72-4,Pays de la Loire,Sarthe,72,4,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795120,photos/PA795120.webp,Ferrari,Marina,Mme,1973-10-10,53,no,73-1,Auvergne-Rhône-Alpes,Savoie,73,1,2024-07-08/2024-10-21|2025-01-24/2025-11-12,Les Démocrates
+PA795124,photos/PA795124.webp,Padey,Didier,M.,1965-11-09,60,yes,73-1,Auvergne-Rhône-Alpes,Savoie,73,1,2024-10-22/2025-01-23|2025-11-13/,Les Démocrates
+PA795136,photos/PA795136.webp,Coulomme,Jean-François,M.,1966-04-01,60,yes,73-4,Auvergne-Rhône-Alpes,Savoie,73,4,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795144,photos/PA795144.webp,Armand,Antoine,M.,1991-09-10,35,no,74-2,Auvergne-Rhône-Alpes,Haute-Savoie,74,2,2024-07-08/2024-10-21|2025-01-24/2026-04-27,Ensemble pour la République
+PA795156,photos/PA795156.webp,Keloua Hachi,Fatiha,Mme,1971-06-05,55,yes,93-8,Ile-de-France,Seine-Saint-Denis,93,8,2024-07-08/,Socialistes et apparentés
+PA795164,photos/PA795164.webp,Trouvé,Aurélie,Mme,1979-09-20,47,yes,93-9,Ile-de-France,Seine-Saint-Denis,93,9,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA795176,photos/PA795176.webp,Metzdorf,Nicolas,M.,1988-05-20,38,yes,988-1,Nouvelle-Calédonie,Nouvelle-Calédonie,988,1,2024-07-08/,Ensemble pour la République
+PA795200,photos/PA795200.webp,Dufour,Alma,Mme,1990-05-06,36,yes,76-4,Normandie,Seine-Maritime,76,4,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795228,photos/PA795228.webp,Abomangoli,Nadège,Mme,1975-09-15,51,yes,93-10,Ile-de-France,Seine-Saint-Denis,93,10,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA795240,photos/PA795240.webp,Reid Arbelot,Mereana,Mme,1970-09-12,56,yes,987-3,Polynésie française,Polynésie Française,987,3,2024-07-08/,Gauche Démocrate et Républicaine
+PA795244,photos/PA795244.webp,Lenormand,Stéphane,M.,1964-08-13,62,yes,975-1,Saint-Pierre-et-Miquelon,Saint-Pierre-et-Miquelon,975,1,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA795258,photos/PA795258.webp,Gumbs,Frantz,M.,1954-01-21,72,yes,977-1,Saint-Barthélemy et Saint-Martin,Saint-Barthélemy et Saint-Martin,977,1,2024-07-08/,Les Démocrates
+PA795270,photos/PA795270.webp,Poussier-Winsback,Marie-Agnès,Mme,1967-03-25,59,yes,76-9,Normandie,Seine-Maritime,76,9,2024-07-08/2024-10-21|2025-01-24/,Horizons & Indépendants
+PA795278,photos/PA795278.webp,Bellamy,Béatrice,Mme,1966-10-20,60,no,85-2,Pays de la Loire,Vendée,85,2,2024-07-08/2026-05-24,Horizons & Indépendants
+PA795298,photos/PA795298.webp,Legavre,Jérôme,M.,1972-08-20,54,yes,93-12,Ile-de-France,Seine-Saint-Denis,93,12,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795310,photos/PA795310.webp,Guetté,Clémence,Mme,1991-03-15,35,yes,94-2,Ile-de-France,Val-de-Marne,94,2,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA795318,photos/PA795318.webp,Boyard,Louis,M.,2000-08-26,26,yes,94-3,Ile-de-France,Val-de-Marne,94,3,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795326,photos/PA795326.webp,Weissberg,Christopher,M.,1985-11-26,40,yes,099-1,Français établis hors de France,Français établis hors de France,099,1,2025-11-13/,Ensemble pour la République
+PA795330,photos/PA795330.webp,Caroit,Eléonore,Mme,1985-07-08,41,no,099-2,Français établis hors de France,Français établis hors de France,099,2,2024-07-08/2025-11-12,Ensemble pour la République
+PA795334,photos/PA795334.webp,Larrouquis,Benoît,M.,1969-11-18,56,yes,099-2,Français établis hors de France,Français établis hors de France,099,2,2025-11-13/,Ensemble pour la République
+PA795350,photos/PA795350.webp,Valletoux,Frédéric,M.,1966-08-23,60,yes,77-2,Ile-de-France,Seine-et-Marne,77,2,2024-07-08/,Horizons & Indépendants
+PA795362,photos/PA795362.webp,Belluco,Lisa,Mme,1988-07-20,38,yes,86-1,Nouvelle-Aquitaine,Vienne,86,1,2024-07-08/,Écologiste et Social
+PA795374,photos/PA795374.webp,Lecamp,Pascal,M.,1958-04-06,68,yes,86-3,Nouvelle-Aquitaine,Vienne,86,3,2024-07-08/,Les Démocrates
+PA795386,photos/PA795386.webp,Lefèvre,Mathieu,M.,1986-10-27,40,no,94-5,Ile-de-France,Val-de-Marne,94,5,2024-07-08/2025-11-12,Ensemble pour la République
+PA795390,photos/PA795390.webp,Lalanne,Sandrine,Mme,1973-02-16,53,yes,94-5,Ile-de-France,Val-de-Marne,94,5,2025-11-13/,Ensemble pour la République
+PA795402,photos/PA795402.webp,Coggia,Nathalie,Mme,1977-07-16,49,yes,099-5,Français établis hors de France,Français établis hors de France,099,5,2025-10-13/,Ensemble pour la République
+PA795410,photos/PA795410.webp,Roullaud,Béatrice,Mme,1960-06-09,66,yes,77-6,Ile-de-France,Seine-et-Marne,77,6,2024-07-08/,Rassemblement National
+PA795422,photos/PA795422.webp,Maudet,Damien,M.,1996-11-14,29,yes,87-1,Nouvelle-Aquitaine,Haute-Vienne,87,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795430,photos/PA795430.webp,Delautrette,Stéphane,M.,1972-09-20,54,yes,87-2,Nouvelle-Aquitaine,Haute-Vienne,87,2,2024-07-08/,Socialistes et apparentés
+PA795454,photos/PA795454.webp,Ben Cheikh,Karim,M.,1977-03-19,49,yes,099-9,Français établis hors de France,Français établis hors de France,099,9,2024-07-08/,Écologiste et Social
+PA795466,photos/PA795466.webp,Soudais,Ersilia,Mme,1988-05-21,38,yes,77-7,Ile-de-France,Seine-et-Marne,77,7,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795482,photos/PA795482.webp,Meunier,Manon,Mme,1996-03-30,30,yes,87-3,Nouvelle-Aquitaine,Haute-Vienne,87,3,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795516,photos/PA795516.webp,Laisney,Maxime,M.,1981-01-19,45,yes,77-10,Ile-de-France,Seine-et-Marne,77,10,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795528,photos/PA795528.webp,Rodwell,Charles,M.,1996-07-26,30,yes,78-1,Ile-de-France,Yvelines,78,1,2024-07-08/,Ensemble pour la République
+PA795540,photos/PA795540.webp,Grenon,Daniel,M.,1948-07-31,78,yes,89-1,Bourgogne-Franche-Comté,Yonne,89,1,2024-07-08/,Non inscrit
+PA795552,photos/PA795552.webp,Odoul,Julien,M.,1985-05-08,41,yes,89-3,Bourgogne-Franche-Comté,Yonne,89,3,2024-07-01/,Rassemblement National
+PA795588,photos/PA795588.webp,Amrani,Farida,Mme,1976-09-03,50,yes,91-1,Ile-de-France,Essonne,91,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795596,photos/PA795596.webp,Vannier,Paul,M.,1985-09-19,41,yes,95-5,Ile-de-France,Val-d'Oise,95,5,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA795616,photos/PA795616.webp,Bilongo,Carlos Martens,M.,1990-12-31,35,yes,95-8,Ile-de-France,Val-d'Oise,95,8,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA795636,photos/PA795636.webp,Lucas-Lundy,Benjamin,M.,1990-10-08,36,yes,78-8,Ile-de-France,Yvelines,78,8,2024-07-08/,Écologiste et Social
+PA795644,photos/PA795644.webp,Da Conceicao Carvalho,Nathalie,Mme,1966-03-31,60,yes,91-2,Ile-de-France,Essonne,91,2,2024-07-08/,Rassemblement National
+PA795664,photos/PA795664.webp,Midy,Paul,M.,1983-01-25,43,yes,91-5,Ile-de-France,Essonne,91,5,2024-07-08/,Ensemble pour la République
+PA795672,photos/PA795672.webp,Le Gall,Arnaud,M.,1980-11-29,45,yes,95-9,Ile-de-France,Val-d'Oise,95,9,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795722,photos/PA795722.webp,Olive,Karl,M.,1969-03-29,57,yes,78-12,Ile-de-France,Yvelines,78,12,2024-07-08/,Ensemble pour la République
+PA795730,photos/PA795730.webp,Marchive,Bastien,M.,1990-07-15,36,yes,79-1,Nouvelle-Aquitaine,Deux-Sèvres,79,1,2024-07-08/,Ensemble pour la République
+PA795746,photos/PA795746.webp,Léaument,Antoine,M.,1989-09-04,37,yes,91-10,Ile-de-France,Essonne,91,10,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795762,photos/PA795762.webp,Califer,Elie,M.,1954-04-19,72,yes,971-4,Guadeloupe,Guadeloupe,971,4,2024-07-08/,Socialistes et apparentés
+PA795778,photos/PA795778.webp,Tanguy,Jean-Philippe,M.,1986-03-25,40,yes,80-4,Hauts-de-France,Somme,80,4,2024-07-08/,Rassemblement National
+PA795786,photos/PA795786.webp,Ménaché,Yaël,Mme,1985-05-12,41,yes,80-5,Hauts-de-France,Somme,80,5,2024-07-01/,Rassemblement National
+PA795808,photos/PA795808.webp,Sebaihi,Sabrina,Mme,1981-05-10,45,yes,92-4,Ile-de-France,Hauts-de-Seine,92,4,2024-07-08/,Écologiste et Social
+PA795820,photos/PA795820.webp,Nadeau,Marcellin,M.,1962-11-02,64,yes,972-2,Martinique,Martinique,972,2,2024-07-08/,Gauche Démocrate et Républicaine
+PA795844,photos/PA795844.webp,Erodi,Karen,Mme,1977-02-04,49,yes,81-2,Occitanie,Tarn,81,2,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA795864,photos/PA795864.webp,Cazeneuve,Pierre,M.,1995-03-11,31,yes,92-7,Ile-de-France,Hauts-de-Seine,92,7,2024-07-01/,Ensemble pour la République
+PA795868,photos/PA795868.webp,Castor,Jean-Victor,M.,1962-04-21,64,yes,973-1,Guyane,Guyane,973,1,2024-07-08/,Gauche Démocrate et Républicaine
+PA795876,photos/PA795876.webp,Rimane,Davy,M.,1979-12-15,46,yes,973-2,Guyane,Guyane,973,2,2024-07-08/,Gauche Démocrate et Républicaine
+PA795884,photos/PA795884.webp,Ferracci,Marc,M.,1977-12-19,48,yes,099-6,Français établis hors de France,Français établis hors de France,099,6,2024-07-08/2024-10-21|2025-11-06/,Ensemble pour la République
+PA795888,photos/PA795888.webp,Rousselot,Marie-Ange,Mme,1987-09-09,39,no,099-6,Français établis hors de France,Français établis hors de France,099,6,2024-10-22/2025-11-05,Ensemble pour la République
+PA795900,photos/PA795900.webp,Hamelet,Marine,Mme,1967-07-13,59,yes,82-2,Occitanie,Tarn-et-Garonne,82,2,2024-07-08/,Rassemblement National
+PA795908,photos/PA795908.webp,Chenevard,Yannick,M.,1959-11-27,66,yes,83-1,Provence-Alpes-Côte d'Azur,Var,83,1,2024-07-08/,Ensemble pour la République
+PA795912,photos/PA795912.webp,Lavalette,Laure,Mme,1976-04-16,50,yes,83-2,Provence-Alpes-Côte d'Azur,Var,83,2,2024-07-01/,Rassemblement National
+PA795920,photos/PA795920.webp,Thevenot,Prisca,Mme,1985-03-01,41,yes,92-8,Ile-de-France,Hauts-de-Seine,92,8,2024-07-08/,Ensemble pour la République
+PA795950,photos/PA795950.webp,Amiel,David,M.,1992-11-28,33,no,75-13,Ile-de-France,Paris,75,13,2024-07-08/2025-11-12,Ensemble pour la République
+PA795954,photos/PA795954.webp,Ibled,Catherine,Mme,1975-05-25,51,yes,75-13,Ile-de-France,Paris,75,13,2025-11-13/,Ensemble pour la République
+PA795958,photos/PA795958.webp,Haddad,Benjamin,M.,1985-10-23,41,no,75-14,Ile-de-France,Paris,75,14,2024-07-08/2024-10-21,Ensemble pour la République
+PA795962,photos/PA795962.webp,Missoffe,Joséphine,Mme,1973-09-24,53,yes,75-14,Ile-de-France,Paris,75,14,2024-10-22/,Ensemble pour la République
+PA795966,photos/PA795966.webp,Rambaud,Stéphane,M.,1960-04-05,66,yes,83-3,Provence-Alpes-Côte d'Azur,Var,83,3,2024-07-08/,Rassemblement National
+PA795974,photos/PA795974.webp,Lottiaux,Philippe,M.,1966-08-14,60,yes,83-4,Provence-Alpes-Côte d'Azur,Var,83,4,2024-07-01/,Rassemblement National
+PA795982,photos/PA795982.webp,Saintoul,Aurélien,M.,1988-05-26,38,yes,92-11,Ile-de-France,Hauts-de-Seine,92,11,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA795990,photos/PA795990.webp,Bregeon,Maud,Mme,1991-02-11,35,no,92-13,Ile-de-France,Hauts-de-Seine,92,13,2024-07-08/2024-10-21|2025-01-14/2025-11-12,Ensemble pour la République
+PA795998,photos/PA795998.webp,K/Bidi,Émeline,Mme,1987-05-13,39,yes,974-4,Réunion,Réunion,974,4,2024-07-08/,Gauche Démocrate et Républicaine
+PA796010,photos/PA796010.webp,Maillot,Frédéric,M.,1986-11-15,39,yes,974-6,Réunion,Réunion,974,6,2024-07-08/,Gauche Démocrate et Républicaine
+PA796018,photos/PA796018.webp,Simonnet,Danielle,Mme,1971-07-02,55,yes,75-15,Ile-de-France,Paris,75,15,2024-07-08/,Écologiste et Social
+PA796026,photos/PA796026.webp,Lechanteux,Julie,Mme,1977-12-22,48,yes,83-5,Provence-Alpes-Côte d'Azur,Var,83,5,2024-07-01/,Rassemblement National
+PA796034,photos/PA796034.webp,Giletti,Frank,M.,1973-03-01,53,no,83-6,Provence-Alpes-Côte d'Azur,Var,83,6,2024-07-01/2026-09-30,Rassemblement National
+PA796042,photos/PA796042.webp,Boccaletti,Frédéric,M.,1973-11-23,52,yes,83-7,Provence-Alpes-Côte d'Azur,Var,83,7,2024-07-08/,Rassemblement National
+PA796050,photos/PA796050.webp,Schreck,Philippe,M.,1972-02-02,54,yes,83-8,Provence-Alpes-Côte d'Azur,Var,83,8,2024-07-01/,Rassemblement National
+PA796062,photos/PA796062.webp,Portes,Thomas,M.,1985-11-18,40,yes,93-3,Ile-de-France,Seine-Saint-Denis,93,3,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA796070,photos/PA796070.webp,Gaillard,Perceval,M.,1983-04-24,43,yes,974-7,Réunion,Réunion,974,7,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA796078,photos/PA796078.webp,Youssouffa,Estelle,Mme,1978-07-31,48,yes,976-1,Mayotte,Mayotte,976,1,2024-07-01/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA796090,photos/PA796090.webp,Caron,Aymeric,M.,1971-12-04,54,yes,75-18,Ile-de-France,Paris,75,18,2024-07-01/,La France insoumise - Nouveau Front Populaire
+PA796106,photos/PA796106.webp,Bénard,Édouard,M.,1995-02-18,31,yes,76-3,Normandie,Seine-Maritime,76,3,2024-07-08/,Gauche Démocrate et Républicaine
+PA796118,photos/PA796118.webp,Auzanot,Bénédicte,Mme,1972-08-05,54,yes,84-2,Provence-Alpes-Côte d'Azur,Vaucluse,84,2,2024-07-08/,Rassemblement National
+PA805166,photos/PA805166.webp,Bergantz,Anne,Mme,1968-09-17,58,yes,78-2,Ile-de-France,Yvelines,78,2,2024-10-22/,Les Démocrates
+PA817203,photos/PA817203.webp,Miller,Laure,Mme,1983-12-25,42,yes,51-2,Grand Est,Marne,51,2,2024-07-08/,Ensemble pour la République
+PA817211,photos/PA817211.webp,Pilato,René,M.,1962-08-31,64,yes,16-1,Nouvelle-Aquitaine,Charente,16,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA822617,photos/PA822617.webp,Froger,Martine,Mme,1961-06-11,65,yes,09-1,Occitanie,Ariège,09,1,2024-07-01/,Socialistes et apparentés
+PA826635,photos/PA826635.webp,Rousseau,Aurélien,M.,1976-06-25,50,yes,78-7,Ile-de-France,Yvelines,78,7,2024-07-08/,Socialistes et apparentés
+PA840067,photos/PA840067.webp,Tomatis,Gabriel,M.,1999-11-02,27,yes,06-4,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,4,2026-04-22/,Rassemblement National
+PA840075,photos/PA840075.webp,Casterman,Eddy,M.,1996-07-28,30,yes,02-3,Hauts-de-France,Aisne,02,3,2024-07-01/,Rassemblement National
+PA840107,photos/PA840107.webp,Chaumeil,Bernard,M.,1958-09-30,68,yes,34-7,Occitanie,Hérault,34,7,2026-04-26/,Rassemblement National
+PA840119,photos/PA840119.webp,Delannoy,Sandra,Mme,1974-05-01,52,yes,59-3,Hauts-de-France,Nord,59,3,2024-07-01/,Non inscrit
+PA840135,photos/PA840135.webp,Dufosset,Alexandre,M.,1998-08-24,28,yes,59-18,Hauts-de-France,Nord,59,18,2024-07-01/,Rassemblement National
+PA840143,photos/PA840143.webp,Florquin,Guillaume,M.,1993-05-04,33,yes,59-20,Hauts-de-France,Nord,59,20,2024-07-01/,Rassemblement National
+PA840159,photos/PA840159.webp,Clavet,Bruno,M.,1989-05-06,37,yes,62-3,Hauts-de-France,Pas-de-Calais,62,3,2024-07-01/,Rassemblement National
+PA840171,photos/PA840171.webp,Grégoire,Emmanuel,M.,1977-12-24,48,no,75-7,Ile-de-France,Paris,75,7,2024-07-01/2026-04-09,Socialistes et apparentés
+PA840175,photos/PA840175.webp,Bregman,Dorine,Mme,1962-03-04,64,yes,75-7,Ile-de-France,Paris,75,7,2026-04-10/,Socialistes et apparentés
+PA840195,photos/PA840195.webp,Fiol,Muriel,Mme,1954-03-26,72,yes,83-6,Provence-Alpes-Côte d'Azur,Var,83,6,2026-10-08/,Rassemblement National
+PA840235,photos/PA840235.webp,Frébault,Moerani,M.,1988-08-22,38,yes,987-1,Polynésie française,Polynésie Française,987,1,2024-07-01/,Ensemble pour la République
+PA840657,photos/PA840657.webp,Ricourt Vaginay,Sophie,Mme,1969-12-18,56,yes,04-2,Provence-Alpes-Côte d'Azur,Alpes-de-Haute-Provence,04,2,2024-07-08/,Union des droites pour la République
+PA840665,photos/PA840665.webp,Allemand,Marie-José,Mme,1970-01-27,56,yes,05-1,Provence-Alpes-Côte d'Azur,Hautes-Alpes,05,1,2024-07-08/,Socialistes et apparentés
+PA840673,photos/PA840673.webp,Rossi,Valérie,Mme,1964-06-05,62,yes,05-2,Provence-Alpes-Côte d'Azur,Hautes-Alpes,05,2,2024-07-08/,Socialistes et apparentés
+PA840685,photos/PA840685.webp,Trébuchet,Vincent,M.,1988-07-05,38,yes,07-2,Auvergne-Rhône-Alpes,Ardèche,07,2,2024-07-08/,Union des droites pour la République
+PA840701,photos/PA840701.webp,Chaix,Bernard,M.,1965-01-06,61,yes,06-3,Provence-Alpes-Côte d'Azur,Alpes-Maritimes,06,3,2024-07-08/,Union des droites pour la République
+PA840713,photos/PA840713.webp,Delorme Duret,Sophie,Mme,1971-03-29,55,no,01-3,Auvergne-Rhône-Alpes,Ain,01,3,2024-10-22/2025-01-23,Ensemble pour la République
+PA840721,photos/PA840721.webp,Chavent,Marc,M.,1968-06-28,58,yes,01-5,Auvergne-Rhône-Alpes,Ain,01,5,2024-07-08/,Union des droites pour la République
+PA840737,photos/PA840737.webp,Termet,Flavien,M.,2002-01-29,24,no,08-1,Grand Est,Ardennes,08,1,2024-07-08/2024-10-04,Rassemblement National
+PA840745,photos/PA840745.webp,Jordan,Édouard,M.,1987-11-06,38,yes,11-1,Occitanie,Aude,11,1,2026-04-21/,Rassemblement National
+PA840757,photos/PA840757.webp,Griseti,Monique,Mme,1960-07-23,66,yes,13-1,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,1,2024-07-08/,Rassemblement National
+PA840765,photos/PA840765.webp,Lhardit,Laurent,M.,1963-04-20,63,yes,13-2,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,2,2024-07-08/,Socialistes et apparentés
+PA840773,photos/PA840773.webp,Fayssat,Olivier,M.,1968-03-24,58,yes,13-6,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,6,2024-07-08/,Union des droites pour la République
+PA840781,photos/PA840781.webp,Tonussi,Romain,M.,1996-04-09,30,yes,13-8,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,8,2024-07-08/,Rassemblement National
+PA840793,photos/PA840793.webp,Pena,Marc,M.,1960-05-07,66,yes,13-11,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,11,2024-07-08/,Socialistes et apparentés
+PA840801,photos/PA840801.webp,Fouquart,Emmanuel,M.,1966-07-30,60,yes,13-13,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,13,2024-07-08/,Rassemblement National
+PA840809,photos/PA840809.webp,Verny,Gérault,M.,1984-12-23,41,yes,13-14,Provence-Alpes-Côte d'Azur,Bouches-du-Rhône,13,14,2024-07-08/,Union des droites pour la République
+PA840817,photos/PA840817.webp,Bruneau,Joël,M.,1963-09-07,63,yes,14-1,Normandie,Calvados,14,1,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA840829,photos/PA840829.webp,Barusseau,Fabrice,M.,1970-06-01,56,yes,17-3,Nouvelle-Aquitaine,Charente-Maritime,17,3,2024-07-08/,Socialistes et apparentés
+PA840837,photos/PA840837.webp,Markowsky,Pascal,M.,1954-07-22,72,yes,17-4,Nouvelle-Aquitaine,Charente-Maritime,17,4,2024-07-08/,Rassemblement National
+PA840849,photos/PA840849.webp,Riotte,Emmanuel,M.,1962-03-31,64,yes,18-3,Centre-Val de Loire,Cher,18,3,2026-10-08/,Horizons & Indépendants
+PA840857,photos/PA840857.webp,Lechon,Nadine,Mme,1963-04-16,63,yes,24-1,Nouvelle-Aquitaine,Dordogne,24,1,2024-07-08/,Rassemblement National
+PA840869,photos/PA840869.webp,Joubert,Florence,Mme,1965-06-30,61,yes,24-3,Nouvelle-Aquitaine,Dordogne,24,3,2024-07-08/,Rassemblement National
+PA840889,photos/PA840889.webp,Bloch,Matthieu,M.,1983-04-26,43,yes,25-3,Bourgogne-Franche-Comté,Doubs,25,3,2024-07-08/,Union des droites pour la République
+PA840903,photos/PA840903.webp,Christophle,Paul,M.,1987-02-03,39,yes,26-1,Auvergne-Rhône-Alpes,Drôme,26,1,2024-07-08/,Socialistes et apparentés
+PA840915,photos/PA840915.webp,Monnier,Thibaut,M.,1987-02-24,39,yes,26-4,Auvergne-Rhône-Alpes,Drôme,26,4,2024-07-08/,Rassemblement National
+PA840939,photos/PA840939.webp,Godard,Océane,Mme,1982-11-22,43,yes,21-1,Bourgogne-Franche-Comté,Côte-d'Or,21,1,2024-07-08/,Socialistes et apparentés
+PA840947,photos/PA840947.webp,Hervieu,Catherine,Mme,1958-05-09,68,yes,21-2,Bourgogne-Franche-Comté,Côte-d'Or,21,2,2024-07-08/,Écologiste et Social
+PA840955,photos/PA840955.webp,Pribetich,Pierre,M.,1956-12-28,69,yes,21-3,Bourgogne-Franche-Comté,Côte-d'Or,21,3,2024-07-08/,Socialistes et apparentés
+PA840967,photos/PA840967.webp,Lioret,René,M.,1952-01-13,74,yes,21-5,Bourgogne-Franche-Comté,Côte-d'Or,21,5,2024-07-08/,Rassemblement National
+PA840979,photos/PA840979.webp,Le Fur,Corentin,M.,1989-12-13,36,yes,22-3,Bretagne,Côtes-d'Armor,22,3,2024-07-08/,Droite Républicaine
+PA840983,photos/PA840983.webp,Lenoir,Bartolomé,M.,1991-09-04,35,yes,23-1,Nouvelle-Aquitaine,Creuse,23,1,2024-07-08/,Union des droites pour la République
+PA840997,photos/PA840997.webp,Biteau,Benoît,M.,1967-04-07,59,yes,17-2,Nouvelle-Aquitaine,Charente-Maritime,17,2,2024-07-08/,Écologiste et Social
+PA841013,photos/PA841013.webp,Mesnard,Isabelle,Mme,1967-10-30,59,no,28-1,Centre-Val de Loire,Eure-et-Loir,28,1,2024-10-22/2025-01-23,Horizons & Indépendants
+PA841017,photos/PA841017.webp,Huwart,Harold,M.,1982-01-03,44,no,28-3,Centre-Val de Loire,Eure-et-Loir,28,3,2024-07-08/2026-07-25,"Libertés, Indépendants, Outre-mer et Territoires"
+PA841023,photos/PA841023.webp,Cadalen,Pierre-Yves,M.,1992-07-09,34,yes,29-2,Bretagne,Finistère,29,2,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA841047,photos/PA841047.webp,Ceccoli,François-Xavier,M.,1968-10-27,58,yes,2B-2,Corse,Haute-Corse,2B,2,2024-07-08/,Droite Républicaine
+PA841059,photos/PA841059.webp,Dellong Meng,Catherine,Mme,1960-05-04,66,yes,30-3,Occitanie,Gard,30,3,2026-04-14/,Rassemblement National
+PA841067,photos/PA841067.webp,Allegret-Pilot,Alexandre,M.,1989-01-11,37,yes,30-5,Occitanie,Gard,30,5,2024-07-08/,Union des droites pour la République
+PA841075,photos/PA841075.webp,Josserand,Sylvie,Mme,1968-08-23,58,no,30-6,Occitanie,Gard,30,6,2024-07-08/2026-09-30,Rassemblement National
+PA841079,photos/PA841079.webp,Gardet,Laurence,Mme,1969-06-01,57,yes,30-6,Occitanie,Gard,30,6,2026-10-08/,Rassemblement National
+PA841091,photos/PA841091.webp,Simion,Arnaud,M.,1968-05-19,58,yes,31-6,Occitanie,Haute-Garonne,31,6,2024-07-08/,Socialistes et apparentés
+PA841107,photos/PA841107.webp,Oberti,Jacques,M.,1960-11-26,65,yes,31-10,Occitanie,Haute-Garonne,31,10,2024-07-08/,Socialistes et apparentés
+PA841131,photos/PA841131.webp,Bouquin,Manon,Mme,1992-06-02,34,no,34-4,Occitanie,Hérault,34,4,2024-07-08/2026-09-30,Rassemblement National
+PA841135,photos/PA841135.webp,Gilhet,Benoit,M.,1970-11-20,55,yes,34-4,Occitanie,Hérault,34,4,2026-10-08/,Rassemblement National
+PA841139,photos/PA841139.webp,Gabarron,Julien,M.,1981-03-11,45,yes,34-6,Occitanie,Hérault,34,6,2024-07-08/,Rassemblement National
+PA841151,photos/PA841151.webp,Fruchon,Alix,Mme,1994-10-14,32,yes,36-2,Centre-Val de Loire,Indre,36,2,2025-11-13/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA841167,photos/PA841167.webp,Prevost,Hugo,M.,1999-09-09,27,no,38-1,Auvergne-Rhône-Alpes,Isère,38,1,2024-07-08/2024-10-15,Non inscrit
+PA841183,photos/PA841183.webp,Mansouri,Hanane,Mme,2000-11-24,25,yes,38-8,Auvergne-Rhône-Alpes,Isère,38,8,2024-07-08/,Union des droites pour la République
+PA841191,photos/PA841191.webp,Nosbé,Sandrine,Mme,1972-10-29,54,yes,38-9,Auvergne-Rhône-Alpes,Isère,38,9,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA841199,photos/PA841199.webp,Perez,Thierry,M.,1966-11-19,59,yes,38-10,Auvergne-Rhône-Alpes,Isère,38,10,2024-07-08/,Rassemblement National
+PA841207,photos/PA841207.webp,Alloncle,Charles,M.,1993-10-21,33,yes,34-9,Occitanie,Hérault,34,9,2024-07-08/,Union des droites pour la République
+PA841215,photos/PA841215.webp,Mesmeur,Marie,Mme,1994-08-12,32,yes,35-1,Bretagne,Ille-et-Vilaine,35,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA841223,photos/PA841223.webp,Lahais,Tristan,M.,1983-05-11,43,yes,35-2,Bretagne,Ille-et-Vilaine,35,2,2024-07-08/,Écologiste et Social
+PA841243,photos/PA841243.webp,Saint-Pasteur,Sébastien,M.,1980-12-08,45,yes,33-7,Nouvelle-Aquitaine,Gironde,33,7,2024-07-08/,Socialistes et apparentés
+PA841251,photos/PA841251.webp,Feld,Mathilde,Mme,1969-04-28,57,yes,33-12,Nouvelle-Aquitaine,Gironde,33,12,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA841295,photos/PA841295.webp,Courbon,Pierrick,M.,1985-07-08,41,yes,42-1,Auvergne-Rhône-Alpes,Loire,42,1,2024-07-08/,Socialistes et apparentés
+PA841315,photos/PA841315.webp,Benbrahim,Karim,M.,1980-04-13,46,yes,44-1,Pays de la Loire,Loire-Atlantique,44,1,2024-07-08/,Socialistes et apparentés
+PA841327,photos/PA841327.webp,Roussel,Fabrice,M.,1973-04-11,53,yes,44-5,Pays de la Loire,Loire-Atlantique,44,5,2024-07-08/,Socialistes et apparentés
+PA841339,photos/PA841339.webp,Brard,Jean-Michel,M.,1968-04-03,58,yes,44-9,Pays de la Loire,Loire-Atlantique,44,9,2024-07-08/,Horizons & Indépendants
+PA841347,,Chouin,Stéphane,M.,1969-02-25,57,no,45-1,Centre-Val de Loire,Loiret,45,1,2025-11-13/2025-11-13,Non inscrit
+PA841351,photos/PA841351.webp,Duplessy,Emmanuel,M.,1990-01-02,36,yes,45-2,Centre-Val de Loire,Loiret,45,2,2024-07-08/,Écologiste et Social
+PA841359,photos/PA841359.webp,de Pélichy,Constance,Mme,1986-04-01,40,yes,45-3,Centre-Val de Loire,Loiret,45,3,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA841367,photos/PA841367.webp,Proença,Christophe,M.,1966-05-31,60,yes,46-2,Occitanie,Lot,46,2,2024-07-08/,Socialistes et apparentés
+PA841377,photos/PA841377.webp,Rey-Rinchet,Emeline,Mme,1988-03-29,38,yes,47-3,Nouvelle-Aquitaine,Lot-et-Garonne,47,3,2026-04-21/,Droite Républicaine
+PA841381,photos/PA841381.webp,Pantel,Sophie,Mme,1971-07-27,55,yes,48-1,Occitanie,Lozère,48,1,2024-07-08/,Socialistes et apparentés
+PA841395,photos/PA841395.webp,Michelet,Maxime,M.,1992-04-19,34,yes,51-3,Grand Est,Marne,51,3,2024-07-08/,Union des droites pour la République
+PA841419,photos/PA841419.webp,Girard,Damien,M.,1973-05-30,53,yes,56-5,Bretagne,Morbihan,56,5,2024-07-08/,Écologiste et Social
+PA841431,photos/PA841431.webp,Colin-Oesterlé,Nathalie,Mme,1965-05-05,61,yes,57-3,Grand Est,Moselle,57,3,2024-07-08/,Horizons & Indépendants
+PA841439,photos/PA841439.webp,Jenft,Pascal,M.,1966-11-29,59,yes,57-5,Grand Est,Moselle,57,5,2024-07-08/,Rassemblement National
+PA841451,photos/PA841451.webp,Guibert,Julien,M.,1984-05-11,42,yes,58-2,Bourgogne-Franche-Comté,Nièvre,58,2,2024-07-08/,Rassemblement National
+PA841463,photos/PA841463.webp,Mercier,Estelle,Mme,1973-01-15,53,yes,54-1,Grand Est,Meurthe-et-Moselle,54,1,2024-07-08/,Socialistes et apparentés
+PA841471,photos/PA841471.webp,Hablot,Stéphane,M.,1965-06-30,61,yes,54-2,Grand Est,Meurthe-et-Moselle,54,2,2024-07-08/,Socialistes et apparentés
+PA841479,photos/PA841479.webp,Weber,Frédéric,M.,1973-05-21,53,yes,54-3,Grand Est,Meurthe-et-Moselle,54,3,2024-07-08/,Rassemblement National
+PA841487,photos/PA841487.webp,Boulogne,Anthony,M.,1993-06-08,33,yes,54-6,Grand Est,Meurthe-et-Moselle,54,6,2024-07-08/,Rassemblement National
+PA841495,photos/PA841495.webp,Amblard,Maxime,M.,1996-09-06,30,yes,55-1,Grand Est,Meuse,55,1,2024-07-08/,Rassemblement National
+PA841507,photos/PA841507.webp,Bonnet,Nicolas,M.,1981-02-11,45,yes,63-3,Auvergne-Rhône-Alpes,Puy-de-Dôme,63,3,2024-07-08/,Écologiste et Social
+PA841515,photos/PA841515.webp,Le Coq,Aurélien,M.,1996-09-28,30,yes,59-1,Hauts-de-France,Nord,59,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA841531,photos/PA841531.webp,Bentorki,Shéhérazade,Mme,1986-11-06,39,yes,59-8,Hauts-de-France,Nord,59,8,2026-04-08/,La France insoumise - Nouveau Front Populaire
+PA841539,photos/PA841539.webp,Gokel,Julien,M.,1983-03-13,43,no,59-13,Hauts-de-France,Nord,59,13,2024-07-08/2026-04-19,Socialistes et apparentés
+PA841543,photos/PA841543.webp,Bodart,Jean,M.,1946-02-21,80,yes,59-13,Hauts-de-France,Nord,59,13,2026-04-20/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA841553,photos/PA841553.webp,Tesson,Thierry,M.,1957-04-22,69,yes,59-17,Hauts-de-France,Nord,59,17,2024-07-08/,Rassemblement National
+PA841563,photos/PA841563.webp,Marais-Beuil,Claire,Mme,1958-11-04,68,yes,60-1,Hauts-de-France,Oise,60,1,2024-07-08/,Rassemblement National
+PA841575,photos/PA841575.webp,Vos,Frédéric-Pierre,M.,1963-03-10,63,yes,60-5,Hauts-de-France,Oise,60,5,2024-07-08/,Rassemblement National
+PA841587,photos/PA841587.webp,Magnier,David,M.,1972-06-05,54,yes,60-7,Hauts-de-France,Oise,60,7,2024-07-08/,Rassemblement National
+PA841595,photos/PA841595.webp,Chazé,Cendrine,Mme,1977-10-14,49,yes,61-3,Normandie,Orne,61,3,2026-04-15/,Droite Républicaine
+PA841601,photos/PA841601.webp,Levasseur,Pauline,Mme,1991-07-24,35,no,62-2,Hauts-de-France,Pas-de-Calais,62,2,2024-10-22/2025-11-12,Ensemble pour la République
+PA841605,photos/PA841605.webp,Golliot,Antoine,M.,1985-08-13,41,yes,62-5,Hauts-de-France,Pas-de-Calais,62,5,2024-07-08/,Rassemblement National
+PA841613,photos/PA841613.webp,de Fleurian,Marc,M.,1989-02-07,37,yes,62-7,Hauts-de-France,Pas-de-Calais,62,7,2024-07-08/,Rassemblement National
+PA841621,photos/PA841621.webp,Evrard,Auguste,M.,2000-05-04,26,yes,62-8,Hauts-de-France,Pas-de-Calais,62,8,2024-07-08/,Rassemblement National
+PA841633,photos/PA841633.webp,Dufau,Peio,M.,1979-05-30,47,yes,64-6,Nouvelle-Aquitaine,Pyrénées-Atlantiques,64,6,2024-07-08/,Socialistes et apparentés
+PA841645,photos/PA841645.webp,Bernhardt,Théo,M.,2000-06-29,26,yes,67-8,Grand Est,Bas-Rhin,67,8,2024-07-08/,Rassemblement National
+PA841657,photos/PA841657.webp,Belouassa-Cherifi,Anaïs,Mme,1995-02-07,31,yes,69-1,Auvergne-Rhône-Alpes,Rhône,69,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA841665,photos/PA841665.webp,Fégné,Denis,M.,1960-07-31,66,yes,65-2,Occitanie,Hautes-Pyrénées,65,2,2024-07-08/,Socialistes et apparentés
+PA841681,photos/PA841681.webp,Sother,Thierry,M.,1982-02-02,44,yes,67-3,Grand Est,Bas-Rhin,67,3,2024-07-08/,Socialistes et apparentés
+PA841693,photos/PA841693.webp,Laussucq,Jean,M.,1990-02-04,36,no,75-2,Ile-de-France,Paris,75,2,2024-07-08/2025-07-11,Ensemble pour la République
+PA841701,photos/PA841701.webp,Balage El Mariky,Léa,Mme,1990-04-09,36,yes,75-3,Ile-de-France,Paris,75,3,2024-07-08/,Écologiste et Social
+PA841709,photos/PA841709.webp,Hoffman,Emmanuelle,Mme,1964-12-17,61,yes,75-4,Ile-de-France,Paris,75,4,2024-10-22/2025-11-05|2026-08-05/,Ensemble pour la République
+PA841713,photos/PA841713.webp,Tavernier,Boris,M.,1979-08-23,47,yes,69-2,Auvergne-Rhône-Alpes,Rhône,69,2,2024-07-08/,Écologiste et Social
+PA841717,photos/PA841717.webp,Runel,Sandrine,Mme,1979-06-01,47,yes,69-4,Auvergne-Rhône-Alpes,Rhône,69,4,2024-07-08/,Socialistes et apparentés
+PA841729,photos/PA841729.webp,Lahmar,Abdelkader,M.,1971-05-12,55,yes,69-7,Auvergne-Rhône-Alpes,Rhône,69,7,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA841737,photos/PA841737.webp,Gery,Jonathan,M.,1986-10-12,40,yes,69-8,Auvergne-Rhône-Alpes,Rhône,69,8,2024-07-08/,Rassemblement National
+PA841745,photos/PA841745.webp,Bay,Pascale,Mme,1956-09-15,70,no,69-9,Auvergne-Rhône-Alpes,Rhône,69,9,2024-10-22/2025-01-23,Droite Républicaine
+PA841749,photos/PA841749.webp,Joncour,Tiffany,Mme,1989-09-02,37,yes,69-13,Auvergne-Rhône-Alpes,Rhône,69,13,2024-07-08/,Rassemblement National
+PA841761,photos/PA841761.webp,Dutremble,Aurélien,M.,1978-12-23,47,yes,71-3,Bourgogne-Franche-Comté,Saône-et-Loire,71,3,2024-07-08/,Rassemblement National
+PA841769,photos/PA841769.webp,Michoux,Éric,M.,1959-06-17,67,yes,71-4,Bourgogne-Franche-Comté,Saône-et-Loire,71,4,2024-07-08/,Union des droites pour la République
+PA841777,photos/PA841777.webp,Sanvert,Arnaud,M.,1983-08-03,43,no,71-5,Bourgogne-Franche-Comté,Saône-et-Loire,71,5,2024-07-08/2025-03-07,Rassemblement National
+PA841801,photos/PA841801.webp,Carteron,Danièle,Mme,1984-10-31,42,yes,74-2,Auvergne-Rhône-Alpes,Haute-Savoie,74,2,2024-10-22/2025-01-23|2026-04-28/,Ensemble pour la République
+PA841813,photos/PA841813.webp,Herouin-Léautey,Florence,Mme,1972-12-28,53,yes,76-1,Normandie,Seine-Maritime,76,1,2024-07-08/,Socialistes et apparentés
+PA841825,photos/PA841825.webp,Martin,Patrice,M.,1963-09-13,63,yes,76-6,Normandie,Seine-Maritime,76,6,2024-07-08/,Rassemblement National
+PA841833,photos/PA841833.webp,Guerin,David,M.,1966-01-09,60,no,76-9,Normandie,Seine-Maritime,76,9,2024-10-22/2025-01-23,Horizons & Indépendants
+PA841837,photos/PA841837.webp,Le Bourgeois,Robert,M.,1969-11-12,56,yes,76-10,Normandie,Seine-Maritime,76,10,2024-07-08/,Rassemblement National
+PA841845,photos/PA841845.webp,Saint-Martin,Arnaud,M.,1979-01-25,47,yes,77-1,Ile-de-France,Seine-et-Marne,77,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA841853,photos/PA841853.webp,Hervieu,Céline,Mme,1993-08-19,33,yes,75-11,Ile-de-France,Paris,75,11,2024-07-08/,Socialistes et apparentés
+PA841869,photos/PA841869.webp,Gonord,Michel,M.,1955-03-31,71,no,77-3,Ile-de-France,Seine-et-Marne,77,3,2024-10-28/2025-01-23,Droite Républicaine
+PA841873,photos/PA841873.webp,Limongi,Julien,M.,1996-02-12,30,yes,77-4,Ile-de-France,Seine-et-Marne,77,4,2024-07-08/,Rassemblement National
+PA841885,photos/PA841885.webp,Bonnet,Arnaud,M.,1977-02-23,49,yes,77-8,Ile-de-France,Seine-et-Marne,77,8,2024-07-08/,Écologiste et Social
+PA841893,photos/PA841893.webp,Thiébault-Martinez,Céline,Mme,1974-08-04,52,yes,77-9,Ile-de-France,Seine-et-Marne,77,9,2024-07-08/,Socialistes et apparentés
+PA841919,photos/PA841919.webp,Diop,Dieynaba,Mme,1974-07-15,52,yes,78-9,Ile-de-France,Yvelines,78,9,2024-07-08/,Socialistes et apparentés
+PA841927,photos/PA841927.webp,Ronceret,Anne-Sophie,Mme,1978-01-07,48,yes,78-10,Ile-de-France,Yvelines,78,10,2025-01-24/,Ensemble pour la République
+PA841931,photos/PA841931.webp,Mazaury,Laurent,M.,1965-08-23,61,yes,78-11,Ile-de-France,Yvelines,78,11,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
+PA841947,photos/PA841947.webp,Hamdane,Zahia,Mme,1965-05-14,61,yes,80-2,Hauts-de-France,Somme,80,2,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA841955,photos/PA841955.webp,Renault,Matthias,M.,1988-05-02,38,yes,80-3,Hauts-de-France,Somme,80,3,2024-07-08/,Rassemblement National
+PA841973,photos/PA841973.webp,Carbonnel,Pierre-Henri,M.,1990-03-23,36,yes,82-1,Occitanie,Tarn-et-Garonne,82,1,2025-10-13/,Union des droites pour la République
+PA841981,photos/PA841981.webp,Rimbert,Catherine,Mme,1968-09-13,58,yes,84-5,Provence-Alpes-Côte d'Azur,Vaucluse,84,5,2024-07-08/,Rassemblement National
+PA841993,photos/PA841993.webp,Paillat,Dominique,M.,1958-06-11,68,yes,85-2,Pays de la Loire,Vendée,85,2,2026-05-25/,Horizons & Indépendants
+PA842001,photos/PA842001.webp,Bigot,Guillaume,M.,1969-11-14,56,yes,90-2,Bourgogne-Franche-Comté,Territoire de Belfort,90,2,2024-07-08/,Rassemblement National
+PA842013,photos/PA842013.webp,Gustave,Steevy,M.,1970-02-05,56,yes,91-3,Ile-de-France,Essonne,91,3,2024-07-08/,Écologiste et Social
+PA842029,photos/PA842029.webp,Lejeune,Claire,Mme,1994-09-07,32,yes,91-7,Ile-de-France,Essonne,91,7,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA842037,photos/PA842037.webp,Cernon,Bérenger,M.,1988-05-02,38,yes,91-8,Ile-de-France,Essonne,91,8,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA842045,photos/PA842045.webp,Ozenne,Julie,Mme,1978-08-02,48,yes,91-9,Ile-de-France,Essonne,91,9,2024-07-08/,Écologiste et Social
+PA842073,photos/PA842073.webp,Dussausaye,Gaëtan,M.,1994-04-05,32,yes,88-2,Grand Est,Vosges,88,2,2024-07-08/,Rassemblement National
+PA842085,photos/PA842085.webp,Humbert,Sébastien,M.,1990-07-10,36,yes,88-4,Grand Est,Vosges,88,4,2024-07-08/,Rassemblement National
+PA842097,photos/PA842097.webp,Roy,Sophie-Laurence,Mme,1955-12-23,70,yes,89-2,Bourgogne-Franche-Comté,Yonne,89,2,2024-07-08/,Rassemblement National
+PA842105,photos/PA842105.webp,Arnault,Raphaël,M.,1995-01-08,31,yes,84-1,Provence-Alpes-Côte d'Azur,Vaucluse,84,1,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA842117,photos/PA842117.webp,Jeanbrun,Vincent,M.,1984-05-05,42,no,94-7,Ile-de-France,Val-de-Marne,94,7,2024-07-08/2025-11-12,Droite Républicaine
+PA842121,photos/PA842121.webp,Tryzna,Nicolas,M.,1987-12-15,38,yes,94-7,Ile-de-France,Val-de-Marne,94,7,2025-11-13/,Droite Républicaine
+PA842125,photos/PA842125.webp,Lam,Thomas,M.,1981-10-22,45,yes,92-2,Ile-de-France,Hauts-de-Seine,92,2,2024-07-08/,Horizons & Indépendants
+PA842137,photos/PA842137.webp,Séjourné,Stéphane,M.,1985-03-26,41,no,92-9,Ile-de-France,Hauts-de-Seine,92,9,2024-07-08/2024-11-30,Ensemble pour la République
+PA842141,photos/PA842141.webp,de Maistre,Élisabeth,Mme,1975-10-07,51,yes,92-9,Ile-de-France,Hauts-de-Seine,92,9,2025-02-10/,Droite Républicaine
+PA842147,photos/PA842147.webp,Mongardien,Christophe,M.,1963-01-09,63,yes,92-13,Ile-de-France,Hauts-de-Seine,92,13,2024-10-22/2025-01-13|2025-11-13/,Ensemble pour la République
+PA842155,photos/PA842155.webp,Diouara,Aly,M.,1987-03-01,39,yes,93-5,Ile-de-France,Seine-Saint-Denis,93,5,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA842183,photos/PA842183.webp,Blanchard,Benoît,M.,1961-05-01,65,yes,95-4,Ile-de-France,Val-d'Oise,95,4,2025-11-13/,Horizons & Indépendants
+PA842187,photos/PA842187.webp,Cathala,Gabrielle,Mme,1992-05-14,34,yes,95-6,Ile-de-France,Val-d'Oise,95,6,2024-07-08/,La France insoumise - Nouveau Front Populaire
+PA842195,photos/PA842195.webp,Eskenazi,Romain,M.,1986-05-04,40,yes,95-7,Ile-de-France,Val-d'Oise,95,7,2024-07-08/,Socialistes et apparentés
+PA842211,photos/PA842211.webp,Bellay,Béatrice,Mme,1975-07-25,51,yes,972-3,Martinique,Martinique,972,3,2024-07-08/,Socialistes et apparentés
+PA842227,photos/PA842227.webp,Rivière,Joseph,M.,1971-10-15,55,yes,974-3,Réunion,Réunion,974,3,2024-07-08/,Rassemblement National
+PA842255,photos/PA842255.webp,Sicard,Anne,Mme,1967-06-15,59,yes,95-1,Ile-de-France,Val-d'Oise,95,1,2024-07-08/,Rassemblement National
+PA842263,photos/PA842263.webp,Hadizadeh,Ayda,Mme,1982-02-12,44,yes,95-2,Ile-de-France,Val-d'Oise,95,2,2024-07-08/,Socialistes et apparentés
+PA842271,photos/PA842271.webp,Maurel,Emmanuel,M.,1973-05-10,53,yes,95-3,Ile-de-France,Val-d'Oise,95,3,2024-07-08/,Gauche Démocrate et Républicaine
+PA842279,photos/PA842279.webp,Bamana,Anchya,Mme,1971-03-12,55,yes,976-2,Mayotte,Mayotte,976,2,2024-07-08/,Rassemblement National
+PA842299,photos/PA842299.webp,Tjibaou,Emmanuel,M.,1976-03-17,50,yes,988-2,Nouvelle-Calédonie,Nouvelle-Calédonie,988,2,2024-07-08/,Gauche Démocrate et Républicaine
+PA842311,photos/PA842311.webp,Caure,Vincent,M.,1992-12-31,33,yes,099-3,Français établis hors de France,Français établis hors de France,099,3,2024-07-08/,Ensemble pour la République
+PA842323,photos/PA842323.webp,Provendier,Remi,M.,1971-12-24,54,no,099-11,Français établis hors de France,Français établis hors de France,099,11,2024-10-22/2025-01-23,Ensemble pour la République
+PA857021,photos/PA857021.webp,Latrèche,Alim,M.,1979-12-05,46,yes,38-1,Auvergne-Rhône-Alpes,Isère,38,1,2026-03-27/,Ensemble pour la République
+PA870009,photos/PA870009.webp,Duparay,Lionel,M.,1981-02-07,45,yes,71-5,Bourgogne-Franche-Comté,Saône-et-Loire,71,5,2025-11-13/,Droite Républicaine
+PA870010,photos/PA870010.webp,Martin,Sébastien,M.,1977-11-24,48,no,71-5,Bourgogne-Franche-Comté,Saône-et-Loire,71,5,2025-05-26/2025-11-12,Droite Républicaine
+PA878242,photos/PA878242.webp,Valentin,Antoine,M.,1992-10-16,34,yes,74-3,Auvergne-Rhône-Alpes,Haute-Savoie,74,3,2026-02-02/,Union des droites pour la République
+PA879389,photos/PA879389.webp,Lubet,Marie-Philippe,Mme,1957-09-06,69,yes,45-1,Centre-Val de Loire,Loiret,45,1,2026-02-27/,Ensemble pour la République
+PA942,photos/PA942.webp,de Courson,Charles,M.,1952-04-02,74,yes,51-5,Grand Est,Marne,51,5,2024-07-08/,"Libertés, Indépendants, Outre-mer et Territoires"
