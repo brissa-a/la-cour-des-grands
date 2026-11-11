@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, chmod, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { hostname } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 import { test } from "node:test";
@@ -12,6 +12,7 @@ import type { Stops } from "./supervise.ts";
 
 const TOKEN = "tk_0123456789abcdefghij-_ABCDEFG";
 const VERSION = "6a64dfbf2449e4c8357bc0319b9fe0b747c577d9";
+const PREVIOUS = "0123456789abcdef0123456789abcdef01234567";
 
 // Stands for src/main.ts: what it writes and how it ends are those of the pipeline, chosen by the scenario.
 const FAKE_PIPELINE = `
@@ -28,6 +29,15 @@ switch (scenario) {
     summary({ status: "published", exitCode: 0, version: "${VERSION}", previousVersion: null, forced: false, counts: { deputies: 654, votes: 9759, newVotes: null }, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [], error: null });
     process.stdout.write("Published ${VERSION}\\n");
     process.exit(0);
+  case "published-over":
+    summary({ status: "published", exitCode: 0, version: "${VERSION}", previousVersion: "${PREVIOUS}", forced: false, counts: { deputies: 654, votes: 2, newVotes: 1 }, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [], error: null });
+    process.exit(0);
+  case "unchanged":
+    summary({ status: "unchanged", exitCode: 0, version: "${VERSION}", previousVersion: "${VERSION}", forced: false, counts: { deputies: 654, votes: 2, newVotes: 0 }, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [], error: null });
+    process.exit(0);
+  case "rejected":
+    summary({ status: "rejected", exitCode: 3, version: "${VERSION}", previousVersion: "${PREVIOUS}", forced: false, counts: { deputies: 654, votes: 2, newVotes: 1 }, refusals: ["1 votes against 2 in the current version"], warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [], error: null });
+    process.exit(3);
   case "oom":
     lock(process.pid);
     process.stderr.write("  25/40\\n");
@@ -80,7 +90,7 @@ function token() {
   return parsed;
 }
 
-async function scenario(name: string, memoryEvents: readonly (string | null)[] = ["oom_kill 0\n"], before: (v2: string) => Promise<void> = () => Promise.resolve()) {
+async function scenario(name: string, memoryEvents: readonly (string | null)[] = ["oom_kill 0\n"], before: (v2: string) => Promise<void> = () => Promise.resolve(), notifications = 1) {
   const root = await temporaryRoot();
   const { v2 } = layout(root);
   await mkdir(`${v2}/.runs`, { recursive: true });
@@ -91,22 +101,26 @@ async function scenario(name: string, memoryEvents: readonly (string | null)[] =
     return Promise.resolve(new Response("{}"));
   };
   const echoed: Buffer[] = [];
+  const logged: string[] = [];
   let read = 0;
   const code = await alertedRun({
     pipeline: { file: process.execPath, args: [await fakeFile, name], cwd: v2, env: { ...process.env, LCDG_DATA_ROOT: root, NTFY_TOKEN: TOKEN } },
     root,
     token: token(),
-    ntfy: { fetcher, sleep: () => Promise.resolve(), log: () => undefined },
+    ntfy: { fetcher, sleep: () => Promise.resolve(), log: (line) => logged.push(line) },
     memoryEvents: () => Promise.resolve(memoryEvents[Math.min(read++, memoryEvents.length - 1)] ?? null),
     host: hostname(),
     stops: NO_STOP,
     echo: (chunk) => echoed.push(chunk),
     now: () => new Date(),
   });
-  const [notification, ...more] = sent;
-  assert.ok(notification !== undefined && more.length === 0, `one notification, got ${sent.length}`);
-  const url = new URL(notification.url);
-  return { code, v2, topic: url.pathname, title: url.searchParams.get("title"), priority: url.searchParams.get("priority"), body: notification.body, stderr: Buffer.concat(echoed).toString() };
+  assert.equal(sent.length, notifications, `${notifications} notifications, got ${sent.length}`);
+  const [notification, ...more] = sent.map(({ url, body }) => {
+    const parsed = new URL(url);
+    return { topic: parsed.pathname, title: parsed.searchParams.get("title"), priority: parsed.searchParams.get("priority"), markdown: parsed.searchParams.get("markdown"), body };
+  });
+  assert.ok(notification !== undefined);
+  return { code, v2, ...notification, more, logged, stderr: Buffer.concat(echoed).toString() };
 }
 
 const NO_STOP: Stops = { subscribe: () => () => undefined };
@@ -236,4 +250,52 @@ test("a pipeline that cannot start is reported, and the run exits with 1", async
     now: () => new Date(),
   });
   assert.deepEqual([code, sent], [1, ["Run not started"]]);
+});
+
+async function versions(v2: string): Promise<void> {
+  const files = (votes: string) => ({
+    "votes/votes.csv": `vote_id,number,date,title,kind,result,major,bill,file,url\n${votes}`,
+    "deputies/init.csv": "deputy_id,last_name,first_name,in_office,department,constituency_number,group\n",
+    "deputies/values/group.csv": "value,short_fr\n",
+  });
+  const vote = (n: number, title: string) => `VTANR5L17V${n},${n},2026-11-10,${title},ordinary,adopted,no,projet de loi sur l'eau,deputies/votes/other.csv,https://example.org\n`;
+  for (const [version, content] of [
+    [PREVIOUS, files(vote(1, "l'article 1er"))],
+    [VERSION, files(vote(1, "l'article 1er") + vote(2, "l'article 2"))],
+  ] as const) {
+    for (const [file, text] of Object.entries(content)) {
+      await mkdir(`${v2}/${version}/${file.split("/").slice(0, -1).join("/")}`, { recursive: true });
+      await writeFile(`${v2}/${version}/${file}`, text);
+    }
+  }
+}
+
+test("a run that publishes over an earlier version sends its technical summary, then the news of what that version brings, in Markdown on its own topic", async () => {
+  const run = await scenario("published-over", undefined, versions, 2);
+  assert.deepEqual([run.code, run.topic, run.title, run.markdown], [0, "/lcdg_pipeline-done", "Data published: 1 new votes", null]);
+  assert.deepEqual(run.more, [
+    { topic: "/lcdg_pipeline-news", title: "Assemblée : 1 scrutin", priority: "3", markdown: "yes", body: "1 scrutin le 10 novembre 2026\n\n**Projet de loi sur l'eau**\n- 1 article adopté" },
+  ]);
+});
+
+test("a version that brings no vote nor deputy over the previous one sends no news", async () => {
+  const run = await scenario("published-over", undefined, async (v2) => {
+    await versions(v2);
+    await rm(`${v2}/${VERSION}`, { recursive: true });
+    await cp(`${v2}/${PREVIOUS}`, `${v2}/${VERSION}`, { recursive: true });
+  });
+  assert.deepEqual([run.code, run.topic, run.more], [0, "/lcdg_pipeline-done", []]);
+});
+
+test("a run that publishes nothing new, or whose candidate is set aside, sends no news", async () => {
+  for (const name of ["unchanged", "rejected"]) {
+    const run = await scenario(name, undefined, versions);
+    assert.deepEqual(run.more, [], name);
+  }
+});
+
+test("news that cannot be told is only logged: the technical summary still goes out and the run keeps its exit code", async () => {
+  const run = await scenario("published-over", undefined, (v2) => versions(v2).then(() => rm(`${v2}/${PREVIOUS}`, { recursive: true })));
+  assert.deepEqual([run.code, run.topic, run.more], [0, "/lcdg_pipeline-done", []]);
+  assert.match(run.logged.at(-1) ?? "", new RegExp(`^No news of ${VERSION}: ENOENT: .+/${PREVIOUS}/votes/votes\\.csv`));
 });

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { deputyId } from "../jobs/deputies.ts";
 import { dataVersion } from "../publication/version.ts";
 import type { LastRun } from "./lastRun.ts";
-import { type Observed, notificationFor, tail } from "./report.ts";
+import { type Observed, notificationFor, replacementOf, tail } from "./report.ts";
 
 const version = dataVersion("6a64dfbf2449e4c8357bc0319b9fe0b747c577d9");
 const previous = dataVersion("0123456789abcdef0123456789abcdef01234567");
@@ -237,4 +237,15 @@ test("the end of the error output keeps its last lines within the size an alert 
   assert.equal(tail("ab\uFFFDcd", 12, 6), "b\uFFFDcd");
   assert.equal(tail("\uFFFDab", 12, 5), "\uFFFDab");
   assert.equal(tail(""), "");
+});
+
+test("only a run reported done that published over an earlier version has news to tell", () => {
+  assert.deepEqual(replacementOf(observed({})), { version, previous });
+  assert.deepEqual(replacementOf(observed({ exit: { kind: "code", code: 5 }, record: fresh({ ...published, warning: "Old versions could not be pruned: EACCES" }) })), { version, previous });
+  assert.equal(replacementOf(observed({ record: fresh({ ...published, previousVersion: null }) })), null);
+  assert.equal(replacementOf(observed({ exit: { kind: "code", code: 1 } })), null);
+  assert.equal(replacementOf(observed({ exit: { kind: "signal", signal: "SIGKILL" } })), null);
+  assert.equal(replacementOf(observed({ record: { kind: "none", reason: "no last.json" } })), null);
+  assert.equal(replacementOf(observed({ record: fresh({ status: "unchanged", startedAt, version, counts, cutouts: null, unseated: null }) })), null);
+  assert.equal(replacementOf(observed({ exit: { kind: "code", code: 3 }, record: fresh({ ...published, status: "rejected" }) })), null);
 });

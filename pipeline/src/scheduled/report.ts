@@ -1,6 +1,7 @@
 import { EXIT_LOCKED, EXIT_PUBLISHED_WITH_WARNING, EXIT_REJECTED } from "../publication/runs.ts";
 import type { DeputyId } from "../jobs/deputies.ts";
 import type { CutoutReport } from "../photos/cutouts.ts";
+import type { DataVersion } from "../publication/version.ts";
 import type { LastRun, RunCounts } from "./lastRun.ts";
 import type { Notification } from "./ntfy.ts";
 
@@ -147,13 +148,24 @@ function failed({ exit, record, outOfMemory, lockReleased, lockPath, stderr }: O
   };
 }
 
+const succeeded = (exit: Exit): boolean => exit.kind === "code" && (exit.code === 0 || exit.code === EXIT_PUBLISHED_WITH_WARNING);
+
 export function notificationFor(observed: Observed): Notification {
   const { exit, record } = observed;
   if (exit.kind !== "code") return failed(observed);
   if (exit.code === EXIT_LOCKED) return locked(observed);
   if (record.kind !== "fresh") return failed(observed);
   const { run } = record;
-  if ((run.status === "published" || run.status === "unchanged") && (exit.code === 0 || exit.code === EXIT_PUBLISHED_WITH_WARNING)) return done(run);
+  if ((run.status === "published" || run.status === "unchanged") && succeeded(exit)) return done(run);
   if (run.status === "rejected" && exit.code === EXIT_REJECTED) return rejected(run);
   return failed(observed);
+}
+
+export type Replacement = { readonly version: DataVersion; readonly previous: DataVersion };
+
+// The versions to compare for the news: only a run reported done that published over an earlier version has any.
+export function replacementOf({ exit, record }: Observed): Replacement | null {
+  if (!succeeded(exit) || record.kind !== "fresh") return null;
+  const { run } = record;
+  return run.status === "published" && run.previousVersion !== null ? { version: run.version, previous: run.previousVersion } : null;
 }

@@ -123,7 +123,7 @@ The service `lcdg-pipeline` of the server's compose project (`server/deploy/dock
 | Command | Effect |
 |---|---|
 | `check` | Exits 0 when `NTFY_TOKEN` is a token ntfy accepts for `lcdg_pipeline` and the data root is a directory this user can write, 78 otherwise. The container runs it before the scheduler (`deploy/scheduler.sh`): without it, no scheduler and no run. |
-| `run [options]` | Runs the pipeline with these options (no job), passes its output through, then sends one notification and exits with the pipeline's code (128 + the signal's number when killed). Exits 78 without running anything when `NTFY_TOKEN` holds no token. |
+| `run [options]` | Runs the pipeline with these options (no job), passes its output through, then sends one notification, a second one with the news when it published over an earlier version, and exits with the pipeline's code (128 + the signal's number when killed). Exits 78 without running anything when `NTFY_TOKEN` holds no token. |
 
 | Outcome | Topic | Priority |
 |---|---|---|
@@ -134,8 +134,9 @@ The service `lcdg-pipeline` of the server's compose project (`server/deploy/dock
 | Refused by the guards (exit 3): each refusal from `last.json`, the command that publishes the candidate anyway | `lcdg_pipeline-rejected` | 4 (high) |
 | Another run holds the lock (exit 4): its holder, the command that frees it | `lcdg_pipeline-locked` | 3 |
 | Any other end: failure recorded in `last.json`, exit without a fresh `last.json`, a kill (out of memory when cgroup v2's `memory.events` counted one), with the end of the error output | `lcdg_pipeline-failed` | 4 (high) |
+| Published over an earlier version, after the notification above: in French and Markdown, what the version brings over the previous one, read from both versions' files. The new votes by text, most important first (final votes, censure motions, solemn votes, motions, then the deputies who came, left or changed group, then the other texts by number of votes), each with its outcome and, for the first kinds, its figures; the subjects that do not fit in ntfy's 4,095 bytes counted at the end. Nothing when nothing is new | `lcdg_pipeline-news` | 3 |
 
-The pipeline never gets `NTFY_TOKEN`. A run's `last.json` counts only when it started after the run did. Once the pipeline has ended, however it ended, a lock that names that very process on this host is deleted: nobody else can hold it. A notification ntfy does not take is tried again after 10 s and 60 s, unless ntfy refuses it (4xx but 429), then logged; the run's exit code stays the pipeline's.
+The pipeline never gets `NTFY_TOKEN`. A run's `last.json` counts only when it started after the run did. Once the pipeline has ended, however it ended, a lock that names that very process on this host is deleted: nobody else can hold it. A notification ntfy does not take is tried again after 10 s and 60 s, unless ntfy refuses it (4xx but 429), then logged; the run's exit code stays the pipeline's. News that cannot be read from the versions' files is logged only, after the first notification went out. A body is cut to 4,095 bytes: ntfy's message-size-limit is 4,096, and a body that reaches it is taken for an attachment, which ntfy.kxv.fr refuses.
 
 ## Development
 

@@ -14,7 +14,7 @@ export function ntfyToken(text: string | undefined): NtfyToken | null {
   return token as NtfyToken;
 }
 
-export type Topic = "failed" | "rejected" | "locked" | "done";
+export type Topic = "failed" | "rejected" | "locked" | "done" | "news";
 
 export type Priority = 1 | 2 | 3 | 4 | 5;
 
@@ -24,6 +24,7 @@ export type Notification = {
   readonly title: string;
   readonly body: string;
   readonly tags: readonly string[];
+  readonly markdown?: true;
 };
 
 export type Fetch = (url: string, init: RequestInit) => Promise<Response>;
@@ -34,8 +35,8 @@ export type NtfyDeps = {
   readonly log: (line: string) => void;
 };
 
-// ntfy turns a longer message into an attachment.
-export const MAX_BODY_BYTES = 3500;
+// ntfy's message-size-limit is 4096 bytes, and a body that reaches it is taken for an attachment, which this server refuses.
+export const MAX_BODY_BYTES = 4095;
 export const RETRY_DELAYS_MS = [10_000, 60_000] as const;
 
 const TRUNCATED = "\n[…]";
@@ -47,8 +48,8 @@ export function clipped(body: string, maxBytes = MAX_BODY_BYTES): string {
   return kept + TRUNCATED;
 }
 
-export function topicUrl({ topic, priority, title, tags }: Notification): string {
-  const query = new URLSearchParams({ title, priority: String(priority), tags: tags.join(",") });
+export function topicUrl({ topic, priority, title, tags, markdown }: Notification): string {
+  const query = new URLSearchParams({ title, priority: String(priority), tags: tags.join(","), ...(markdown === true ? { markdown: "yes" } : {}) });
   return `${NTFY_SERVER}/${NTFY_USER}-${topic}?${query.toString()}`;
 }
 

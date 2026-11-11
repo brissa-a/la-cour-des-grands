@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { text } from "node:stream/consumers";
 import { after, test } from "node:test";
-import { type Fetch, MAX_BODY_BYTES, NTFY_SERVER, type Notification, type NtfyToken, RETRY_DELAYS_MS, checkToken, clipped, ntfyToken, publish } from "./ntfy.ts";
+import { type Fetch, MAX_BODY_BYTES, NTFY_SERVER, type Notification, type NtfyToken, RETRY_DELAYS_MS, checkToken, clipped, ntfyToken, publish, topicUrl } from "./ntfy.ts";
 
 const TOKEN_TEXT = "tk_0123456789abcdefghij-_ABCDEFG";
 
@@ -65,6 +65,11 @@ test("a notification is POSTed to its topic of the app, with its title, priority
     ["POST", "/lcdg_pipeline-rejected", NOTIFICATION.title, "4", "no_entry,warning", `Bearer ${TOKEN_TEXT}`, NOTIFICATION.body],
   );
   assert.ok(/^[\x21-\x7e]+$/.test(request.path), request.path);
+});
+
+test("a Markdown notification asks ntfy to render it; any other is shown as plain text", () => {
+  assert.equal(new URL(topicUrl({ ...NOTIFICATION, markdown: true })).searchParams.get("markdown"), "yes");
+  assert.equal(new URL(topicUrl(NOTIFICATION)).searchParams.has("markdown"), false);
 });
 
 test("a body past ntfy's message size is cut to it on a character boundary, with a mark", async () => {

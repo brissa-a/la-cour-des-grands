@@ -4,9 +4,11 @@ import { isMissing } from "../publication/files.ts";
 import { type DataRoot, layout } from "../publication/paths.ts";
 import { reasonOf } from "../publication/publish.ts";
 import { type LockHolder, lockHolder, oomKills } from "./host.ts";
+import { readChanges } from "./changes.ts";
 import { lastRun } from "./lastRun.ts";
-import { type NtfyDeps, type NtfyToken, publish } from "./ntfy.ts";
-import { type Exit, type RunRecord, notificationFor } from "./report.ts";
+import { newsOf } from "./news.ts";
+import { type Notification, type NtfyDeps, type NtfyToken, publish } from "./ntfy.ts";
+import { type Exit, type Replacement, type RunRecord, notificationFor, replacementOf } from "./report.ts";
 import { type Command, type Stops, supervise } from "./supervise.ts";
 
 export type AlertedRunDeps = {
@@ -68,6 +70,19 @@ async function releasedIfOrphaned(holder: LockHolder | null, pid: number | null,
 // The pipeline never sees the token: nothing it prints or crashes with can carry it.
 const withheld = (env: Command["env"]): Command["env"] => Object.fromEntries(Object.entries(env).filter(([name]) => name !== "NTFY_TOKEN"));
 
+// Sent after the technical notification, so that nothing in the news can hold it back.
+async function sendNews({ root, token, ntfy }: AlertedRunDeps, { version, previous }: Replacement): Promise<void> {
+  let news: Notification | null;
+  try {
+    const paths = layout(root);
+    news = newsOf(await readChanges(paths.version(previous), paths.version(version)));
+  } catch (error) {
+    ntfy.log(`No news of ${version}: ${reasonOf(error)}`);
+    return;
+  }
+  if (news !== null) await publish(news, token, ntfy);
+}
+
 export async function alertedRun(deps: AlertedRunDeps): Promise<number> {
   const before = await oomCount(deps.memoryEvents);
   const spawnedAt = deps.now();
@@ -79,7 +94,9 @@ export async function alertedRun(deps: AlertedRunDeps): Promise<number> {
   const holder = content === null ? null : lockHolder(content);
   const lockReleased = await releasedIfOrphaned(holder, pid, deps.host, lock);
   const outOfMemory = before !== null && after !== null && after > before;
-  const notification = notificationFor({ exit, record, lockPath: lock, holder: described(holder, content), lockReleased, outOfMemory, stderr });
-  await publish(notification, deps.token, deps.ntfy);
+  const observed = { exit, record, lockPath: lock, holder: described(holder, content), lockReleased, outOfMemory, stderr };
+  await publish(notificationFor(observed), deps.token, deps.ntfy);
+  const replacement = replacementOf(observed);
+  if (replacement !== null) await sendNews(deps, replacement);
   return exitCodeOf(exit);
 }
