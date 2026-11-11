@@ -1,5 +1,5 @@
 import { fieldOf, list, optionalText, parseJson, record, text } from "../core/json.ts";
-import { deputyId } from "../jobs/deputies.ts";
+import { type DeputyId, deputyId } from "../jobs/deputies.ts";
 import type { CutoutReport } from "../photos/cutouts.ts";
 import { type DataVersion, dataVersion } from "../publication/version.ts";
 
@@ -18,8 +18,9 @@ export type LastRun = Run &
         readonly refusals: readonly string[];
         readonly warning: string | null;
         readonly cutouts: CutoutReport | null;
+        readonly unseated: readonly DeputyId[] | null;
       }
-    | { readonly status: "unchanged"; readonly version: DataVersion; readonly counts: RunCounts; readonly cutouts: CutoutReport | null }
+    | { readonly status: "unchanged"; readonly version: DataVersion; readonly counts: RunCounts; readonly cutouts: CutoutReport | null; readonly unseated: readonly DeputyId[] | null }
     | {
         readonly status: "rejected";
         readonly version: DataVersion;
@@ -28,6 +29,7 @@ export type LastRun = Run &
         readonly refusals: readonly string[];
         readonly warning: string | null;
         readonly cutouts: CutoutReport | null;
+        readonly unseated: readonly DeputyId[] | null;
       }
     | { readonly status: "failed"; readonly error: string }
   );
@@ -72,6 +74,10 @@ function cutoutsOf(value: unknown): CutoutReport | null {
   };
 }
 
+function unseatedOf(value: unknown): readonly DeputyId[] | null {
+  return value === null ? null : list(value, "unseated").map((id, i) => deputyId(text(id, `unseated[${i}]`)));
+}
+
 const refusalsOf = (value: unknown): readonly string[] => list(value, "refusals").map((refusal, i) => text(refusal, `refusals[${i}]`));
 
 // The summary .runs/last.json the pipeline writes at the end of a run (runs.ts), read back by another process.
@@ -91,9 +97,10 @@ export function lastRun(content: string): LastRun {
         refusals: refusalsOf(run.refusals),
         warning: optionalText(run.warning, "warning"),
         cutouts: cutoutsOf(run.cutouts),
+        unseated: unseatedOf(run.unseated),
       };
     case "unchanged":
-      return { status, startedAt, version: version(run.version, "version"), counts: countsOf(run.counts), cutouts: cutoutsOf(run.cutouts) };
+      return { status, startedAt, version: version(run.version, "version"), counts: countsOf(run.counts), cutouts: cutoutsOf(run.cutouts), unseated: unseatedOf(run.unseated) };
     case "rejected":
       return {
         status,
@@ -104,6 +111,7 @@ export function lastRun(content: string): LastRun {
         refusals: refusalsOf(run.refusals),
         warning: optionalText(run.warning, "warning"),
         cutouts: cutoutsOf(run.cutouts),
+        unseated: unseatedOf(run.unseated),
       };
     case "failed":
       return { status, startedAt, error: text(run.error, "error") };

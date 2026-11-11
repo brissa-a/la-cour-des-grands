@@ -1,11 +1,12 @@
 import { makeDirectory, replaceAtomically } from "./files.ts";
 import { describeRefusal } from "./guards.ts";
 import { type DataRoot, layout } from "./paths.ts";
+import type { DeputyId } from "../jobs/deputies.ts";
 import type { CutoutReport } from "../photos/cutouts.ts";
 import type { Outcome } from "./publish.ts";
 
-// cutouts is null for a run that computed none: --publish-rejected.
-export type Built = Outcome & { readonly cutouts: CutoutReport | null };
+// cutouts and unseated are null for a run that built no files: --publish-rejected.
+export type Built = Outcome & { readonly cutouts: CutoutReport | null; readonly unseated: readonly DeputyId[] | null };
 
 type Failed = { readonly status: "failed"; readonly error: string };
 
@@ -44,6 +45,7 @@ export function summary(result: RunResult, startedAt: Date, finishedAt: Date) {
         refusals: (result.override?.refusals ?? []).map(describeRefusal),
         warning: result.warning,
         cutouts: result.cutouts,
+        unseated: result.unseated,
         error: null,
       };
     case "unchanged":
@@ -56,6 +58,7 @@ export function summary(result: RunResult, startedAt: Date, finishedAt: Date) {
         refusals: [],
         warning: null,
         cutouts: result.cutouts,
+        unseated: result.unseated,
         error: null,
       };
     case "rejected":
@@ -68,10 +71,11 @@ export function summary(result: RunResult, startedAt: Date, finishedAt: Date) {
         refusals: result.refusals.map(describeRefusal),
         warning: result.warning,
         cutouts: result.cutouts,
+        unseated: result.unseated,
         error: null,
       };
     case "failed":
-      return { ...run, version: null, previousVersion: null, forced: false, counts: null, refusals: [], warning: null, cutouts: null, error: result.error };
+      return { ...run, version: null, previousVersion: null, forced: false, counts: null, refusals: [], warning: null, cutouts: null, unseated: null, error: result.error };
   }
 }
 

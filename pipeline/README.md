@@ -107,11 +107,12 @@ Every run writes `<root>/v2/.runs/last.json`:
  "refusals": ["one sentence per refusal"],
  "warning": null,
  "cutouts": { "failed": [{ "id": "PA1008", "reason": "killed by SIGKILL, most likely for lack of memory" }], "waiting": 2 },
+ "unseated": ["PA796046"],
  "error": null
 }
 ```
 
-`counts` and `cutouts` are `null` on failure, and `cutouts` for a `--publish-rejected` run, which computes none. `cutouts.waiting` counts the photos still without a cutout of their current photo, besides those that failed. `newVotes` is `null` when there was no previous version. `warning` names a retention that failed after the publication or the refusal was settled. `forced` is `true` for a `--publish-rejected` run, whose `refusals` are those it overrode. When the data root is not a directory, the run exits with 1 and writes nothing. A `--push-to-remote` mirror that fails exits with 1 after `last.json` has recorded the publication.
+`counts`, `cutouts` and `unseated` are `null` on failure, and `cutouts` and `unseated` for a `--publish-rejected` run, which builds no file. `unseated` lists the deputies in office the Assemblée has not given a seat yet, as it publishes a deputy who just took office for a day or so: they are in `deputies/` but on no seat of `seats/hemicycle.csv`, and their constituency is not shown vacant. `cutouts.waiting` counts the photos still without a cutout of their current photo, besides those that failed. `newVotes` is `null` when there was no previous version. `warning` names a retention that failed after the publication or the refusal was settled. `forced` is `true` for a `--publish-rejected` run, whose `refusals` are those it overrode. When the data root is not a directory, the run exits with 1 and writes nothing. A `--push-to-remote` mirror that fails exits with 1 after `last.json` has recorded the publication.
 
 ## On the Dedibox
 
@@ -129,6 +130,7 @@ The service `lcdg-pipeline` of the server's compose project (`server/deploy/dock
 | Published or unchanged: version, counts, new votes, the photos still waiting for a cutout | `lcdg_pipeline-done` | 2 (low) |
 | Published or unchanged, but cutouts failed: how many, the first five with their reason | `lcdg_pipeline-done` | 3 |
 | Published, old versions not pruned (exit 5) | `lcdg_pipeline-done` | 3 |
+| Published or unchanged, but deputies in office have no seat: how many, the first ten | `lcdg_pipeline-done` | 3 |
 | Refused by the guards (exit 3): each refusal from `last.json`, the command that publishes the candidate anyway | `lcdg_pipeline-rejected` | 4 (high) |
 | Another run holds the lock (exit 4): its holder, the command that frees it | `lcdg_pipeline-locked` | 3 |
 | Any other end: failure recorded in `last.json`, exit without a fresh `last.json`, a kill (out of memory when cgroup v2's `memory.events` counted one), with the end of the error output | `lcdg_pipeline-failed` | 4 (high) |

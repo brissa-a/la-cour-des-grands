@@ -25,7 +25,7 @@ mkdirSync(v2 + "/.runs", { recursive: true });
 process.stderr.write("token seen by the pipeline: " + process.env.NTFY_TOKEN + "\\n");
 switch (scenario) {
   case "published":
-    summary({ status: "published", exitCode: 0, version: "${VERSION}", previousVersion: null, forced: false, counts: { deputies: 654, votes: 9759, newVotes: null }, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, error: null });
+    summary({ status: "published", exitCode: 0, version: "${VERSION}", previousVersion: null, forced: false, counts: { deputies: 654, votes: 9759, newVotes: null }, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [], error: null });
     process.stdout.write("Published ${VERSION}\\n");
     process.exit(0);
   case "oom":
@@ -187,7 +187,7 @@ test("a run refused by the lock names its holder and leaves the lock alone", asy
 });
 
 test("a failure that leaves only an older, unreadable or malformed run summary is not taken for a run", async () => {
-  const older = JSON.stringify({ startedAt: "2026-11-06T03:30:00.000Z", status: "unchanged", version: VERSION, counts: { deputies: 654, votes: 9759, newVotes: 0 }, cutouts: null });
+  const older = JSON.stringify({ startedAt: "2026-11-06T03:30:00.000Z", status: "unchanged", version: VERSION, counts: { deputies: 654, votes: 9759, newVotes: 0 }, cutouts: null, unseated: null });
   const run = await scenario("silent-failure", undefined, (v2) => writeFile(`${v2}/.runs/last.json`, older));
   assert.deepEqual([run.code, run.topic, run.title], [1, "/lcdg_pipeline-failed", "Run failed (exit 1)"]);
   assert.match(run.body, /It recorded no run: .+\/last\.json is from an earlier run, started 2026-11-06T03:30:00\.000Z\./);

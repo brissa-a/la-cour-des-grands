@@ -1,4 +1,5 @@
 import { EXIT_LOCKED, EXIT_PUBLISHED_WITH_WARNING, EXIT_REJECTED } from "../publication/runs.ts";
+import type { DeputyId } from "../jobs/deputies.ts";
 import type { CutoutReport } from "../photos/cutouts.ts";
 import type { LastRun, RunCounts } from "./lastRun.ts";
 import type { Notification } from "./ntfy.ts";
@@ -35,6 +36,7 @@ export function tail(output: string, maxLines = MAX_STDERR_LINES, maxBytes = MAX
 const figures = ({ deputies, votes }: RunCounts) => `${deputies} deputies, ${votes} votes`;
 
 const MAX_LISTED_CUTOUTS = 5;
+const MAX_LISTED_UNSEATED = 10;
 
 function cutoutLines(cutouts: CutoutReport | null): string[] {
   if (cutouts === null || (cutouts.failed.length === 0 && cutouts.waiting === 0)) return [];
@@ -46,14 +48,23 @@ function cutoutLines(cutouts: CutoutReport | null): string[] {
   ];
 }
 
+function unseatedLines(unseated: readonly DeputyId[] | null): string[] {
+  if (unseated === null || unseated.length === 0) return [];
+  const listed = unseated.slice(0, MAX_LISTED_UNSEATED).join(", ");
+  const more = unseated.length > MAX_LISTED_UNSEATED ? ` and ${unseated.length - MAX_LISTED_UNSEATED} more, listed in .runs/last.json` : "";
+  return [`In office without a seat, so out of the hemicycle until the Assemblée gives them one: ${listed}${more}.`];
+}
+
 function done(run: LastRun & { readonly status: "published" | "unchanged" }): Notification {
   const failedCutouts = run.cutouts?.failed.length ?? 0;
+  const unseated = run.unseated?.length ?? 0;
   const published = run.status === "published";
   const pruned = !published || run.warning === null;
   const titled = [
     published ? (run.counts.newVotes === null ? "Data published" : `Data published: ${run.counts.newVotes} new votes`) : "Data unchanged",
     ...(pruned ? [] : ["old versions not pruned"]),
     ...(failedCutouts === 0 ? [] : [`cutouts failed: ${failedCutouts}`]),
+    ...(unseated === 0 ? [] : [`without a seat: ${unseated}`]),
   ];
   const lines = published
     ? [
@@ -63,12 +74,12 @@ function done(run: LastRun & { readonly status: "published" | "unchanged" }): No
         ...(run.warning === null ? [] : [`Warning: ${run.warning}`]),
       ]
     : [`${run.version} is still the current version (${figures(run.counts)}).`];
-  const quiet = pruned && failedCutouts === 0;
+  const quiet = pruned && failedCutouts === 0 && unseated === 0;
   return {
     topic: "done",
     priority: quiet ? 2 : 3,
     title: titled.join(", "),
-    body: [...lines, ...cutoutLines(run.cutouts)].join("\n"),
+    body: [...lines, ...unseatedLines(run.unseated), ...cutoutLines(run.cutouts)].join("\n"),
     tags: [quiet ? "white_check_mark" : "warning"],
   };
 }
@@ -82,6 +93,7 @@ function rejected(run: LastRun & { readonly status: "rejected" }): Notification 
       `Candidate ${run.version} (${figures(run.counts)}) was set aside, ${run.previousVersion ?? "no version"} stays current:`,
       ...run.refusals.map((r) => `- ${r}`),
       ...(run.warning === null ? [] : [`Warning: ${run.warning}`]),
+      ...unseatedLines(run.unseated),
       ...cutoutLines(run.cutouts),
       `Once inspected, publish it with: ${IN_CONTAINER} node src/scheduled/main.ts run --publish-rejected ${run.version}`,
     ].join("\n"),
