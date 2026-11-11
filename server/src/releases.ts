@@ -53,6 +53,7 @@ export function watchReleases({ check, kept, load, onRelease, log, everyMs }: Wa
     state = { kind: "ready", current: { version, data }, previous: state.kind === "ready" ? state.current : null }
     pointer = naming
     log(event, { version })
+    if (data.drawing.kind === "unknown") log("drawing-unknown", { version, reason: data.drawing.reason })
     await onRelease(state).catch((error: unknown) => log("release-hook-failed", { version, reason: reasonOf(error) }))
     return true
   }

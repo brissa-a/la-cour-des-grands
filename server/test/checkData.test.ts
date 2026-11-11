@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { spawn } from "node:child_process"
-import { cp, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { text } from "node:stream/consumers"
@@ -45,4 +45,21 @@ test("the deploy check fails on an empty data root", async () => {
   const { code, stdout, stderr } = await checkData(await mkdtemp(join(scratch, "empty-")))
   assert.deepEqual([code, stdout], [1, ""])
   assert.match(stderr, /"event":"no-version"/)
+})
+
+test("the deploy check passes on a version whose mandates or seats do not read, and logs that its drawing is unknown", async () => {
+  const badMandate = join(scratch, "bad-mandate")
+  await cp(DATA_ROOT, badMandate, { recursive: true })
+  const init = join(badMandate, "v2", VERSION, "deputies", "init.csv")
+  await writeFile(init, (await readFile(init, "utf8")).replace(",2024-07-08/2025-11-12,", ",2025-11-12/2024-07-08,"))
+  const noSeats = join(scratch, "no-seats")
+  await cp(DATA_ROOT, noSeats, { recursive: true })
+  await rm(join(noSeats, "v2", VERSION, "seats", "hemicycle.csv"))
+  for (const [root, reason] of [
+    [badMandate, 'deputies/init.csv: PA1327 has mandate period "2025-11-12/2024-07-08"'],
+    [noSeats, `seats/hemicycle.csv: not in the data version ${VERSION}`],
+  ] as const) {
+    const { code, stdout, stderr } = await checkData(root)
+    assert.deepEqual([code, parsed(stdout), stderr.trim().split("\n").map(parsed)], [0, { dataRoot: root, version: VERSION, pointed: VERSION }, [{ event: "release", version: VERSION }, { event: "drawing-unknown", version: VERSION, reason }]])
+  }
 })

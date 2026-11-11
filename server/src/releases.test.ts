@@ -28,10 +28,11 @@ type Script = {
   readonly disk?: readonly Pointed[]
   readonly failing?: Set<DataVersion>
   readonly broken?: ReadonlySet<DataVersion>
+  readonly undrawn?: ReadonlySet<DataVersion>
   readonly hookFails?: boolean
 }
 
-function scripted({ checks, disk = [], failing = new Set(), broken = new Set(), hookFails = false }: Script) {
+function scripted({ checks, disk = [], failing = new Set(), broken = new Set(), undrawn = new Set(), hookFails = false }: Script) {
   let reads = 0
   let kept: readonly Pointed[] | Error = disk
   const loads: DataVersion[] = []
@@ -47,7 +48,7 @@ function scripted({ checks, disk = [], failing = new Set(), broken = new Set(), 
     load: (version): Promise<ShareData> => {
       loads.push(version)
       if (failing.delete(version) || broken.has(version)) return Promise.reject(new Error("catalog.json: not in the data version"))
-      return Promise.resolve(DATA)
+      return Promise.resolve(undrawn.has(version) ? { ...DATA, drawing: { kind: "unknown", reason: "seats/hemicycle.csv: not in the data version" } } : DATA)
     },
     onRelease: ready => {
       released.push(ready)
@@ -201,4 +202,21 @@ test("once stopped, between reads or during one, no further read is made", async
   t.mock.timers.tick(EVERY_MS * 3)
   await flush()
   assert.equal(during.reads(), 1)
+})
+
+test("a version whose drawing is unknown is adopted all the same, and its adoption logs why once however often the pointer names it", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] })
+  const { watch, logged } = scripted({ checks: [pointing(V1), pointing(V1), pointing(V2)], undrawn: new Set([V1]) })
+  await watch.started
+  assert.deepEqual(served(watch), [[V1, null], pointing(V1).pointer, V1])
+  for (let poll = 0; poll < 2; poll++) {
+    t.mock.timers.tick(EVERY_MS)
+    await flush()
+  }
+  assert.deepEqual(served(watch), [[V2, V1], pointing(V2).pointer, V2])
+  assert.deepEqual(logged, [
+    `release {"version":"${V1}"}`,
+    `drawing-unknown {"version":"${V1}","reason":"seats/hemicycle.csv: not in the data version"}`,
+    `release {"version":"${V2}"}`,
+  ])
 })

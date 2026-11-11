@@ -5,12 +5,12 @@ import { sentenceText, summary } from "../panel/summary.ts"
 import { longDate } from "../profile/format.ts"
 import type { View } from "../view/view.ts"
 import { voteTitle, type Vote, type VoteIndex } from "../votes/votes.ts"
-import type { Drawn } from "./drawn.ts"
+import type { Drawing } from "./drawn.ts"
 import type { Shared } from "./query.ts"
 
 export type Named = Pick<Person, "first_name" | "last_name">
 
-export type TextData = { readonly votes: VoteIndex; readonly people: ReadonlyMap<DeputyId, Named>; readonly generated: IsoDate | null; readonly drawn: Drawn }
+export type TextData = { readonly votes: VoteIndex; readonly people: ReadonlyMap<DeputyId, Named>; readonly generated: IsoDate | null; readonly drawing: Drawing }
 
 export type MetaTexts = { readonly title: string; readonly description: string; readonly imageAlt: string }
 
@@ -20,11 +20,11 @@ export function viewPhrase(view: View, vote: Vote | null): string {
   return summary(view, { number: vote?.number ?? null }).map(sentenceText).join(" · ")
 }
 
-export function metaTexts({ view, deputy }: Shared, { votes, people, generated, drawn }: TextData): MetaTexts {
+export function metaTexts({ view, deputy }: Shared, { votes, people, generated, drawing }: TextData): MetaTexts {
   const vote = view.scrutin === null ? null : (votes.byId.get(view.scrutin) ?? null)
   const person = deputy === null ? null : (people.get(deputy) ?? null)
   const name = person && `${person.first_name} ${person.last_name}`
-  const ring = deputy !== null && name !== null && drawn(deputy, vote) ? `Un cercle désigne ${name}` : null
+  const ring = deputy !== null && name !== null && drawing.kind === "known" && drawing.drawn(deputy, vote) ? `Un cercle désigne ${name}` : null
   const phrase = viewPhrase(view, vote)
   if (vote === null) {
     const date = generated && `Données au ${longDate(generated)}`
