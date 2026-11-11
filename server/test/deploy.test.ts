@@ -61,9 +61,7 @@ const FAKE_GIT = `#!/usr/bin/env node
 const { appendFileSync } = require("node:fs")
 const args = process.argv.slice(2)
 appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "git", args, token: process.env.NTFY_TOKEN ?? null, stdin: "" }) + "\\n")
-const changed = process.env.FAKE_CHANGED ?? ""
 if (args.includes("rev-parse")) console.log("${TAG}")
-if (args.includes("status") && args.slice(args.indexOf("--") + 1).some(path => changed.startsWith(path + "/"))) console.log(" M " + changed)
 `
 
 const FAKE_TAR = `#!/usr/bin/env node
@@ -85,20 +83,21 @@ function callOf(line: string): Call {
   return { tool, args, token, stdin }
 }
 
-async function deploy(box: Box, env: Readonly<Record<string, string>> = {}): Promise<{ readonly status: number | null; readonly stderr: string; readonly calls: readonly Call[] }> {
+// Without a checkout, the script of this repository runs against a fake git; with one, the copy that checkout holds runs against git itself.
+async function deploy(box: Box, env: Readonly<Record<string, string>> = {}, checkout?: string): Promise<{ readonly status: number | null; readonly stderr: string; readonly calls: readonly Call[] }> {
   const run = await mkdtemp(join(scratch, "run-"))
   const bin = join(run, "bin")
   await mkdir(bin)
   await mkdir(join(run, "home", ".config", "ntfy"), { recursive: true })
   await writeFile(join(run, "home", ".config", "ntfy", "lcdg_pipeline-token"), TOKEN)
-  const tools = { docker: FAKE_DOCKER, npm: FAKE_TOOL("npm", ""), curl: FAKE_TOOL("curl", '{"status":"ok","data":"ready"}'), git: FAKE_GIT, tar: FAKE_TAR }
+  const tools = { docker: FAKE_DOCKER, npm: FAKE_TOOL("npm", ""), curl: FAKE_TOOL("curl", '{"status":"ok","data":"ready"}'), tar: FAKE_TAR, ...(checkout === undefined ? { git: FAKE_GIT } : {}) }
   for (const [name, script] of Object.entries(tools)) {
     await writeFile(join(bin, name), script)
     await chmod(join(bin, name), 0o755)
   }
   const log = join(run, "calls.jsonl")
   await writeFile(log, "")
-  const child = spawn(DEPLOY, [], {
+  const child = spawn(checkout === undefined ? DEPLOY : join(checkout, CHECKOUT_DEPLOY), [], {
     env: { PATH: `${bin}:${process.env.PATH ?? ""}`, HOME: join(run, "home"), FAKE_LOG: log, FAKE_VOLUME: box.volume, FAKE_SCHEDULER: box.scheduler, ...env },
     stdio: ["ignore", "ignore", "pipe"],
   })
@@ -217,12 +216,93 @@ test("a deploy removes no image, those of earlier deploys being what a rollback 
   }
 })
 
-test("the tag of a deploy from a server/, web/ or pipeline/ that differ from the commit says -dirty, a rollback target never passing for that commit", { timeout: 60_000 }, async () => {
-  for (const [changed, tag] of [["server/src/main.ts", `${TAG}-dirty`], ["web/src/main.tsx", `${TAG}-dirty`], ["pipeline/src/run.ts", `${TAG}-dirty`], ["docs/notes.md", TAG], ["", TAG]] as const) {
-    const { status, calls } = await deploy(AGAIN, { FAKE_CHANGED: changed })
-    assert.equal(status, 0)
-    assert.ok(lines(calls).some(line => line.includes(` lcdg-server:${tag} node `)), changed)
+const CHECKOUT_DEPLOY = "server/deploy/deploy.sh"
+const GIT_ENV = {
+  PATH: process.env.PATH ?? "",
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_NOSYSTEM: "1",
+  GIT_AUTHOR_NAME: "test",
+  GIT_AUTHOR_EMAIL: "test@example.invalid",
+  GIT_COMMITTER_NAME: "test",
+  GIT_COMMITTER_EMAIL: "test@example.invalid",
+}
+
+async function git(repo: string, ...args: readonly string[]): Promise<string> {
+  const { stdout } = await promisify(execFile)("git", ["-C", repo, ...args], { env: GIT_ENV })
+  return stdout.trim()
+}
+
+async function put(repo: string, path: string, content: string): Promise<void> {
+  await mkdir(dirname(join(repo, path)), { recursive: true })
+  await writeFile(join(repo, path), content)
+}
+
+// A checkout at the head of its origin's main, holding this repository's deploy.sh, as a clone leaves it.
+async function checkoutOfMain(): Promise<string> {
+  const repo = await mkdtemp(join(scratch, "repo-"))
+  const checkout = join(repo, "checkout")
+  await git(repo, "init", "--quiet", "--bare", "--initial-branch=main", "origin.git")
+  await git(repo, "init", "--quiet", "--initial-branch=main", "checkout")
+  await put(checkout, CHECKOUT_DEPLOY, await readFile(DEPLOY, "utf8"))
+  await chmod(join(checkout, CHECKOUT_DEPLOY), 0o755)
+  for (const path of ["server/src/main.ts", "web/src/main.tsx", "pipeline/src/run.ts", "docs/notes.md"]) await put(checkout, path, "")
+  await put(checkout, "web/.gitignore", "dist\n")
+  await git(checkout, "add", ".")
+  await git(checkout, "commit", "--quiet", "-m", "main")
+  await git(checkout, "remote", "add", "origin", join(repo, "origin.git"))
+  await git(checkout, "push", "--quiet", "origin", "main")
+  return checkout
+}
+
+test("a deploy refuses a HEAD other than the head of origin/main as the origin holds it now, ahead of it or behind it, before it builds or sends anything", { timeout: 60_000 }, async () => {
+  const ahead = await checkoutOfMain()
+  await put(ahead, "server/src/main.ts", "committed, never pushed")
+  await git(ahead, "commit", "--quiet", "-am", "local")
+  const behind = await checkoutOfMain()
+  await put(behind, "server/src/main.ts", "pushed from another checkout")
+  await git(behind, "commit", "--quiet", "-am", "elsewhere")
+  await git(behind, "push", "--quiet", "origin", "main")
+  await git(behind, "reset", "--quiet", "--hard", "HEAD~1")
+  await git(behind, "update-ref", "refs/remotes/origin/main", "HEAD")
+  for (const [name, checkout] of [["ahead", ahead], ["behind", behind]] as const) {
+    const { status, stderr, calls } = await deploy(AGAIN, {}, checkout)
+    assert.equal(status, 1, name)
+    assert.match(stderr, /production is the head of main, deploy nothing else/, name)
+    assert.deepEqual(calls, [], name)
   }
+})
+
+test("a deploy refuses a change in server/, web/ or pipeline/, unstaged, staged or untracked even where status hides untracked files, before it builds or sends anything", { timeout: 60_000 }, async () => {
+  const changes: readonly (readonly [string, (checkout: string) => Promise<unknown>])[] = [
+    ["server/src/main.ts", checkout => put(checkout, "server/src/main.ts", "changed")],
+    ["web/src/added.ts", async checkout => {
+      await put(checkout, "web/src/added.ts", "")
+      await git(checkout, "add", "web/src/added.ts")
+    }],
+    ["pipeline/src/added.ts", async checkout => {
+      await git(checkout, "config", "status.showUntrackedFiles", "no")
+      await put(checkout, "pipeline/src/added.ts", "")
+    }],
+  ]
+  for (const [path, change] of changes) {
+    const checkout = await checkoutOfMain()
+    await change(checkout)
+    const { status, stderr, calls } = await deploy(AGAIN, {}, checkout)
+    assert.equal(status, 1, path)
+    assert.ok(stderr.includes("differ from origin/main") && stderr.includes(path), stderr)
+    assert.deepEqual(calls, [], path)
+  }
+})
+
+test("a deploy from the head of origin/main tags its images with that commit, whatever changes lie outside server/, web/ and pipeline/ or are ignored there", { timeout: 60_000 }, async () => {
+  const checkout = await checkoutOfMain()
+  await put(checkout, "docs/notes.md", "changed")
+  await put(checkout, "docs/added.md", "")
+  await put(checkout, "web/dist/index.html", "the front deploy.sh builds")
+  const { status, stderr, calls } = await deploy(AGAIN, {}, checkout)
+  assert.equal(status, 0, stderr)
+  const commit = await git(checkout, "rev-parse", "origin/main")
+  assert.ok(lines(calls).some(line => line.includes(` lcdg-server:${commit.slice(0, 12)} node `)), lines(calls).join("\n"))
 })
 
 test("the render cache stays in the volume the running service fills, mounted where the image's service writes, on a folder its user owns", () => {

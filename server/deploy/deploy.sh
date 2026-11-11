@@ -2,6 +2,7 @@
 # Builds the front here, then on the Dedibox: builds the service and pipeline images, creates the data volume if missing, stops a pipeline
 # run in progress when its scheduler is to be replaced, starts the scheduler, fills the data root with a first run when it holds no
 # version, checks the new service has a data version to serve, (re)starts it, then checks it from outside.
+# It deploys the head of origin/main alone, from a checkout whose server/, web/ and pipeline/ hold no change.
 #   server/deploy/deploy.sh
 #   LCDG_PHOTOS_FROM=<pipeline checkout>/output/photos server/deploy/deploy.sh   first deploy: cutouts made elsewhere, spared to the box
 #   LCDG_CUTOUTS_ON_BOX=1 server/deploy/deploy.sh   first deploy without them: the nightly runs cut out some 650 photos on the box, 30 min a night
@@ -24,9 +25,20 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 root=$(cd "$here/../.." && pwd)
 readonly here root
 
-tag=$(git -C "$root" rev-parse --short=12 HEAD)
-if [[ -n $(git -C "$root" status --porcelain -- server web pipeline) ]]; then tag="$tag-dirty"; fi
-export LCDG_TAG=$tag
+git -C "$root" fetch --quiet origin main
+head=$(git -C "$root" rev-parse HEAD)
+main=$(git -C "$root" rev-parse origin/main)
+if [[ $head != "$main" ]]; then
+  echo "HEAD is $head, origin/main $main: production is the head of main, deploy nothing else. Push to main first (a fast-forward), or check out origin/main." >&2
+  exit 1
+fi
+changes=$(git -C "$root" status --porcelain --untracked-files=all -- server web pipeline)
+if [[ -n $changes ]]; then
+  echo "server/, web/ or pipeline/ differ from origin/main, whose commit the images would claim to be: commit and push them to main, or drop them." >&2
+  echo "$changes" >&2
+  exit 1
+fi
+export LCDG_TAG=${head:0:12}
 
 if [[ ! -r $NTFY_TOKEN_FILE ]]; then
   echo "No $NTFY_TOKEN_FILE: create the ntfy user $NTFY_USER and its token with ~/.claude/skills/ntfy-notify/scripts/add-publisher.sh $NTFY_USER" >&2
