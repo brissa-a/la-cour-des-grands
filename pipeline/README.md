@@ -116,7 +116,7 @@ Every run writes `<root>/v2/.runs/last.json`:
 
 ## On the Dedibox
 
-The service `lcdg-pipeline` of the server's compose project (`server/deploy/docker-compose.yml`, deployed by `server/deploy/deploy.sh`) runs this image (`deploy/Dockerfile`): uid 10002, read-only, the data root on the volume `lcdg-data` at `/data`, `cache/` and `output/` on the volumes `lcdg_pipeline-cache` and `lcdg_pipeline-output`, 2 CPUs at a quarter of the default weight, 8 GB of memory. [supercronic](https://github.com/aptible/supercronic) runs `node src/scheduled/main.ts run` every night at 04:30, Paris time (`deploy/crontab`), and waits on `SIGTERM` for the run in progress.
+The service `lcdg-pipeline` of the server's compose project (`server/deploy/docker-compose.yml`, deployed by `server/deploy/deploy.sh`) runs this image (`deploy/Dockerfile`): uid 10002, read-only, the data root on the volume `lcdg-data` at `/data`, `cache/` and `output/` on the volumes `lcdg_pipeline-cache` and `lcdg_pipeline-output`, 2 CPUs at a quarter of the default weight, 8 GB of memory. [supercronic](https://github.com/aptible/supercronic) runs `node src/scheduled/main.ts run` every night at 07:00, Paris time (`deploy/crontab`), once the Assemblée serves its exports of the night, regenerated around 02:33 and cached 4 hours, and waits on `SIGTERM` for the run in progress.
 
 `src/scheduled/main.ts` wraps a run of the pipeline with alerts to Alexis's phone, through https://ntfy.kxv.fr as the user `lcdg_pipeline`, whose token is `NTFY_TOKEN`:
 
