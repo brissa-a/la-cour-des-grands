@@ -42,7 +42,7 @@ A failed load before first render shows an error screen. A failed later load onl
 
 ### Seat placement
 
-`seats/hemicycle.csv` has one row per seat of the room (582), with the deputy in office sitting there, if any. Deputies with `in_office = yes` are drawn at their seat; empty seats are drawn as outlines. A deputy in office without a seat is not drawn and is logged to the console.
+`seats/hemicycle.csv` has one row per seat of the room (582), with the deputy in office sitting there, if any. Deputies with `in_office = yes` are drawn at their seat; empty seats are drawn as outlines. A deputy in office without a seat, as the Assemblée publishes a new deputy a day or so before giving her one, is not drawn, but is still found by the search and from an address of her constituency, and her panel gives the seat as "Pas encore attribué" and leaves out the count of deputies drawn with her value.
 
 For past votes (later increment): seat → current deputy → their `constituency` → the deputy holding it at the vote date, from `mandate_periods`.
 
@@ -86,7 +86,7 @@ Depends on the pipeline: values tables, `group_short` moved to `deputies/values/
 - The vote picker lists major votes, newest first, with date, title and result.
 - Coloring by a vote uses `deputies/values/vote_position.csv`; position colors are front style (pour green, contre red, abstention yellow, non-votant and absent greys).
 - A vote header shows its title, date, result, count per position and the link to the official page.
-- A past vote is shown with the deputies who held each seat's constituency on the vote date: seat → current deputy → `constituency` → deputy whose `mandate_periods` covers the date. A seat with no such deputy is drawn empty.
+- A past vote is shown with the deputies who held each seat's constituency on the vote date: seat → current deputy → `constituency` → deputy whose `mandate_periods` covers the date. A seat with no such deputy is drawn empty. Voters left undrawn are counted under the header, one note per reason: "1 non dessiné · circonscription vacante aujourd'hui, siège inconnu", "· siège pas encore attribué" for a deputy in office without a seat, "· siège du successeur pas encore attribué" for the predecessor of one.
 - The selection is kept in the URL: `?vote=<vote_id>`.
 
 ### 2d. Search in votes
@@ -186,7 +186,7 @@ Loading: `communes/constituencies.csv` loads when the first address-like query i
 - A query is sent to IGN only when it looks like an address: at least 3 characters, a digit and a word of 3 letters. 250 ms debounce, the previous request is cancelled, no referrer is sent. Up to 5 suggestions.
 - An "Adresses" section lists them, first when the query starts with a number followed by two words (`12 rue Blomet`), after the deputies otherwise (`33 Gironde`). Row: `12 Rue Blomet` then `75015 Paris`, with a "voie", "lieu-dit" or "commune" marker for anything but a housenumber.
 - Picking a row shows "Recherche de la circonscription…". Only the latest pick counts: a new pick, a new query or closing the dropdown drops the pending one.
-- A located address whose seat is held closes the dropdown and opens the deputy panel, as any other opening (URL, history). Otherwise the dropdown stays open with a message under the picked row:
+- A located address whose constituency has a deputy in office, seated or not, closes the dropdown and opens the deputy panel, as any other opening (URL, history). Otherwise the dropdown stays open with a message under the picked row:
 
 | case | message |
 |---|---|
@@ -198,7 +198,7 @@ Loading: `communes/constituencies.csv` loads when the first address-like query i
 | split commune picked as a whole | {city} compte {n} circonscriptions : précisez le numéro et la rue. + candidate deputies |
 | street in several constituencies | {street} : voie partagée entre {n} circonscriptions, précisez le numéro. + candidate deputies |
 | no contours and not in the roll | {city} compte {n} circonscriptions ; cette adresse n'a pas pu être située précisément. + link "Interroger sa situation électorale" + candidate deputies |
-| vacant seat | Siège vacant · Gironde (33), 11ᵉ circonscription |
+| no deputy in office | Siège vacant · Gironde (33), 11ᵉ circonscription |
 
 - Abroad hint: "Vous vivez à l'étranger ? Les 11 députés des Français de l'étranger sont élus par zone : cherchez la ville de votre consulat (Londres, Montréal, Dakar…) ou « hors de France »." Foreign addresses are not geocoded abroad: IGN returns nothing or French homonyms with low scores.
 - Candidate deputies are ordinary result rows and are highlighted on the stage.

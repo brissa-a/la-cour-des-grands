@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { parseCsv } from "./csvRows.ts"
+import { parseCsv, readCsv } from "./csvRows.ts"
 
 test("an optional column the header lacks reads as an empty cell on every row, while one it holds keeps its cells and an undeclared one adds none", () => {
   assert.deepEqual(parseCsv("t.csv", "id,note\na,x\nb,\n", ["id"], ["note", "extra"]), [
@@ -8,9 +8,11 @@ test("an optional column the header lacks reads as an empty cell on every row, w
     { id: "b", note: "", extra: "" },
   ])
   assert.deepEqual(parseCsv("t.csv", "id,note\na,x\n", ["id"]), [{ id: "a", note: "x" }])
+  assert.deepEqual(readCsv("t.csv", "id,note\na,x\n", ["id"]), { kind: "read", rows: [{ id: "a", note: "x" }] })
 })
 
 test("a header without some required columns is refused naming the file and each missing column, optional ones aside", () => {
+  assert.deepEqual(readCsv("t.csv", "id,note\na,x\n", ["id", "seat"]), { kind: "unreadable", reason: "t.csv: missing columns seat" })
   assert.throws(() => parseCsv("t.csv", "id,note\na,x\n", ["id", "seat", "deputy"], ["extra"]), { message: "t.csv: missing columns seat, deputy" })
 })
 

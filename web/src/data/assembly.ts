@@ -1,37 +1,39 @@
 import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
 import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
-import { loadCsv } from "./csv.ts"
+import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
+import { officeOf, type InOffice, type Office, type Seated, type Sitting as SittingOf } from "./office.ts"
 import { CIVILITIES, INIT_COLUMNS, type Civility, type ConstituencyLabel, type Group, type InitRow, type Person } from "./person.ts"
-import { parseSeatRows, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS, SEATS_FILE, seatProblemWarning, type EmptySeat, type Seat } from "./seats.ts"
+import { parseSeatRows, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS, SEATS_FILE, seatProblemWarning, type Seat, type SeatRow } from "./seats.ts"
 import { photoUrl } from "./snapshotPath.ts"
 import type { ReadText, Snapshot } from "./source.ts"
 import { parseViewBox, type ViewBox } from "./viewBox.ts"
 
 export type { Civility, ConstituencyLabel, DeputyId, Group, Person, Seat }
 
-export type Deputy = Person & { seat: Seat }
+export type Deputy = InOffice<Person>
+
+export type SeatedDeputy = Seated<Person>
+
+export type Sitting = SittingOf<Person>
 
 export type Background = { box: ViewBox; markup: string }
 
-export type Sitting = {
-  deputies: readonly Deputy[]
-  byId: ReadonlyMap<DeputyId, Deputy>
-  emptySeats: readonly Seat[]
-}
-
-export type Assembly = Omit<Sitting, "emptySeats"> & {
-  emptySeats: readonly EmptySeat[]
+export type Assembly = Office<Person> & {
   catalog: Catalog
   initRows: ReadonlyMap<DeputyId, Readonly<Record<string, string>>>
   people: ReadonlyMap<DeputyId, Person>
-  byConstituency: ReadonlyMap<ConstituencyCode, Deputy>
   constituencyLabels: ReadonlyMap<ConstituencyCode, ConstituencyLabel>
-  groups: Group[]
   background: Background
 }
 
 const GROUP_VALUE_COLUMNS = ["value", "label_fr", "short_fr", "color"] as const
+
+export type AssemblyTables = {
+  readonly groupRows: readonly Row<(typeof GROUP_VALUE_COLUMNS)[number]>[]
+  readonly rows: readonly InitRow[]
+  readonly seatRows: readonly SeatRow[]
+}
 
 export async function loadAssembly({ root, read }: Snapshot): Promise<Assembly> {
   const catalogLoaded = loadCatalog(read)
@@ -42,9 +44,11 @@ export async function loadAssembly({ root, read }: Snapshot): Promise<Assembly> 
     loadCsv(read, SEATS_FILE, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS),
     read("seats/hemicycle.svg"),
   ])
+  return { ...deputiesOf(root, { groupRows, rows, seatRows }), catalog, background: parseBackground(svg) }
+}
 
-  const groups = groupRows.map((r): Group => ({ name: r.value, short: r.short_fr, color: r.color, seatCount: 0 }))
-  const groupByName = new Map(groups.map(g => [g.name, g]))
+export function deputiesOf(root: string, { groupRows, rows, seatRows }: AssemblyTables): Omit<Assembly, "catalog" | "background"> {
+  const groupByName = new Map(groupRows.map((r): [string, Group] => [r.value, { name: r.value, short: r.short_fr, color: r.color }]))
   const people = rows.map((row): Person => {
     const group = groupByName.get(row.group)
     if (!group) throw new Error(`deputies/values/group.csv: no group ${row.group}`)
@@ -56,47 +60,15 @@ export async function loadAssembly({ root, read }: Snapshot): Promise<Assembly> 
   })
   const inOffice = people.filter(p => p.in_office === "yes")
 
-  const { seatOf, emptySeats, problems } = parseSeatRows(seatRows, new Set(inOffice.map(p => p.id)))
-  for (const problem of problems) console.warn(seatProblemWarning(problem))
-
-  const deputies: Deputy[] = []
-  for (const person of inOffice) {
-    const seat = seatOf.get(person.id)
-    if (!seat) {
-      console.warn(`${person.id} is in office but has no seat in ${SEATS_FILE}`)
-      continue
-    }
-    person.politicalGroup.seatCount++
-    deputies.push({ ...person, seat })
-  }
+  const plan = parseSeatRows(seatRows, new Set(inOffice.map(p => p.id)))
+  for (const problem of plan.problems) console.warn(seatProblemWarning(problem))
 
   return {
-    catalog,
+    ...officeOf(inOffice, plan),
     initRows: new Map(rows.map(r => [deputyId(r.deputy_id), r])),
     people: new Map(people.map(p => [p.id, p])),
-    deputies,
-    byId: new Map(deputies.map(d => [d.id, d])),
-    byConstituency: byConstituency(deputies),
     constituencyLabels: constituencyLabels(rows),
-    groups: groups.filter(g => g.seatCount > 0),
-    emptySeats,
-    background: parseBackground(svg),
   }
-}
-
-function byConstituency(deputies: readonly Deputy[]): ReadonlyMap<ConstituencyCode, Deputy> {
-  const map = new Map<ConstituencyCode, Deputy>()
-  for (const deputy of deputies) {
-    const code = constituencyCode(deputy.constituency)
-    if (code === null) {
-      console.warn(`deputies/init.csv: ${deputy.id} has constituency ${deputy.constituency}`)
-      continue
-    }
-    const holder = map.get(code)
-    if (holder) console.warn(`deputies/init.csv: ${holder.id} and ${deputy.id} both hold ${code}`)
-    else map.set(code, deputy)
-  }
-  return map
 }
 
 function constituencyLabels(rows: readonly InitRow[]): ReadonlyMap<ConstituencyCode, ConstituencyLabel> {

@@ -13,7 +13,7 @@ export const CIVILITIES = ["M.", "Mme"] as const
 
 export type Civility = (typeof CIVILITIES)[number]
 
-export type Group = { name: string; short: string; color: string; seatCount: number }
+export type Group = { name: string; short: string; color: string }
 
 export type Person = Omit<InitRow, "civility" | "photo"> & { civility: Civility; photo: PhotoUrl | null; id: DeputyId; politicalGroup: Group }
 

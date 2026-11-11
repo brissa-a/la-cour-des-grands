@@ -3,7 +3,7 @@ import { test } from "node:test"
 import { constituencyCode } from "../address/codes.ts"
 import { deputyId } from "../data/deputyId.ts"
 import { isoDate } from "../data/isoDate.ts"
-import { parseHolders, rosterOn } from "./roster.ts"
+import { parseHolders, readHolders, rosterOn } from "./roster.ts"
 
 const LETARD = deputyId("PA227089")
 const CASTIGLIONE = deputyId("PA794554")
@@ -48,8 +48,23 @@ test("a seat has no holder between a resignation and the by-election", () => {
   assert.equal(holderOn("08-1", "2024-12-08"), VUIBERT)
 })
 
-test("a malformed mandate period or constituency is rejected rather than read as no mandate", () => {
-  for (const mandate_periods of ["2024-07-07", "2024-13-01/", "2025-01-01/2024-01-01", "2024-07-07/|", "2024-07-07/2025-01-01/2026-01-01"])
-    assert.throws(() => parseHolders([{ id: LETARD, constituency: "59-21", mandate_periods }]), /mandate period/, mandate_periods)
-  assert.throws(() => parseHolders([{ id: LETARD, constituency: "59", mandate_periods: "2024-07-07/" }]), /constituency/)
+test("a malformed mandate period or constituency makes the mandates unreadable, naming the deputy and the cell, rather than read as no mandate, while a one-day mandate reads", () => {
+  const read = (constituency: string, mandate_periods: string) => readHolders([{ id: LETARD, constituency, mandate_periods }])
+  const periods = [
+    ["2024-07-07", "2024-07-07"],
+    ["2024-13-01/", "2024-13-01/"],
+    ["2025-01-01/2024-01-01", "2025-01-01/2024-01-01"],
+    ["2024-07-07/|", ""],
+    ["2024-07-07/2025-01-01/2026-01-01", "2024-07-07/2025-01-01/2026-01-01"],
+    ["2024-07-07/2024-13-01", "2024-07-07/2024-13-01"],
+    ["2024-07-07/|2024-08-01/2024-07-01", "2024-08-01/2024-07-01"],
+  ] as const
+  for (const [mandate_periods, text] of periods)
+    assert.deepEqual(read("59-21", mandate_periods), { kind: "unreadable", reason: `deputies/init.csv: PA227089 has mandate period "${text}"` }, mandate_periods)
+  assert.deepEqual(read("59-21", "2024-07-07/2024-07-07|2024-07-08/"), {
+    kind: "read",
+    holders: [{ id: LETARD, constituency: "59-21", periods: [{ start: "2024-07-07", end: "2024-07-07" }, { start: "2024-07-08", end: null }] }],
+  })
+  assert.deepEqual(read("59", "2024-07-07/"), { kind: "unreadable", reason: 'deputies/init.csv: PA227089 has constituency "59"' })
+  assert.throws(() => parseHolders([{ id: LETARD, constituency: "59-21", mandate_periods: "2024-07-07" }]), { message: 'deputies/init.csv: PA227089 has mandate period "2024-07-07"' })
 })

@@ -1,29 +1,30 @@
 import { useEffect, useRef, type ReactNode } from "react"
 import { CopyButton } from "../copy/CopyButton.tsx"
-import type { Person, Seat } from "../data/assembly.ts"
+import type { Person } from "../data/assembly.ts"
 import type { Where } from "../forms/form.ts"
 import type { Glyph } from "../glyph/glyph.ts"
 import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
 import type { Colored } from "../paint/registry.ts"
 import { birth, constituencyLong, numberFormat } from "./format.ts"
+import { seatFact, type ShownSeat } from "./seat.ts"
 
 type Props = {
   deputy: Person
-  seat: Seat | undefined
+  seat: ShownSeat
   open: boolean
   colored: Colored
   place: Extract<Where, { kind: "part" }> | null
   layoutGlyph: Glyph
-  total: number
   outOfView: string | null
   officialPage: string | undefined
   address: ReactNode
   onClose: () => void
 }
 
-export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, total, outOfView, officialPage, address, onClose }: Props) {
+export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, outOfView, officialPage, address, onClose }: Props) {
   const scroller = useRef<HTMLElement>(null)
   const color = deputy.politicalGroup.color
+  const fact = seatFact(seat)
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 })
@@ -71,9 +72,9 @@ export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, t
         <li>
           {birth(deputy)} · {deputy.age} ans
         </li>
-        {seat && (
+        {fact !== null && (
           <li>
-            n° {seat.number} <span className="fact-label">siège</span>
+            {fact} <span className="fact-label">siège</span>
           </li>
         )}
       </ul>
@@ -81,7 +82,7 @@ export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, t
         <h3>Dans la vue actuelle</h3>
         {outOfView === null ? (
           <>
-            <CurrentValue colored={colored} deputy={deputy} total={total} />
+            <CurrentValue colored={colored} deputy={deputy} drawnAmong={seat.kind === "drawn" ? seat.among : null} />
             {place && <LayoutValue place={place} glyph={layoutGlyph} />}
           </>
         ) : (
@@ -109,7 +110,7 @@ function LinkIcon() {
   )
 }
 
-function CurrentValue({ colored: { reading, paint }, deputy, total }: { colored: Colored; deputy: Person; total: number }) {
+function CurrentValue({ colored: { reading, paint }, deputy, drawnAmong }: { colored: Colored; deputy: Person; drawnAmong: number | null }) {
   const value = reading.lineOf(deputy.id)
   if (!value) return null
   const color = paint.colorOf(deputy.id)
@@ -123,7 +124,8 @@ function CurrentValue({ colored: { reading, paint }, deputy, total }: { colored:
           <span className="dot" style={{ background: color }} />
           <span className="panel-value-label">{value.label}</span>
           <span className="muted">
-            {value.caption && `· ${value.caption} `}· {count} député{count > 1 ? "s" : ""} sur {total}
+            {value.caption && `· ${value.caption} `}
+            {drawnAmong !== null && `· ${count} député${count > 1 ? "s" : ""} sur ${drawnAmong}`}
           </span>
         </p>
       )

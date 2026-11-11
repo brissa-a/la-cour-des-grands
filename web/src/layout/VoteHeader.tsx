@@ -14,7 +14,7 @@ const ALWAYS_SHOWN: Readonly<Record<VoteKind, readonly VotePosition[]>> = {
 
 type Props = {
   view: Exclude<VoteView, { status: "none" }>
-  unplaced: number
+  undrawn: readonly string[]
   legend: boolean
   docked: boolean
   store: PreviewStore
@@ -22,7 +22,7 @@ type Props = {
   onHover: (position: VotePosition | null) => void
 }
 
-export function VoteHeader({ view, unplaced, legend, docked, store, selected, onHover }: Props) {
+export function VoteHeader({ view, undrawn, legend, docked, store, selected, onHover }: Props) {
   const placement = docked ? { className: "vote-header docked" } : { className: "vote-header panel", "data-obstacle": "" }
   const { target, card } = usePreview(store)
   const ready = view.status === "loading" ? view.previous : view.status === "ready" ? view : null
@@ -64,11 +64,11 @@ export function VoteHeader({ view, unplaced, legend, docked, store, selected, on
         })}
       </ul>
       {docked && <VoteLink vote={vote} />}
-      {unplaced > 0 && (
-        <p className="vote-note">
-          {unplaced} non dessiné{unplaced > 1 ? "s" : ""} · circonscription vacante aujourd'hui, siège inconnu
+      {undrawn.map(note => (
+        <p key={note} className="vote-note">
+          {note}
         </p>
-      )}
+      ))}
     </section>
   )
 }

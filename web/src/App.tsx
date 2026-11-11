@@ -33,6 +33,7 @@ import { besideSheet, toggled, type Side } from "./panel/side.ts"
 import { useSheet } from "./panel/useSheet.ts"
 import { chosenVote, cleared, initialState, pendingIntent, picked, pressed, type Press, type ViewState } from "./panel/viewState.ts"
 import { composition } from "./panel/summary.ts"
+import { undrawnNotes } from "./panel/voteTexts.ts"
 import { hasOpenedPanel, rememberPanelOpened } from "./preview/firstUse.ts"
 import { colorLine, layoutLine, layoutPlace } from "./preview/lines.ts"
 import { step, type Direction } from "./preview/neighbours.ts"
@@ -40,6 +41,7 @@ import { PreviewCard } from "./preview/PreviewCard.tsx"
 import { cardShown, createPreviewStore, usePreview, type Hit, type PreviewStore } from "./preview/previewStore.ts"
 import { DeputyPanel } from "./profile/DeputyPanel.tsx"
 import { longDate } from "./profile/format.ts"
+import { shownSeat } from "./profile/seat.ts"
 import { Search } from "./search/Search.tsx"
 import { Footer } from "./Footer.tsx"
 import { voteParts } from "./sources/parts.ts"
@@ -83,7 +85,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
   const voteInView = view.scrutin !== null
   const { read: readVote, settled } = shownVote(voteView)
   const pastSitting = useMemo(() => readVote && sittingOn(assembly, readVote.reading.roster), [assembly, readVote])
-  const sitting: Sitting = voteInView && pastSitting ? pastSitting : assembly
+  const sitting: Sitting = voteInView && pastSitting ? pastSitting : assembly.sitting
   const drawn = useMemo(() => sitting.deputies.map(deputy => deputy.id), [sitting])
   const seats = useMemo(() => seatsOf(sitting, assembly.background), [sitting, assembly])
   const vote = voteInView ? readVote : null
@@ -339,7 +341,7 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
     voteView.status !== "none" && (
       <VoteHeader
         view={voteView}
-        unplaced={pastSitting?.unplaced ?? 0}
+        undrawn={pastSitting ? undrawnNotes(pastSitting.unplaced) : []}
         legend={colorsVote}
         docked={docked}
         store={preview}
@@ -502,12 +504,11 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
       {panelDeputy && (
         <DeputyPanel
           deputy={panelDeputy}
-          seat={(sitting.byId.get(panelDeputy.id) ?? assembly.byId.get(panelDeputy.id))?.seat}
+          seat={shownSeat(panelDeputy.id, sitting, assembly.byId)}
           open={selected !== null}
           colored={colored}
           place={layoutPlace(staged.reading, colored, staged.scene.where(panelDeputy.id))}
           layoutGlyph={layoutGlyph}
-          total={sitting.deputies.length}
           outOfView={panelOutOfView}
           officialPage={officialPages.get(panelDeputy.id)}
           address={
