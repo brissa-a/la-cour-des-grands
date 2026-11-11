@@ -282,7 +282,7 @@ const DeputyDot = memo(function DeputyDot({ deputy, position, radius: unscaledRa
       />
       {showPhoto && (
         <image
-          href={deputy.photo}
+          href={deputy.photo ?? undefined}
           x={-radius}
           y={-radius}
           width={radius * 2}

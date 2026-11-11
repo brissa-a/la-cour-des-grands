@@ -1,0 +1,76 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "tap",
+  "plugins": [
+    "@stryker-mutator/tap-runner"
+  ],
+  "tap": {
+    "testFiles": [
+      "src/**/*.test.ts"
+    ],
+    "nodeArgs": [
+      "--test",
+      "--test-isolation=none",
+      "--test-reporter=tap",
+      "-r",
+      "{{hookFile}}",
+      "{{testFile}}"
+    ]
+  },
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/core/delimited.ts",
+    "src/core/geometry.ts",
+    "src/jobs/address/codes.ts",
+    "src/jobs/address/label.ts",
+    "src/jobs/address/streets.ts",
+    "src/options.ts",
+    "src/publication/paths.ts",
+    "src/publication/version.ts",
+    "src/publication/catalog.ts",
+    "src/publication/guards.ts",
+    "src/publication/files.ts",
+    "src/publication/store.ts",
+    "src/publication/publish.ts",
+    "src/publication/runs.ts",
+    "src/publication/sources.ts",
+    "src/publication/run.ts",
+    "src/publication/lock.ts",
+    "src/publication/mirror.ts",
+    "src/scheduled/ntfy.ts",
+    "src/scheduled/lastRun.ts",
+    "src/scheduled/host.ts",
+    "src/scheduled/report.ts",
+    "src/scheduled/supervise.ts",
+    "src/scheduled/alertedRun.ts",
+    "src/photos/child.ts",
+    "src/photos/cutoutPlan.ts",
+    "src/photos/officialPhoto.ts",
+    "src/publication/interrupt.ts",
+    "src/photos/cutouts.ts",
+    "src/photos/photosJob.ts",
+    "src/photos/registry.ts",
+    "src/scheduled/commands.ts"
+  ],
+  "ignorePatterns": [
+    "tsconfig.json",
+    "cache",
+    "output",
+    "reports",
+    ".env"
+  ],
+  "tempDirName": ".stryker-tmp",
+  "reporters": [
+    "clear-text",
+    "progress",
+    "json",
+    "html"
+  ],
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation.json"
+  },
+  "htmlReporter": {
+    "fileName": "reports/mutation/mutation.html"
+  },
+  "concurrency": 4
+}
