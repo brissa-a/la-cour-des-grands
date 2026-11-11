@@ -6,7 +6,7 @@ import type { Glyph } from "../glyph/glyph.ts"
 import { GlyphIcon } from "../glyph/GlyphIcon.tsx"
 import type { Colored } from "../paint/registry.ts"
 import { birth, constituencyLong, numberFormat } from "./format.ts"
-import type { ShownSeat } from "./seat.ts"
+import { seatFact, type ShownSeat } from "./seat.ts"
 
 type Props = {
   deputy: Person
@@ -15,16 +15,16 @@ type Props = {
   colored: Colored
   place: Extract<Where, { kind: "part" }> | null
   layoutGlyph: Glyph
-  drawnAmong: number | null
   outOfView: string | null
   officialPage: string | undefined
   address: ReactNode
   onClose: () => void
 }
 
-export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, drawnAmong, outOfView, officialPage, address, onClose }: Props) {
+export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, outOfView, officialPage, address, onClose }: Props) {
   const scroller = useRef<HTMLElement>(null)
   const color = deputy.politicalGroup.color
+  const fact = seatFact(seat)
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 })
@@ -72,9 +72,9 @@ export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, d
         <li>
           {birth(deputy)} · {deputy.age} ans
         </li>
-        {seat !== null && (
+        {fact !== null && (
           <li>
-            {seat === "unassigned" ? "Pas encore attribué" : `n° ${seat.number}`} <span className="fact-label">siège</span>
+            {fact} <span className="fact-label">siège</span>
           </li>
         )}
       </ul>
@@ -82,7 +82,7 @@ export function DeputyPanel({ deputy, seat, open, colored, place, layoutGlyph, d
         <h3>Dans la vue actuelle</h3>
         {outOfView === null ? (
           <>
-            <CurrentValue colored={colored} deputy={deputy} drawnAmong={drawnAmong} />
+            <CurrentValue colored={colored} deputy={deputy} drawnAmong={seat.kind === "drawn" ? seat.among : null} />
             {place && <LayoutValue place={place} glyph={layoutGlyph} />}
           </>
         ) : (

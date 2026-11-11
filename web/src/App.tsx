@@ -504,12 +504,11 @@ export function App({ assembly, features, cache, initial, chrome, read }: Props)
       {panelDeputy && (
         <DeputyPanel
           deputy={panelDeputy}
-          seat={shownSeat(panelDeputy.id, sitting.byId, assembly.byId)}
+          seat={shownSeat(panelDeputy.id, sitting, assembly.byId)}
           open={selected !== null}
           colored={colored}
           place={layoutPlace(staged.reading, colored, staged.scene.where(panelDeputy.id))}
           layoutGlyph={layoutGlyph}
-          drawnAmong={sitting.byId.has(panelDeputy.id) ? sitting.deputies.length : null}
           outOfView={panelOutOfView}
           officialPage={officialPages.get(panelDeputy.id)}
           address={

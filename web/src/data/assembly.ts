@@ -1,10 +1,10 @@
 import { constituencyCode, type ConstituencyCode } from "../address/codes.ts"
 import { loadCatalog, valuesTablePath, type Catalog } from "./catalog.ts"
-import { loadCsv } from "./csv.ts"
+import { loadCsv, type Row } from "./csv.ts"
 import { deputyId, type DeputyId } from "./deputyId.ts"
 import { officeOf, type InOffice, type Office, type Seated, type Sitting as SittingOf } from "./office.ts"
 import { CIVILITIES, INIT_COLUMNS, type Civility, type ConstituencyLabel, type Group, type InitRow, type Person } from "./person.ts"
-import { parseSeatRows, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS, SEATS_FILE, seatProblemWarning, type Seat } from "./seats.ts"
+import { parseSeatRows, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS, SEATS_FILE, seatProblemWarning, type Seat, type SeatRow } from "./seats.ts"
 import { photoUrl } from "./snapshotPath.ts"
 import type { ReadText, Snapshot } from "./source.ts"
 import { parseViewBox, type ViewBox } from "./viewBox.ts"
@@ -29,6 +29,12 @@ export type Assembly = Office<Person> & {
 
 const GROUP_VALUE_COLUMNS = ["value", "label_fr", "short_fr", "color"] as const
 
+export type AssemblyTables = {
+  readonly groupRows: readonly Row<(typeof GROUP_VALUE_COLUMNS)[number]>[]
+  readonly rows: readonly InitRow[]
+  readonly seatRows: readonly SeatRow[]
+}
+
 export async function loadAssembly({ root, read }: Snapshot): Promise<Assembly> {
   const catalogLoaded = loadCatalog(read)
   const [catalog, groupRows, rows, seatRows, svg] = await Promise.all([
@@ -38,7 +44,10 @@ export async function loadAssembly({ root, read }: Snapshot): Promise<Assembly> 
     loadCsv(read, SEATS_FILE, SEAT_COLUMNS, SEAT_OPTIONAL_COLUMNS),
     read("seats/hemicycle.svg"),
   ])
+  return { ...deputiesOf(root, { groupRows, rows, seatRows }), catalog, background: parseBackground(svg) }
+}
 
+export function deputiesOf(root: string, { groupRows, rows, seatRows }: AssemblyTables): Omit<Assembly, "catalog" | "background"> {
   const groupByName = new Map(groupRows.map((r): [string, Group] => [r.value, { name: r.value, short: r.short_fr, color: r.color }]))
   const people = rows.map((row): Person => {
     const group = groupByName.get(row.group)
@@ -56,11 +65,9 @@ export async function loadAssembly({ root, read }: Snapshot): Promise<Assembly> 
 
   return {
     ...officeOf(inOffice, plan),
-    catalog,
     initRows: new Map(rows.map(r => [deputyId(r.deputy_id), r])),
     people: new Map(people.map(p => [p.id, p])),
     constituencyLabels: constituencyLabels(rows),
-    background: parseBackground(svg),
   }
 }
 

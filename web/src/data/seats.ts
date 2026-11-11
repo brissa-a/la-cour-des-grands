@@ -8,7 +8,7 @@ export const SEAT_COLUMNS = ["seat", "x", "y", "deputy"] as const
 
 export const SEAT_OPTIONAL_COLUMNS = ["constituency"] as const
 
-type SeatRow = Row<(typeof SEAT_COLUMNS)[number] | (typeof SEAT_OPTIONAL_COLUMNS)[number]>
+export type SeatRow = Row<(typeof SEAT_COLUMNS)[number] | (typeof SEAT_OPTIONAL_COLUMNS)[number]>
 
 export type Seat = { number: string; x: number; y: number }
 
