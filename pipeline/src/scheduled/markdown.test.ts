@@ -12,6 +12,18 @@ test("text put into Markdown is escaped and kept on one line, so that it never o
   assert.equal(rendered(joined([md`a`, md`${"*"}`, md`c`], md`\n`)), "a\n\\*\nc");
 });
 
+test("a text that opens like a list item, a rule or a heading underline is escaped there, so that after « - » it stays plain text", () => {
+  const item = (text: string) => rendered(md`- ${text}`);
+  assert.equal(item("1. Untel"), "- 1\\. Untel");
+  assert.equal(item("12) Untel"), "- 12\\) Untel");
+  assert.equal(item(" 3. Untel"), "-  3\\. Untel");
+  assert.equal(item("- Untel"), "- \\- Untel");
+  assert.equal(item("+ Untel"), "- \\+ Untel");
+  assert.equal(item("---"), "- \\---");
+  assert.equal(item("==="), "- \\===");
+  assert.equal(item("2026 : 1. Untel - 3"), "- 2026 : 1. Untel - 3");
+});
+
 test("a text too long is cut between characters, never inside one, and marked; a short one is only trimmed", () => {
   assert.equal(shortened("  abc  ", 3), "abc");
   assert.equal(shortened("abcd", 3), "ab…");

@@ -48,18 +48,24 @@ const plural = (count: number, singular: string, several: string): string => `${
 
 const PARTICIPLES: Readonly<Record<VoteResult, string>> = { adopted: "adopté", rejected: "rejeté" };
 
-function resultWord(result: VoteResult, { feminine = false, several = false } = {}): string {
+type Agreement = { readonly feminine?: boolean; readonly several?: boolean };
+
+function resultWord(result: VoteResult, { feminine = false, several = false }: Agreement = {}): string {
   return PARTICIPLES[result] + (feminine ? "e" : "") + (several ? "s" : "");
+}
+
+// The opening article gives gender and number ("la première partie", "les crédits"); an elided "l'" says nothing, so masculine.
+function agreementOf(subject: string): Agreement {
+  const article = /^(\S+)\s/.exec(subject.trimStart().toLowerCase())?.[1];
+  return { feminine: article === "la" || article === "une", several: article === "les" || article === "des" };
 }
 
 type Headline = NewVote & { readonly scope: HeadlineScope; readonly tally: Tally };
 
 const isHeadline = (vote: NewVote): vote is Headline => "tally" in vote;
 
-const feminine = (scope: Scope): boolean => scope === "censure" || scope === "motion";
-
-function figures(vote: Headline): string {
-  const outcome = capitalized(resultWord(vote.result, { feminine: feminine(vote.scope) }));
+function figures(vote: Headline, subject: string): string {
+  const outcome = capitalized(resultWord(vote.result, vote.scope === "censure" ? { feminine: true } : agreementOf(subject)));
   const { for: yes, against, abstain } = vote.tally;
   if (vote.scope === "censure") return `${outcome}, ${yes} voix pour`;
   return `${outcome}, ${yes} pour, ${against} contre${abstain === 0 ? "" : `, ${plural(abstain, "abstention", "abstentions")}`}`;
@@ -134,11 +140,11 @@ const CENSURE_ARTICLE = /article 49, alinéa (\d)/;
 const CENSURE_AUTHORS = /,? par (.+?)\.?$/;
 
 function singleBlock(vote: NewVote): Markdown {
-  if (!isHeadline(vote)) return md`**${capitalized(shortened(vote.title, MAX_HEADING))}**\n- ${capitalized(resultWord(vote.result))}`;
-  if (vote.scope !== "censure") return md`**${capitalized(shortened(vote.title, MAX_HEADING))}**\n- ${figures(vote)}`;
+  if (!isHeadline(vote)) return md`**${capitalized(shortened(vote.title, MAX_HEADING))}**\n- ${capitalized(resultWord(vote.result, agreementOf(vote.title)))}`;
+  if (vote.scope !== "censure") return md`**${capitalized(shortened(vote.title, MAX_HEADING))}**\n- ${figures(vote, vote.title)}`;
   const article = CENSURE_ARTICLE.exec(vote.title)?.[1];
   const authors = CENSURE_AUTHORS.exec(vote.title)?.[1];
-  const heading = md`**Motion de censure${article === undefined ? "" : ` (49.${article})`}**\n- ${figures(vote)}`;
+  const heading = md`**Motion de censure${article === undefined ? "" : ` (49.${article})`}**\n- ${figures(vote, vote.title)}`;
   return authors === undefined ? heading : md`${heading}\n- Déposée par ${shortened(authors, MAX_LABEL)}`;
 }
 
@@ -162,7 +168,10 @@ function textBlock(bill: string, votes: readonly [NewVote, ...NewVote[]]): Markd
     if (first === undefined) return [];
     return [bulkLine(alone && scope === "other" ? ["scrutin", "scrutins"] : BULK_NOUNS[scope], [first, ...others])];
   });
-  return joined([heading, ...listed.map((v) => md`- ${figures(v)} : ${headlineLabel(v, bill)}`), ...lines], md`\n`);
+  return joined([heading, ...listed.map((v) => {
+    const label = headlineLabel(v, bill);
+    return md`- ${figures(v, label)} : ${label}`;
+  }), ...lines], md`\n`);
 }
 
 const subjectBlock = (subject: Subject): Markdown => (subject.kind === "text" ? textBlock(subject.bill, subject.votes) : singleBlock(subject.vote));
@@ -172,7 +181,8 @@ function ordinal(number: string): string {
 }
 
 function seatText({ department, number }: Seat): string {
-  return number === "" ? department : `${department}, ${ordinal(number)} circ.`;
+  const place = shortened(department, MAX_NAME);
+  return number === "" ? place : `${place}, ${ordinal(shortened(number, MAX_NAME))} circ.`;
 }
 
 const nameOf = (member: Member): string => {
@@ -230,6 +240,7 @@ const bytes = (markdown: Markdown): number => Buffer.byteLength(rendered(markdow
 const others = (count: number): Markdown => md`… et ${plural(count, "autre sujet", "autres sujets")}`;
 
 // Blocks are kept whole: all of them when they fit, else the most important first, each while it fits with the line that counts the others.
+// The head and that line must fit on their own: a dated count of votes and « … et N autres sujets » stay under 100 bytes.
 export function fitted(head: readonly Markdown[], blocks: readonly Markdown[], maxBytes = MAX_BODY_BYTES): string {
   const all = rendered(joined([...head, ...blocks], SEPARATOR));
   if (Buffer.byteLength(all) <= maxBytes) return all;

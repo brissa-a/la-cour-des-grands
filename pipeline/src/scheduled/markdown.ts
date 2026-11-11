@@ -7,7 +7,13 @@ type Part = string | number | Markdown;
 
 const SPECIAL = /[\\`*_[\]<>~|&#]/g;
 
-const escaped = (text: string): string => text.replace(/\s+/g, " ").replace(SPECIAL, "\\$&");
+// A text may land at the start of a line, after "- ": its opening must not read as a list item, a rule or a heading underline.
+const escaped = (text: string): string =>
+  text
+    .replace(/\s+/g, " ")
+    .replace(SPECIAL, "\\$&")
+    .replace(/^(\s*)([-+=])/, "$1\\$2")
+    .replace(/^(\s*\d+)([.)])/, "$1\\$2");
 
 const piece = (part: Part): string => (typeof part === "string" ? escaped(part) : typeof part === "number" ? String(part) : part[TEXT]);
 

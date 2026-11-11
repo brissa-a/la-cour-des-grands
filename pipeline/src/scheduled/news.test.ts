@@ -67,7 +67,7 @@ test("motions are told in the feminine with the vote that matters to each: a cen
   assert.deepEqual(body([single, rejection, censure]).split("\n\n").slice(1), [
     "**Motion de censure (49.3)**\n- Adoptée, 331 voix pour\n- Déposée par Mme Mathilde Panot et 90 députés",
     "**Proposition de loi visant à protéger les forêts**\n- Rejetée, 126 pour, 247 contre, 1 abstention : la motion de rejet préalable, déposée par Mme Mathilde Panot",
-    "**La demande de constitution d'une commission spéciale.**\n- Rejeté",
+    "**La demande de constitution d'une commission spéciale.**\n- Rejetée",
   ]);
 });
 
@@ -110,14 +110,32 @@ test("each vote that matters is labelled by what the title says before the text,
   const bill = "proposition de loi sur la mer";
   assert.deepEqual(lines(headline("whole_text", `l'ensemble de la ${bill}`, { for: 53, against: 0, abstain: 0 }, { bill })), ["- Adopté, 53 pour, 0 contre : ensemble du texte"]);
   assert.deepEqual(lines(headline("whole_text", `la ${bill} (lecture définitive)`, TALLY, { bill })), ["- Adopté, 312 pour, 210 contre, 15 abstentions : ensemble du texte (lecture définitive)"]);
-  assert.deepEqual(lines(headline("solemn", `la première partie de la ${bill} (première lecture).`, TALLY, { bill })), ["- Adopté, 312 pour, 210 contre, 15 abstentions : la première partie"]);
+  assert.deepEqual(lines(headline("solemn", `la première partie de la ${bill} (première lecture).`, TALLY, { bill })), ["- Adoptée, 312 pour, 210 contre, 15 abstentions : la première partie"]);
   assert.deepEqual(lines(headline("motion", `la motion de rejet préalable, déposée par Mme de la Tour, du ${bill}`, TALLY, { bill, result: "rejected" })), [
     "- Rejetée, 312 pour, 210 contre, 15 abstentions : la motion de rejet préalable, déposée par Mme de la Tour",
   ]);
   assert.deepEqual(lines(headline("solemn", `${bill} (vote solennel)`, TALLY, { bill })), [`- Adopté, 312 pour, 210 contre, 15 abstentions : ${bill} (vote solennel)`]);
   assert.deepEqual(lines(headline("censure", `la motion de censure sur la ${bill}`, { for: 120, against: 0, abstain: 0 }, { bill, result: "rejected" })), ["- Rejetée, 120 voix pour : motion de censure"]);
-  assert.deepEqual(body([headline("solemn", "la déclaration du Gouvernement sur l'*Europe*", TALLY, { bill: null })]).split("\n\n")[1], "**La déclaration du Gouvernement sur l'\\*Europe\\***\n- Adopté, 312 pour, 210 contre, 15 abstentions");
+  assert.deepEqual(body([headline("solemn", "la déclaration du Gouvernement sur l'*Europe*", TALLY, { bill: null })]).split("\n\n")[1], "**La déclaration du Gouvernement sur l'\\*Europe\\***\n- Adoptée, 312 pour, 210 contre, 15 abstentions");
   assert.deepEqual(body([headline("censure", "la motion de censure par M. Untel et 57 députés", { for: 12, against: 0, abstain: 0 }, { bill: null, result: "rejected" })]).split("\n\n")[1], "**Motion de censure**\n- Rejetée, 12 voix pour\n- Déposée par M. Untel et 57 députés");
+});
+
+test("an outcome agrees with what was voted on, as its opening article says: feminine after « la » or « une », plural after « les » or « des », masculine otherwise", () => {
+  const outcome = (vote: NewVote) => body([vote]).split("\n").at(-1);
+  const alone = { bill: null, result: "rejected" } as const;
+  assert.equal(outcome(bulk("other", "la demande de suspension de séance", alone)), "- Rejetée");
+  assert.equal(outcome(bulk("other", "une demande de scrutin", alone)), "- Rejetée");
+  assert.equal(outcome(bulk("other", "les crédits de la mission", alone)), "- Rejetés");
+  assert.equal(outcome(bulk("other", "des crédits", alone)), "- Rejetés");
+  assert.equal(outcome(bulk("other", "  La DEMANDE", alone)), "- Rejetée");
+  assert.equal(outcome(bulk("other", "l'amendement n° 3", alone)), "- Rejeté");
+  assert.equal(outcome(bulk("other", "le sous-amendement", alone)), "- Rejeté");
+  assert.equal(outcome(bulk("other", "lancement", alone)), "- Rejeté");
+  assert.equal(outcome(headline("solemn", "la déclaration de politique générale du Gouvernement", TALLY, alone)), "- Rejetée, 312 pour, 210 contre, 15 abstentions");
+  assert.equal(outcome(headline("whole_text", "la proposition de loi sur la mer", TALLY, alone)), "- Rejetée, 312 pour, 210 contre, 15 abstentions");
+  assert.equal(outcome(headline("solemn", "le projet de loi sur la mer (vote solennel)", TALLY, alone)), "- Rejeté, 312 pour, 210 contre, 15 abstentions");
+  assert.equal(outcome(headline("solemn", "la première partie du projet de loi de finances pour 2027", TALLY, { bill: "projet de loi de finances pour 2027", result: "rejected" })), "- Rejetée, 312 pour, 210 contre, 15 abstentions : la première partie");
+  assert.equal(outcome(headline("whole_text", "la proposition de loi sur la mer", TALLY, { bill: "proposition de loi sur la mer", result: "rejected" })), "- Rejeté, 312 pour, 210 contre, 15 abstentions : ensemble du texte");
 });
 
 test("the other votes on a text are counted by kind, in the singular for one, by outcome when they differ, as plain votes when they are all there is", () => {
@@ -179,6 +197,8 @@ test("deputies who come and go are told by name, group and seat: a newcomer on t
   assert.deepEqual(arrivals(11)?.slice(-2), ["- A B entre à l'Assemblée, Var, 7e circ.", "- et 3 autres changements"]);
   assert.deepEqual(arrivals(9)?.slice(-1), ["- et 1 autre changement"]);
   assert.equal(arrivals(8)?.length, 9);
+  const far = newsOf({ votes: [], deputies: [{ kind: "arrival", deputy: member("A B", null, "é".repeat(100), "9".repeat(100)) }] })?.body.split("\n")[1];
+  assert.equal(far, `- A B entre à l'Assemblée, ${"é".repeat(59)}…, ${"9".repeat(59)}…e circ.`);
 });
 
 test("the news has a short title of what is new, goes to its own topic in Markdown, and is not sent when nothing is new", () => {
