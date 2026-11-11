@@ -12,7 +12,7 @@ const LEGISLATURE = "17";
 export const actors = source({
   name: "acteurs-historique.zip",
   url: "https://data.assemblee-nationale.fr/static/openData/repository/17/amo/tous_acteurs_mandats_organes_xi_legislature/AMO30_tous_acteurs_tous_mandats_tous_organes_historique.json.zip",
-  maxAgeHours: 24,
+  maxAgeHours: 12,
 });
 
 export type DeputyId = string & { readonly __brand: "DeputyId" };
