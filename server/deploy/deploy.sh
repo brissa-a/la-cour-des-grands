@@ -2,7 +2,8 @@
 # Builds the front here, then on the Dedibox: builds the service and pipeline images, creates the data volume if missing, stops a pipeline
 # run in progress when its scheduler is to be replaced, starts the scheduler, fills the data root with a first run when it holds no
 # version, checks the new service has a data version to serve, (re)starts it, then checks it from outside.
-# It deploys the head of origin/main alone, from a checkout whose server/, web/ and pipeline/ hold no change.
+# It deploys the head of origin/main alone, from a checkout whose server/, web/ and pipeline/ hold no change, and builds from that
+# commit's files, not the checkout's.
 #   server/deploy/deploy.sh
 #   LCDG_PHOTOS_FROM=<pipeline checkout>/output/photos server/deploy/deploy.sh   first deploy: cutouts made elsewhere, spared to the box
 #   LCDG_CUTOUTS_ON_BOX=1 server/deploy/deploy.sh   first deploy without them: the nightly runs cut out some 650 photos on the box, 30 min a night
@@ -25,9 +26,14 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 root=$(cd "$here/../.." && pwd)
 readonly here root
 
-git -C "$root" fetch --quiet origin main
-head=$(git -C "$root" rev-parse HEAD)
-main=$(git -C "$root" rev-parse origin/main)
+# The explicit refspec and the full ref name: a local branch or tag named origin/main, or a remote whose refspec skips main, would
+# otherwise stand for the head of main.
+if ! git -C "$root" fetch --quiet origin +refs/heads/main:refs/remotes/origin/main; then
+  echo "Could not fetch main from origin: without its head, nothing says this commit is the one production must run." >&2
+  exit 1
+fi
+head=$(git -C "$root" rev-parse --verify HEAD)
+main=$(git -C "$root" rev-parse --verify refs/remotes/origin/main)
 if [[ $head != "$main" ]]; then
   echo "HEAD is $head, origin/main $main: production is the head of main, deploy nothing else. Push to main first (a fast-forward), or check out origin/main." >&2
   exit 1
@@ -49,11 +55,17 @@ if [[ -n ${LCDG_PHOTOS_FROM:-} && ! -f $LCDG_PHOTOS_FROM/registry.json ]]; then
   exit 1
 fi
 
-(cd "$root/web" && npm ci --no-audit --no-fund && npm run build)
+# The front and the images are built from the commit's own files: none the checkout ignores, none changed there once checked above.
+commit_tree=$(mktemp -d)
+readonly commit_tree
+trap 'rm -rf "$commit_tree"' EXIT
+git -C "$root" archive "$head" | tar -x -C "$commit_tree"
+
+(cd "$commit_tree/web" && npm ci --no-audit --no-fund && npm run build)
 
 # Compose reads the token in this file whatever the command: only its process gets it, never this shell nor npm.
 compose() {
-  NTFY_TOKEN=$(<"$NTFY_TOKEN_FILE") docker --context "$CONTEXT" compose -f "$here/docker-compose.yml" "$@"
+  NTFY_TOKEN=$(<"$NTFY_TOKEN_FILE") docker --context "$CONTEXT" compose -f "$commit_tree/server/deploy/docker-compose.yml" "$@"
 }
 
 docker --context "$CONTEXT" network inspect edge >/dev/null
@@ -86,7 +98,7 @@ stop_run_in_progress() {
   now=$(docker --context "$CONTEXT" inspect --format '{{.State.Running}} {{index .Config.Labels "com.docker.compose.config-hash"}} {{.Image}}' "$PIPELINE_CONTAINER" 2>/dev/null) || return 0
   next="true $(compose config --hash lcdg-pipeline | cut -d' ' -f2) $(docker --context "$CONTEXT" image inspect --format '{{.Id}}' "lcdg-pipeline:$LCDG_TAG")"
   if [[ $now != "true "* || $now == "$next" ]]; then return 0; fi
-  docker --context "$CONTEXT" exec -i "$PIPELINE_CONTAINER" node --input-type=module-typescript - < "$here/stopRun.ts"
+  docker --context "$CONTEXT" exec -i "$PIPELINE_CONTAINER" node --input-type=module-typescript - < "$commit_tree/server/deploy/stopRun.ts"
 }
 
 # The scheduler refuses to start without a token ntfy accepts or a data root it can write: the same check here stops the deploy,

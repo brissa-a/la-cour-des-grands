@@ -16,7 +16,8 @@ const DOCKER_IGNORE = (await readFile(new URL("../deploy/Dockerfile.dockerignore
 const STOP_RUN = await readFile(new URL("../deploy/stopRun.ts", import.meta.url), "utf8")
 const TOKEN = "tk_not_a_real_token"
 const CUTOUTS_STREAM = "the cutouts as tar writes them"
-const TAG = "0123456789ab"
+const CHECKOUT_DEPLOY = "server/deploy/deploy.sh"
+const BUILT_FRONT = "the front npm run build writes"
 
 // The box as the fake docker answers it: the data volume, and the scheduler's container against what compose would make of it now.
 type Box = {
@@ -29,14 +30,62 @@ type Call = { readonly tool: string; readonly args: readonly string[]; readonly 
 const scratch = await mkdtemp(join(tmpdir(), "server-deploy-"))
 after(() => rm(scratch, { recursive: true, force: true }))
 
+const GIT_ENV = {
+  PATH: process.env.PATH ?? "",
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_NOSYSTEM: "1",
+  GIT_AUTHOR_NAME: "test",
+  GIT_AUTHOR_EMAIL: "test@example.invalid",
+  GIT_COMMITTER_NAME: "test",
+  GIT_COMMITTER_EMAIL: "test@example.invalid",
+}
+
+async function git(repo: string, ...args: readonly string[]): Promise<string> {
+  const { stdout } = await promisify(execFile)("git", ["-C", repo, ...args], { env: GIT_ENV })
+  return stdout.trim()
+}
+
+async function put(repo: string, path: string, content: string): Promise<void> {
+  await mkdir(dirname(join(repo, path)), { recursive: true })
+  await writeFile(join(repo, path), content)
+}
+
+// A checkout at the head of its origin's main, holding this repository's deploy.sh and stopRun.ts, as a clone leaves it.
+async function checkoutOfMain(): Promise<string> {
+  const repo = await mkdtemp(join(scratch, "repo-"))
+  const checkout = join(repo, "checkout")
+  await git(repo, "init", "--quiet", "--bare", "--initial-branch=main", "origin.git")
+  await git(repo, "init", "--quiet", "--initial-branch=main", "checkout")
+  await put(checkout, CHECKOUT_DEPLOY, await readFile(DEPLOY, "utf8"))
+  await chmod(join(checkout, CHECKOUT_DEPLOY), 0o755)
+  await put(checkout, "server/deploy/stopRun.ts", STOP_RUN)
+  for (const path of ["server/src/main.ts", "web/src/main.tsx", "pipeline/src/run.ts", "docs/notes.md"]) await put(checkout, path, "")
+  await put(checkout, "web/.gitignore", "dist\n.env*.local\n")
+  await put(checkout, "pipeline/.gitignore", ".env\n")
+  await git(checkout, "add", ".")
+  await git(checkout, "commit", "--quiet", "-m", "main")
+  await git(checkout, "remote", "add", "origin", join(repo, "origin.git"))
+  await git(checkout, "push", "--quiet", "origin", "main")
+  return checkout
+}
+
+const MAIN = await checkoutOfMain()
+const TAG = (await git(MAIN, "rev-parse", "HEAD")).slice(0, 12)
+const { stdout: REAL_TAR } = await promisify(execFile)("sh", ["-c", "command -v tar"])
+
+// On the build, the files of the context compose sends: the folder two levels above the compose file, as the file says.
 const FAKE_DOCKER = `#!/usr/bin/env node
-const { appendFileSync, readFileSync } = require("node:fs")
+const { appendFileSync, readdirSync, readFileSync, writeFileSync } = require("node:fs")
+const { dirname, join, resolve } = require("node:path")
 const args = process.argv.slice(2)
 const stdin = readFileSync(0, "utf8")
 appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "docker", args, token: process.env.NTFY_TOKEN ?? null, stdin }) + "\\n")
 const line = args.join(" ")
 const volume = process.env.FAKE_VOLUME
 const scheduler = process.env.FAKE_SCHEDULER
+const files = (folder, prefix) => readdirSync(folder, { withFileTypes: true }).flatMap(entry =>
+  entry.isDirectory() ? files(join(folder, entry.name), prefix + entry.name + "/") : [[prefix + entry.name, readFileSync(join(folder, entry.name), "utf8")]])
+if (args.at(-1) === "build") writeFileSync(process.env.FAKE_BUILT, JSON.stringify(Object.fromEntries(files(resolve(dirname(args[args.indexOf("-f") + 1]), "../.."), ""))))
 if (line.includes("volume inspect")) process.exit(volume === "absent" ? 1 : 0)
 if (line.includes("test -f /data/v2/current.json")) process.exit(volume === "holding a version" ? 0 : 1)
 if (line.includes("config --hash lcdg-pipeline")) console.log("lcdg-pipeline hash-next")
@@ -57,16 +106,19 @@ appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "${tool}", args, tok
 process.stdout.write(${JSON.stringify(output)})
 `
 
-const FAKE_GIT = `#!/usr/bin/env node
-const { appendFileSync } = require("node:fs")
-const args = process.argv.slice(2)
-appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "git", args, token: process.env.NTFY_TOKEN ?? null, stdin: "" }) + "\\n")
-if (args.includes("rev-parse")) console.log("${TAG}")
+const FAKE_NPM = `${FAKE_TOOL("npm", "")}
+if (args.join(" ") === "run build") {
+  require("node:fs").mkdirSync("dist", { recursive: true })
+  require("node:fs").writeFileSync("dist/index.html", ${JSON.stringify(BUILT_FRONT)})
+}
 `
 
+// deploy.sh extracts the commit with tar: that one is the real tar.
 const FAKE_TAR = `#!/usr/bin/env node
 const { appendFileSync } = require("node:fs")
-appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "tar", args: process.argv.slice(2), token: process.env.NTFY_TOKEN ?? null, stdin: "" }) + "\\n")
+const args = process.argv.slice(2)
+if (args.includes("-x")) process.exit(require("node:child_process").spawnSync(process.env.REAL_TAR, args, { stdio: "inherit" }).status ?? 1)
+appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "tar", args, token: process.env.NTFY_TOKEN ?? null, stdin: "" }) + "\\n")
 process.stdout.write(${JSON.stringify(CUTOUTS_STREAM)})
 process.exitCode = Number(process.env.FAKE_TAR_STATUS ?? 0)
 `
@@ -83,29 +135,38 @@ function callOf(line: string): Call {
   return { tool, args, token, stdin }
 }
 
-// Without a checkout, the script of this repository runs against a fake git; with one, the copy that checkout holds runs against git itself.
-async function deploy(box: Box, env: Readonly<Record<string, string>> = {}, checkout?: string): Promise<{ readonly status: number | null; readonly stderr: string; readonly calls: readonly Call[] }> {
+function filesOf(text: string): ReadonlyMap<string, string> {
+  const parsed: unknown = JSON.parse(text)
+  assert.ok(typeof parsed === "object" && parsed !== null, text)
+  const entries = Object.entries(parsed)
+  assert.ok(entries.every(([, content]) => typeof content === "string"), text)
+  return new Map(entries.map(([path, content]) => [path, String(content)]))
+}
+
+// The copy of deploy.sh a checkout holds, run there against git itself and fake docker, npm, curl and tar.
+async function deploy(box: Box, env: Readonly<Record<string, string>> = {}, checkout = MAIN): Promise<{ readonly status: number | null; readonly stderr: string; readonly calls: readonly Call[]; readonly built: ReadonlyMap<string, string> | null }> {
   const run = await mkdtemp(join(scratch, "run-"))
   const bin = join(run, "bin")
   await mkdir(bin)
   await mkdir(join(run, "home", ".config", "ntfy"), { recursive: true })
   await writeFile(join(run, "home", ".config", "ntfy", "lcdg_pipeline-token"), TOKEN)
-  const tools = { docker: FAKE_DOCKER, npm: FAKE_TOOL("npm", ""), curl: FAKE_TOOL("curl", '{"status":"ok","data":"ready"}'), tar: FAKE_TAR, ...(checkout === undefined ? { git: FAKE_GIT } : {}) }
+  const tools = { docker: FAKE_DOCKER, npm: FAKE_NPM, curl: FAKE_TOOL("curl", '{"status":"ok","data":"ready"}'), tar: FAKE_TAR }
   for (const [name, script] of Object.entries(tools)) {
     await writeFile(join(bin, name), script)
     await chmod(join(bin, name), 0o755)
   }
   const log = join(run, "calls.jsonl")
+  const built = join(run, "built.json")
   await writeFile(log, "")
-  const child = spawn(checkout === undefined ? DEPLOY : join(checkout, CHECKOUT_DEPLOY), [], {
-    env: { PATH: `${bin}:${process.env.PATH ?? ""}`, HOME: join(run, "home"), FAKE_LOG: log, FAKE_VOLUME: box.volume, FAKE_SCHEDULER: box.scheduler, ...env },
+  const child = spawn(join(checkout, CHECKOUT_DEPLOY), [], {
+    env: { PATH: `${bin}:${process.env.PATH ?? ""}`, HOME: join(run, "home"), FAKE_LOG: log, FAKE_BUILT: built, REAL_TAR: REAL_TAR.trim(), FAKE_VOLUME: box.volume, FAKE_SCHEDULER: box.scheduler, ...env },
     stdio: ["ignore", "ignore", "pipe"],
   })
   let stderr = ""
   child.stderr.on("data", (chunk: Buffer) => (stderr += chunk.toString()))
   const status = await new Promise<number | null>(resolve => child.once("close", resolve))
   const calls = (await readFile(log, "utf8")).split("\n").filter(Boolean).map(callOf)
-  return { status, stderr, calls }
+  return { status, stderr, calls, built: existsSync(built) ? filesOf(await readFile(built, "utf8")) : null }
 }
 
 function lines(calls: readonly Call[]): string[] {
@@ -216,60 +277,56 @@ test("a deploy removes no image, those of earlier deploys being what a rollback 
   }
 })
 
-const CHECKOUT_DEPLOY = "server/deploy/deploy.sh"
-const GIT_ENV = {
-  PATH: process.env.PATH ?? "",
-  GIT_CONFIG_GLOBAL: "/dev/null",
-  GIT_CONFIG_NOSYSTEM: "1",
-  GIT_AUTHOR_NAME: "test",
-  GIT_AUTHOR_EMAIL: "test@example.invalid",
-  GIT_COMMITTER_NAME: "test",
-  GIT_COMMITTER_EMAIL: "test@example.invalid",
-}
-
-async function git(repo: string, ...args: readonly string[]): Promise<string> {
-  const { stdout } = await promisify(execFile)("git", ["-C", repo, ...args], { env: GIT_ENV })
-  return stdout.trim()
-}
-
-async function put(repo: string, path: string, content: string): Promise<void> {
-  await mkdir(dirname(join(repo, path)), { recursive: true })
-  await writeFile(join(repo, path), content)
-}
-
-// A checkout at the head of its origin's main, holding this repository's deploy.sh, as a clone leaves it.
-async function checkoutOfMain(): Promise<string> {
-  const repo = await mkdtemp(join(scratch, "repo-"))
-  const checkout = join(repo, "checkout")
-  await git(repo, "init", "--quiet", "--bare", "--initial-branch=main", "origin.git")
-  await git(repo, "init", "--quiet", "--initial-branch=main", "checkout")
-  await put(checkout, CHECKOUT_DEPLOY, await readFile(DEPLOY, "utf8"))
-  await chmod(join(checkout, CHECKOUT_DEPLOY), 0o755)
-  for (const path of ["server/src/main.ts", "web/src/main.tsx", "pipeline/src/run.ts", "docs/notes.md"]) await put(checkout, path, "")
-  await put(checkout, "web/.gitignore", "dist\n")
-  await git(checkout, "add", ".")
-  await git(checkout, "commit", "--quiet", "-m", "main")
-  await git(checkout, "remote", "add", "origin", join(repo, "origin.git"))
-  await git(checkout, "push", "--quiet", "origin", "main")
-  return checkout
-}
-
-test("a deploy refuses a HEAD other than the head of origin/main as the origin holds it now, ahead of it or behind it, before it builds or sends anything", { timeout: 60_000 }, async () => {
-  const ahead = await checkoutOfMain()
-  await put(ahead, "server/src/main.ts", "committed, never pushed")
-  await git(ahead, "commit", "--quiet", "-am", "local")
-  const behind = await checkoutOfMain()
-  await put(behind, "server/src/main.ts", "pushed from another checkout")
-  await git(behind, "commit", "--quiet", "-am", "elsewhere")
-  await git(behind, "push", "--quiet", "origin", "main")
-  await git(behind, "reset", "--quiet", "--hard", "HEAD~1")
-  await git(behind, "update-ref", "refs/remotes/origin/main", "HEAD")
-  for (const [name, checkout] of [["ahead", ahead], ["behind", behind]] as const) {
-    const { status, stderr, calls } = await deploy(AGAIN, {}, checkout)
+test("a deploy refuses a HEAD other than the head of main as the origin holds it now, whatever local ref is named origin/main, before it builds or sends anything", { timeout: 60_000 }, async () => {
+  const ahead = async () => {
+    const checkout = await checkoutOfMain()
+    await put(checkout, "server/src/main.ts", "committed, never pushed")
+    await git(checkout, "commit", "--quiet", "-am", "local")
+    return checkout
+  }
+  const behind = async () => {
+    const checkout = await checkoutOfMain()
+    await put(checkout, "server/src/main.ts", "pushed from another checkout")
+    await git(checkout, "commit", "--quiet", "-am", "elsewhere")
+    await git(checkout, "push", "--quiet", "origin", "main")
+    await git(checkout, "reset", "--quiet", "--hard", "HEAD~1")
+    await git(checkout, "update-ref", "refs/remotes/origin/main", "HEAD")
+    return checkout
+  }
+  const checkouts: readonly (readonly [string, () => Promise<string>])[] = [
+    ["ahead", ahead],
+    ["behind", behind],
+    ["ahead, a local branch origin/main on it", async () => {
+      const checkout = await ahead()
+      await git(checkout, "branch", "origin/main")
+      return checkout
+    }],
+    ["ahead, a tag origin/main on it", async () => {
+      const checkout = await ahead()
+      await git(checkout, "tag", "origin/main")
+      return checkout
+    }],
+    ["behind, the origin's refspec skipping main", async () => {
+      const checkout = await behind()
+      await git(checkout, "config", "remote.origin.fetch", "+refs/heads/other:refs/remotes/origin/other")
+      return checkout
+    }],
+  ]
+  for (const [name, make] of checkouts) {
+    const { status, stderr, calls } = await deploy(AGAIN, {}, await make())
     assert.equal(status, 1, name)
     assert.match(stderr, /production is the head of main, deploy nothing else/, name)
     assert.deepEqual(calls, [], name)
   }
+})
+
+test("a deploy stops before it builds or sends anything when it cannot fetch main from the origin", { timeout: 60_000 }, async () => {
+  const checkout = await checkoutOfMain()
+  await git(checkout, "remote", "set-url", "origin", join(checkout, "..", "nowhere.git"))
+  const { status, stderr, calls } = await deploy(AGAIN, {}, checkout)
+  assert.equal(status, 1)
+  assert.match(stderr, /Could not fetch main from origin/)
+  assert.deepEqual(calls, [])
 })
 
 test("a deploy refuses a change in server/, web/ or pipeline/, unstaged, staged or untracked even where status hides untracked files, before it builds or sends anything", { timeout: 60_000 }, async () => {
@@ -294,14 +351,19 @@ test("a deploy refuses a change in server/, web/ or pipeline/, unstaged, staged 
   }
 })
 
-test("a deploy from the head of origin/main tags its images with that commit, whatever changes lie outside server/, web/ and pipeline/ or are ignored there", { timeout: 60_000 }, async () => {
+test("a deploy from the head of origin/main builds the front and the images from that commit's files alone, and tags them with it, whatever the checkout holds outside server/, web/ and pipeline/ or ignored there", { timeout: 60_000 }, async () => {
   const checkout = await checkoutOfMain()
+  const commit = await git(checkout, "rev-parse", "HEAD")
+  const committed = new Map<string, string>([["web/dist/index.html", BUILT_FRONT]])
+  for (const path of (await git(checkout, "ls-tree", "-r", "--name-only", "HEAD")).split("\n")) committed.set(path, await readFile(join(checkout, path), "utf8"))
   await put(checkout, "docs/notes.md", "changed")
   await put(checkout, "docs/added.md", "")
-  await put(checkout, "web/dist/index.html", "the front deploy.sh builds")
-  const { status, stderr, calls } = await deploy(AGAIN, {}, checkout)
+  await put(checkout, "web/dist/index.html", "left by an earlier build")
+  await put(checkout, "web/.env.production.local", "VITE_FROM=the checkout alone")
+  await put(checkout, "pipeline/src/.env", "SECRET=the checkout alone")
+  const { status, stderr, calls, built } = await deploy(AGAIN, {}, checkout)
   assert.equal(status, 0, stderr)
-  const commit = await git(checkout, "rev-parse", "origin/main")
+  assert.deepEqual(built, committed)
   assert.ok(lines(calls).some(line => line.includes(` lcdg-server:${commit.slice(0, 12)} node `)), lines(calls).join("\n"))
 })
 
