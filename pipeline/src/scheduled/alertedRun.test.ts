@@ -7,8 +7,8 @@ import { layout } from "../publication/paths.ts";
 import { temporaryDir, temporaryRoot } from "../publication/snapshots.fixture.ts";
 import { EventEmitter } from "node:events";
 import { NO_KEY_LINE, alertedRun } from "./alertedRun.ts";
-import type { Prompt, Writer } from "./claude.ts";
-import { type Fetch, ntfyToken } from "./ntfy.ts";
+import type { Prompt, Writer, Written } from "./claude.ts";
+import { type Fetch, MAX_BODY_BYTES, ntfyToken } from "./ntfy.ts";
 import type { Stops } from "./supervise.ts";
 
 const TOKEN = "tk_0123456789abcdefghij-_ABCDEFG";
@@ -33,6 +33,9 @@ switch (scenario) {
     process.exit(0);
   case "published-over":
     summary({ status: "published", exitCode: 0, version: "${VERSION}", previousVersion: "${PREVIOUS}", forced: false, counts: { deputies: 654, votes: 2, newVotes: 1 }, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [], error: null });
+    process.exit(0);
+  case "published-over-forced":
+    summary({ status: "published", exitCode: 0, version: "${VERSION}", previousVersion: "${PREVIOUS}", forced: true, counts: { deputies: 654, votes: 2, newVotes: 1 }, refusals: Array.from({ length: 80 }, (_, i) => "refusal " + i + " of a forced run, long enough to fill the summary"), warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [], error: null });
     process.exit(0);
   case "unchanged":
     summary({ status: "unchanged", exitCode: 0, version: "${VERSION}", previousVersion: "${VERSION}", forced: false, counts: { deputies: 654, votes: 2, newVotes: 0 }, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [], error: null });
@@ -282,9 +285,9 @@ async function versions(v2: string): Promise<void> {
 }
 
 const TECHNICAL = `Version ${VERSION} (654 deputies, 2 votes).\nPrevious version ${PREVIOUS}.`;
-const AUTOMATIC_NEWS = "1 scrutin le 10 novembre 2026\n\n**Projet de loi sur l'eau**\n- 1 article adopté\n\n_Résumé automatique à partir des données de l'Assemblée._";
+const automaticNews = (cause: string): string => `1 scrutin le 10 novembre 2026\n\n**Projet de loi sur l'eau**\n- 1 article adopté\n\n_Résumé automatique à partir des données de l'Assemblée, sans Claude : ${cause}._`;
 
-function writing(answer: () => Promise<string>) {
+function writing(answer: () => Promise<Written>) {
   const prompts: Prompt[] = [];
   const writer: Writer = (prompt) => {
     prompts.push(prompt);
@@ -294,7 +297,7 @@ function writing(answer: () => Promise<string>) {
 }
 
 test("a run that publishes over an earlier version sends its technical summary, then the news Claude wrote from what that version brings, in Markdown on its own topic", async () => {
-  const { writer, prompts } = writing(() => Promise.resolve("L'article 2 du **projet de loi sur l'eau** est adopté."));
+  const { writer, prompts } = writing(() => Promise.resolve({ kind: "text", text: "L'article 2 du **projet de loi sur l'eau** est adopté." }));
   const run = await scenario("published-over", undefined, versions, 2, writer);
   assert.deepEqual([run.code, run.topic, run.title, run.markdown, run.body], [0, "/lcdg_pipeline-done", "Data published: 1 new votes", null, TECHNICAL]);
   assert.deepEqual(run.more, [
@@ -309,17 +312,25 @@ test("without an Anthropic key the technical summary says so, and the news goes 
   assert.equal(run.body, `${TECHNICAL}\n${NO_KEY_LINE}`);
   assert.deepEqual(
     run.more.map((news) => [news.topic, news.body]),
-    [["/lcdg_pipeline-news", AUTOMATIC_NEWS]],
+    [["/lcdg_pipeline-news", automaticNews("pas de clé")]],
   );
 });
 
-test("Claude failing leaves the technical summary as it is and sends the automatic news, the reason logged without the key", async () => {
-  const { writer } = writing(() => Promise.reject(new Error("401 invalid x-api-key [ANTHROPIC_API_KEY]")));
+test("however long the technical summary of a keyless run, it ends on the line about the key and stays within 4,095 bytes", async () => {
+  const run = await scenario("published-over-forced", undefined, versions, 2);
+  assert.ok(Buffer.byteLength(run.body) <= MAX_BODY_BYTES, String(Buffer.byteLength(run.body)));
+  assert.ok(Buffer.byteLength(run.body) > MAX_BODY_BYTES - 60, String(Buffer.byteLength(run.body)));
+  assert.match(run.body, /^Version [0-9a-f]{40} .+\nForced over the guards' refusals:\n- refusal 0 /s);
+  assert.ok(run.body.endsWith(`\n[…]\n${NO_KEY_LINE}`), run.body.slice(-200));
+});
+
+test("Claude failing leaves the technical summary as it is and sends the automatic news saying why, the reason logged without the key", async () => {
+  const { writer } = writing(() => Promise.resolve({ kind: "failed", failure: { kind: "status", status: 401 }, reason: "401 invalid x-api-key [ANTHROPIC_API_KEY]" }));
   const run = await scenario("published-over", undefined, versions, 2, writer);
   assert.deepEqual([run.code, run.body], [0, TECHNICAL]);
   assert.deepEqual(
     run.more.map((news) => news.body),
-    [AUTOMATIC_NEWS],
+    [automaticNews("clé refusée")],
   );
   assert.ok(run.logged.includes("News written automatically, Claude's set aside: 401 invalid x-api-key [ANTHROPIC_API_KEY]"), run.logged.join("\n"));
   assert.ok(!run.logged.join("\n").includes(KEY));
@@ -354,5 +365,5 @@ test("a run that publishes nothing new, or whose candidate is set aside, sends n
 test("news that cannot be told is only logged: the technical summary still goes out and the run keeps its exit code", async () => {
   const run = await scenario("published-over", undefined, (v2) => versions(v2).then(() => rm(`${v2}/${PREVIOUS}`, { recursive: true })));
   assert.deepEqual([run.code, run.topic, run.more], [0, "/lcdg_pipeline-done", []]);
-  assert.match(run.logged.at(-1) ?? "", new RegExp(`^No news of ${VERSION}: ENOENT: .+/${PREVIOUS}/votes/votes\\.csv`));
+  assert.match(run.logged.at(-1) ?? "", new RegExp(`^No news of ${VERSION}: ENOENT: .+/${PREVIOUS}/(votes/votes|deputies/init|deputies/values/group)\\.csv`));
 });

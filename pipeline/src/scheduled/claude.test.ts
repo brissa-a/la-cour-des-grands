@@ -37,7 +37,7 @@ test("an Anthropic key is read trimmed from its shape alone, so that an empty or
 
 test("Claude is asked once, with the system prompt and a single user message, the key only in its header", async () => {
   const { fetch, seen } = answering(() => message([{ type: "text", text: "**Texte**" }]));
-  assert.equal(await claudeWriter(key(), fetch)(PROMPT, never), "**Texte**");
+  assert.deepEqual(await claudeWriter(key(), fetch)(PROMPT, never), { kind: "text", text: "**Texte**" });
   assert.equal(seen.length, 1);
   const [request] = seen;
   assert.ok(request !== undefined);
@@ -55,29 +55,34 @@ test("Claude is asked once, with the system prompt and a single user message, th
 
 test("the text of an answer is its text blocks joined, its thinking left out", async () => {
   const { fetch } = answering(() => message([{ type: "thinking", thinking: "", signature: "s" }, { type: "text", text: "Première partie. " }, { type: "text", text: "Seconde." }]));
-  assert.equal(await claudeWriter(key(), fetch)(PROMPT, never), "Première partie. Seconde.");
+  assert.deepEqual(await claudeWriter(key(), fetch)(PROMPT, never), { kind: "text", text: "Première partie. Seconde." });
 });
 
-test("an answer that Claude did not finish, cut by its token limit or a refusal, is an error, not a text", async () => {
+test("an answer that Claude did not finish, cut by its token limit or a refusal, is an unfinished failure, not a text", async () => {
   for (const stop of ["max_tokens", "refusal", null]) {
     const { fetch } = answering(() => message([{ type: "text", text: "Un début" }], stop));
-    await assert.rejects(claudeWriter(key(), fetch)(PROMPT, never), new Error(`stopped on ${String(stop)}`));
+    assert.deepEqual(await claudeWriter(key(), fetch)(PROMPT, never), { kind: "failed", failure: { kind: "unfinished" }, reason: `stopped on ${String(stop)}` });
   }
 });
 
-test("a refused key or a failed connection is an error tried once, whose reason never holds the key, even when the failure quotes it", async () => {
+test("a refused key, an overloaded API or a failed connection is a failure tried once, telling the status apart, whose reason never holds the key, even when the failure quotes it", async () => {
   const refused = answering(() => Response.json({ type: "error", error: { type: "authentication_error", message: `invalid x-api-key ${KEY}` } }, { status: 401 }));
-  const error = await claudeWriter(key(), refused.fetch)(PROMPT, never).then(() => null, (failure: unknown) => failure);
-  assert.ok(error instanceof Error);
-  assert.match(error.message, /^401 .*invalid x-api-key \[ANTHROPIC_API_KEY\]/);
+  const denied = await claudeWriter(key(), refused.fetch)(PROMPT, never);
+  assert.ok(denied.kind === "failed");
+  assert.deepEqual(denied.failure, { kind: "status", status: 401 });
+  assert.match(denied.reason, /^401 .*invalid x-api-key \[ANTHROPIC_API_KEY\]/);
   assert.equal(refused.seen.length, 1);
   const overloaded = answering(() => Response.json({ type: "error", error: { type: "overloaded_error", message: "Overloaded" } }, { status: 529 }));
-  await assert.rejects(claudeWriter(key(), overloaded.fetch)(PROMPT, never), /Overloaded/);
+  const busy = await claudeWriter(key(), overloaded.fetch)(PROMPT, never);
+  assert.ok(busy.kind === "failed");
+  assert.deepEqual(busy.failure, { kind: "status", status: 529 });
+  assert.match(busy.reason, /Overloaded/);
   assert.equal(overloaded.seen.length, 1);
   const unreachable: SdkFetch = () => Promise.reject(new Error(`connect ECONNREFUSED with ${KEY}`));
-  const failed = await claudeWriter(key(), unreachable)(PROMPT, never).then(() => null, (failure: unknown) => failure);
-  assert.ok(failed instanceof Error);
-  assert.doesNotMatch(failed.message, new RegExp(KEY));
+  const failed = await claudeWriter(key(), unreachable)(PROMPT, never);
+  assert.ok(failed.kind === "failed");
+  assert.deepEqual(failed.failure, { kind: "unreachable" });
+  assert.doesNotMatch(failed.reason, new RegExp(KEY));
 });
 
 test("aborting the request stops it where it waits", async () => {
@@ -92,6 +97,8 @@ test("aborting the request stops it where it waits", async () => {
   const asked = claudeWriter(key(), waiting)(PROMPT, controller.signal);
   while (signals.length === 0) await new Promise((tick) => setImmediate(tick));
   controller.abort();
-  await assert.rejects(asked);
+  const written = await asked;
+  assert.ok(written.kind === "failed");
+  assert.deepEqual(written.failure, { kind: "unreachable" });
   assert.deepEqual(signals.map((s) => s.aborted), [true]);
 });

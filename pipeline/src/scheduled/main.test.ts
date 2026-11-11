@@ -11,9 +11,10 @@ import { temporaryRoot } from "../publication/snapshots.fixture.ts";
 const MAIN = new URL("main.ts", import.meta.url).pathname;
 const WIRING = new URL("wiring.fixture.ts", import.meta.url).pathname;
 const TOKEN = "tk_0123456789abcdefghij-_ABCDEFG";
+const KEY = "sk-ant-api03-0123456789abcdefghijABCDEFGHIJ_-xyz";
 
 function start(args: readonly string[], env: Readonly<Record<string, string>>) {
-  const { NTFY_TOKEN: _, LCDG_DATA_ROOT: __, ANTHROPIC_API_KEY: ___, ...inherited } = process.env;
+  const { NTFY_TOKEN: _, LCDG_DATA_ROOT: __, ANTHROPIC_API_KEY: ___, ANTHROPIC_BASE_URL: ____, ANTHROPIC_AUTH_TOKEN: _____, ...inherited } = process.env;
   const child = spawn(process.execPath, [MAIN, ...args], { env: { ...inherited, ...env }, stdio: ["ignore", "pipe", "pipe"], signal: AbortSignal.timeout(30_000) });
   child.on("error", () => undefined);
   const ended = Promise.all([new Promise<number | null>((resolve) => child.on("close", resolve)), text(child.stdout), text(child.stderr)]).then(([code, stdout, stderr]) => ({
@@ -26,14 +27,14 @@ function start(args: readonly string[], env: Readonly<Record<string, string>>) {
 
 const scheduled = (args: readonly string[], env: Readonly<Record<string, string>>) => start(args, env).ended;
 
-type Received = { readonly path: string; readonly title: string | null; readonly body: string };
+type Received = { readonly path: string; readonly title: string | null; readonly authorization: string | null; readonly body: string };
 
 async function localNtfy(answer: (request: IncomingMessage, response: ServerResponse) => void): Promise<{ readonly url: string; readonly received: Received[]; readonly close: () => void }> {
   const received: Received[] = [];
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://localhost");
     void text(request).then((body) => {
-      received.push({ path: url.pathname, title: url.searchParams.get("title"), body });
+      received.push({ path: url.pathname, title: url.searchParams.get("title"), authorization: request.headers.authorization ?? null, body });
       answer(request, response);
     });
   });
@@ -92,7 +93,7 @@ test("the scheduler starts only once the real ntfy client hears ntfy accept the 
     ntfy.close();
     assert.equal(run.code, code, run.stderr);
     assert.match(code === 0 ? run.stdout : run.stderr, output);
-    assert.deepEqual(ntfy.received, [{ path: "/v1/account", title: null, body: "" }]);
+    assert.deepEqual(ntfy.received, [{ path: "/v1/account", title: null, authorization: `Bearer ${TOKEN}`, body: "" }]);
   }
 });
 
@@ -127,4 +128,43 @@ test("a scheduled run starts the pipeline at the lowest priority, passes it SIGT
   );
   assert.match(ntfy.received[0]?.body ?? "", /It recorded no run: .+ is from an earlier run, started 2026-11-06T03:30:00\.000Z\.\nIts lock .+\/v2\/\.lock, held by no process any more, was released/);
   assert.deepEqual(await readdir(`${root}/v2`), [".runs"]);
+});
+
+test("a scheduled run that publishes over a previous version has the real Claude client write the news with the key it was given, then sends it to ntfy", async () => {
+  const root = await temporaryRoot();
+  const ntfy = await localNtfy((_, response) => {
+    response.end("{}");
+  });
+  const anthropic = await localNtfy((_, response) => {
+    const message = { id: "msg_1", type: "message", role: "assistant", model: "claude-sonnet-5-5", content: [{ type: "text", text: "L'article 2 est adopté." }], stop_reason: "end_turn", stop_sequence: null, usage: { input_tokens: 10, output_tokens: 5 } };
+    response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(message));
+  });
+  const previous = "0123456789abcdef0123456789abcdef01234567";
+  const version = "6a64dfbf2449e4c8357bc0319b9fe0b747c577d9";
+  const run = await scheduled(["run"], {
+    LCDG_DATA_ROOT: root,
+    NTFY_TOKEN: TOKEN,
+    ANTHROPIC_API_KEY: ` ${KEY}\n`,
+    NODE_OPTIONS: `--import ${WIRING}`,
+    LOCAL_NTFY: ntfy.url,
+    LOCAL_ANTHROPIC: anthropic.url,
+    PIPELINE_PUBLISHES_OVER: `${previous} ${version}`,
+  });
+  ntfy.close();
+  anthropic.close();
+  assert.equal(run.code, 0, run.stderr);
+  assert.deepEqual(
+    anthropic.received.map(({ path, authorization }) => ({ path, authorization })),
+    [{ path: "/v1/messages", authorization: `Bearer ${KEY}` }],
+  );
+  assert.match(anthropic.received[0]?.body ?? "", /"model":"claude-sonnet-5-5"/);
+  assert.deepEqual(
+    ntfy.received.map(({ path, title }) => ({ path, title })),
+    [
+      { path: "/lcdg_pipeline-done", title: "Data published: 1 new votes" },
+      { path: "/lcdg_pipeline-news", title: "Assemblée : 1 scrutin" },
+    ],
+  );
+  assert.equal(ntfy.received[1]?.body, "L'article 2 est adopté.\n\n_Rédigé par Claude à partir des données de l'Assemblée._");
+  assert.ok(!`${run.stdout}${run.stderr}`.includes(KEY));
 });

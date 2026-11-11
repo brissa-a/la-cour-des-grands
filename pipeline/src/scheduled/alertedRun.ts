@@ -8,7 +8,7 @@ import { readChanges } from "./changes.ts";
 import type { Writer } from "./claude.ts";
 import { lastRun } from "./lastRun.ts";
 import type { Changes } from "./news.ts";
-import { type NtfyDeps, type NtfyToken, publish } from "./ntfy.ts";
+import { MAX_BODY_BYTES, type NtfyDeps, type NtfyToken, clipped, publish } from "./ntfy.ts";
 import { type Exit, type Replacement, type RunRecord, notificationFor, replacementOf } from "./report.ts";
 import { type Command, type Stops, supervise } from "./supervise.ts";
 import { writtenNews } from "./writtenNews.ts";
@@ -75,6 +75,10 @@ const SECRETS: ReadonlySet<string> = new Set(["NTFY_TOKEN", "ANTHROPIC_API_KEY"]
 const withheld = (env: Command["env"]): Command["env"] => Object.fromEntries(Object.entries(env).filter(([name]) => !SECRETS.has(name)));
 
 export const NO_KEY_LINE = "No Anthropic key (ANTHROPIC_API_KEY): the news is written without Claude.";
+const NO_KEY_END = `\n${NO_KEY_LINE}`;
+
+// However long the summary, the line about the key is the one clipping never takes.
+const keylessBody = (body: string): string => clipped(body, MAX_BODY_BYTES - Buffer.byteLength(NO_KEY_END)) + NO_KEY_END;
 
 // Sent after the technical notification, so that nothing in the news can hold it back.
 async function sendNews({ root, token, ntfy, writer }: AlertedRunDeps, { version, previous }: Replacement): Promise<void> {
@@ -105,7 +109,7 @@ export async function alertedRun(deps: AlertedRunDeps): Promise<number> {
   const technical = notificationFor(observed);
   const replacement = replacementOf(observed);
   const keyless = replacement !== null && deps.writer === null;
-  await publish(keyless ? { ...technical, body: `${technical.body}\n${NO_KEY_LINE}` } : technical, deps.token, deps.ntfy);
+  await publish(keyless ? { ...technical, body: keylessBody(technical.body) } : technical, deps.token, deps.ntfy);
   if (replacement !== null) await sendNews(deps, replacement);
   return exitCodeOf(exit);
 }
