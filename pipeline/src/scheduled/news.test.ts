@@ -27,7 +27,7 @@ const member = (name: string, group: string | null, department = "Var", number =
   id: deputyId(`PA${(numbered += 1)}`),
   name,
   group,
-  seat: { department, number },
+  constituency: { department, number },
 });
 
 const TALLY: Tally = { for: 312, against: 210, abstain: 15 };
@@ -170,7 +170,7 @@ test("a text with many votes that matter lists four of them, the most important 
   ]);
 });
 
-test("deputies who come and go are told by name, group and seat: a newcomer on the seat of one who left replaces them", () => {
+test("deputies who come and go are told by name, group and constituency: a newcomer in the constituency of one who left replaces them", () => {
   const left = member("Frédéric Boccaletti", "RN");
   const deputies: DeputyChange[] = [
     { kind: "replacement", arrived: member("Isabelle Delyon", "RN"), left },

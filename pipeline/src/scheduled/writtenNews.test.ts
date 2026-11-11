@@ -21,7 +21,7 @@ const vote = (n: number, title = `l'amendement n° ${n} sur la forêt`, bill: st
 
 const CHANGES: Changes = {
   votes: [vote(1), vote(2), { ...vote(3, "l'ensemble du projet de loi sur la forêt (première lecture)"), scope: "whole_text", tally: { for: 300, against: 200, abstain: 7 } }],
-  deputies: [{ kind: "group", deputy: { id: deputyId("PA1"), name: "Jeanne Martin", group: "NI", seat: { department: "Var", number: "7" } }, from: "LIOT" }],
+  deputies: [{ kind: "group", deputy: { id: deputyId("PA1"), name: "Jeanne Martin", group: "NI", constituency: { department: "Var", number: "7" } }, from: "LIOT" }],
 };
 
 const SIGNED_BY_CLAUDE = `\n\n_${BY_CLAUDE}_`;
@@ -70,7 +70,26 @@ test("Claude is given the system prompt and, as its only message, the computed c
   assert.deepEqual(promptOf(JSON.stringify(CHANGES), automatic), prompts[0]);
 });
 
-const failed = (failure: Extract<Written, { kind: "failed" }>["failure"], reason: string) => (): Promise<Written> => Promise.resolve({ kind: "failed", failure, reason });
+function keysOf(json: string): Set<string> {
+  const keys = new Set<string>();
+  JSON.parse(json, (key, value: unknown) => {
+    if (!/^\d*$/.test(key)) keys.add(key);
+    return value;
+  });
+  return keys;
+}
+
+test("the prompt names every field of the facts Claude is sent, whole or counted", () => {
+  const jeanne = { id: deputyId("PA1"), name: "Jeanne Martin", group: "NI", constituency: { department: "Var", number: "7" } };
+  const changes: Changes = {
+    votes: CHANGES.votes,
+    deputies: [{ kind: "replacement", arrived: jeanne, left: jeanne }, { kind: "arrival", deputy: jeanne }, { kind: "departure", deputy: jeanne }, { kind: "group", deputy: jeanne, from: null }],
+  };
+  const sent = new Set([...keysOf(JSON.stringify(changes)), ...keysOf(JSON.stringify(countedFacts(changes)))]);
+  assert.deepEqual([...sent].filter((key) => !new RegExp(`\\b${key}\\b`).test(NEWS_PROMPT)), []);
+});
+
+const failed = (failure:Extract<Written, { kind: "failed" }>["failure"], reason: string) => (): Promise<Written> => Promise.resolve({ kind: "failed", failure, reason });
 
 test("without a key, or when Claude fails, gives no answer in time, or answers nothing usable, the automatic text goes out, its signature saying why in a few words, and the reason is logged", async () => {
   const keyless: string[] = [];
@@ -215,7 +234,7 @@ test("Claude is sent the facts whole up to 50,000 bytes, counted beyond, and is 
   await writtenNews(many, { writer, log });
   assert.ok(Buffer.byteLength(JSON.stringify(many)) > MAX_FACTS_BYTES);
   assert.equal(prompts[0]?.user.split("\n")[1], JSON.stringify(countedFacts(many)));
-  const member = (i: number) => ({ id: deputyId(`PA${i}`), name: "Jeanne Martin", group: "NI", seat: { department: "Var", number: "7" } });
+  const member = (i: number) => ({ id: deputyId(`PA${i}`), name: "Jeanne Martin", group: "NI", constituency: { department: "Var", number: "7" } });
   const crowd: Changes = { votes: [], deputies: Array.from({ length: 1000 }, (_, i): DeputyChange => ({ kind: "replacement", arrived: member(i), left: member(i + 1000) })) };
   const overflowing = writing(() => assert.fail("Claude asked with too many facts"));
   const news = await writtenNews(crowd, { writer: overflowing.writer, log: overflowing.log });

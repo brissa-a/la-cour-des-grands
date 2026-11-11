@@ -23,9 +23,9 @@ export type VoteFacts = {
 
 export type NewVote = VoteFacts & ({ readonly scope: HeadlineScope; readonly tally: Tally } | { readonly scope: BulkScope });
 
-export type Seat = { readonly department: string; readonly number: string };
+export type Constituency = { readonly department: string; readonly number: string };
 
-export type Member = { readonly id: DeputyId; readonly name: string; readonly group: string | null; readonly seat: Seat };
+export type Member = { readonly id: DeputyId; readonly name: string; readonly group: string | null; readonly constituency: Constituency };
 
 export type DeputyChange =
   | { readonly kind: "replacement"; readonly arrived: Member; readonly left: Member }
@@ -180,7 +180,7 @@ function ordinal(number: string): string {
   return number === "1" ? "1re" : `${number}e`;
 }
 
-function seatText({ department, number }: Seat): string {
+function constituencyText({ department, number }: Constituency): string {
   const place = shortened(department, MAX_NAME);
   return number === "" ? place : `${place}, ${ordinal(shortened(number, MAX_NAME))} circ.`;
 }
@@ -195,11 +195,11 @@ const groupOf = (group: string | null): string => (group === null ? "sans groupe
 function deputyLine(change: DeputyChange): Markdown {
   switch (change.kind) {
     case "replacement":
-      return md`- ${nameOf(change.arrived)} remplace ${nameOf(change.left)}, ${seatText(change.arrived.seat)}`;
+      return md`- ${nameOf(change.arrived)} remplace ${nameOf(change.left)}, ${constituencyText(change.arrived.constituency)}`;
     case "arrival":
-      return md`- ${nameOf(change.deputy)} entre à l'Assemblée, ${seatText(change.deputy.seat)}`;
+      return md`- ${nameOf(change.deputy)} entre à l'Assemblée, ${constituencyText(change.deputy.constituency)}`;
     case "departure":
-      return md`- ${nameOf(change.deputy)} quitte l'Assemblée, ${seatText(change.deputy.seat)}`;
+      return md`- ${nameOf(change.deputy)} quitte l'Assemblée, ${constituencyText(change.deputy.constituency)}`;
     case "group":
       return md`- ${shortened(change.deputy.name, MAX_NAME)} : ${groupOf(change.from)} → ${groupOf(change.deputy.group)}`;
   }

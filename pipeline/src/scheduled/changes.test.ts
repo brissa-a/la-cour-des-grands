@@ -14,8 +14,8 @@ const BILL_FILE = "deputies/votes/projet-de-loi-relatif-a-la-resilience.csv";
 const vote = (n: number, title: string, kind: string, result: string, bill: string, file = BILL_FILE) =>
   `VTANR5L17V${n},${n},2026-11-${String(n % 30).padStart(2, "0")},"${title}",${kind},${result},no,"${bill}",${file},https://example.org/${n}`;
 
-const deputy = (id: string, last: string, first: string, inOffice: string, seat: string, group: string) =>
-  `${id},,${last},${first},M.,1970-01-01,56,${inOffice},83-${seat},Provence-Alpes-Côte d'Azur,Var,83,${seat},2024-07-08/,${group}`;
+const deputy = (id: string, last: string, first: string, inOffice: string, constituency: string, group: string) =>
+  `${id},,${last},${first},M.,1970-01-01,56,${inOffice},83-${constituency},Provence-Alpes-Côte d'Azur,Var,83,${constituency},2024-07-08/,${group}`;
 
 async function snapshot(files: Readonly<Record<string, string>>): Promise<string> {
   const dir = await temporaryDir();
@@ -78,12 +78,12 @@ test("what a version brings is read from both versions: its new votes with their
     deputies: [
       {
         kind: "replacement",
-        arrived: { id: "PA5", name: "Isabelle Delyon", group: "RN", seat: { department: "Var", number: "7" } },
-        left: { id: "PA1", name: "Frédéric Boccaletti", group: "RN", seat: { department: "Var", number: "7" } },
+        arrived: { id: "PA5", name: "Isabelle Delyon", group: "RN", constituency: { department: "Var", number: "7" } },
+        left: { id: "PA1", name: "Frédéric Boccaletti", group: "RN", constituency: { department: "Var", number: "7" } },
       },
-      { kind: "arrival", deputy: { id: "PA6", name: "Anne Neuve", group: null, seat: { department: "Var", number: "4" } } },
-      { kind: "departure", deputy: { id: "PA3", name: "Paul Part", group: "NI", seat: { department: "Var", number: "2" } } },
-      { kind: "group", deputy: { id: "PA2", name: "Jean Reste", group: "NI", seat: { department: "Var", number: "1" } }, from: "RN" },
+      { kind: "arrival", deputy: { id: "PA6", name: "Anne Neuve", group: null, constituency: { department: "Var", number: "4" } } },
+      { kind: "departure", deputy: { id: "PA3", name: "Paul Part", group: "NI", constituency: { department: "Var", number: "2" } } },
+      { kind: "group", deputy: { id: "PA2", name: "Jean Reste", group: "NI", constituency: { department: "Var", number: "1" } }, from: "RN" },
     ],
   });
 });

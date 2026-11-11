@@ -109,23 +109,23 @@ async function deputiesOf(dir: string): Promise<Map<DeputyId, Sitting>> {
     rows.map((row) => {
       const id = deputyId(row.deputy_id);
       const group = row.group === "" ? null : (groups.get(row.group) ?? row.group);
-      const seat = { department: row.department, number: row.constituency_number };
-      return [id, { id, name: `${row.first_name} ${row.last_name}`, group, seat, inOffice: decoded(IN_OFFICE, row.in_office, `${id} in_office`) }];
+      const constituency = { department: row.department, number: row.constituency_number };
+      return [id, { id, name: `${row.first_name} ${row.last_name}`, group, constituency, inOffice: decoded(IN_OFFICE, row.in_office, `${id} in_office`) }];
     }),
   );
 }
 
-const member = ({ id, name, group, seat }: Sitting): Member => ({ id, name, group, seat });
+const member = ({ id, name, group, constituency }: Sitting): Member => ({ id, name, group, constituency });
 
-const seatKey = ({ seat }: Member): string => `${seat.department}\n${seat.number}`;
+const constituencyKey = ({ constituency }: Member): string => `${constituency.department}\n${constituency.number}`;
 
 export function deputyChanges(before: ReadonlyMap<DeputyId, Sitting>, after: ReadonlyMap<DeputyId, Sitting>): DeputyChange[] {
   const arrived = [...after.values()].filter((d) => d.inOffice && before.get(d.id)?.inOffice !== true).map(member);
   const left = [...before.values()].filter((d) => d.inOffice && after.get(d.id)?.inOffice !== true).map((d) => member(after.get(d.id) ?? d));
-  const leftBySeat = Map.groupBy(left, seatKey);
+  const leftByConstituency = Map.groupBy(left, constituencyKey);
   const replaced = new Set<DeputyId>();
   const entries: DeputyChange[] = arrived.map((deputy) => {
-    const predecessor = leftBySeat.get(seatKey(deputy))?.find((d) => !replaced.has(d.id));
+    const predecessor = leftByConstituency.get(constituencyKey(deputy))?.find((d) => !replaced.has(d.id));
     if (predecessor === undefined) return { kind: "arrival", deputy };
     replaced.add(predecessor.id);
     return { kind: "replacement", arrived: deputy, left: predecessor };
