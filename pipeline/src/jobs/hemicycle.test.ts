@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import type { Job } from "../core/job.ts";
 import { isoDate } from "../core/types.ts";
 import { constituencyCode } from "./address/codes.ts";
 import { type Deputy, deputyId, seatNumber } from "./deputies.ts";
-import { type Sitting, roomSeats, vacantConstituencySeats } from "./hemicycle.ts";
+import { type Sitting, roomJobs, roomSeats, vacantConstituencySeats } from "./hemicycle.ts";
 import { voteId } from "./votes.ts";
 
 const sat = (seat: string, constituency: string): Sitting => ({ seat: seatNumber(seat), constituency: constituencyCode(constituency) });
@@ -116,4 +117,32 @@ test("deputies in office that the room cannot seat are rejected: a seat taken tw
   for (const outside of ["4001", "651"]) {
     assert.throws(() => roomSeats([deputy("PA1", "34-4", null, outside)], []), new RegExp(`Seats not in the room plan: ${outside}`));
   }
+});
+
+const ready = <T>(name: string, value: T): Job<T> => ({ name, result: () => Promise.resolve(value) });
+
+test("the hemicycle's seats are the room built from the given deputies and ballots, which warns only when it leaves deputies in office without a seat, and names them", async (t) => {
+  const warn = t.mock.method(console, "warn", () => undefined);
+  const { room, seats } = roomJobs({
+    deputies: ready("deputies", [deputy("PA1", "34-4", null, "149"), deputy("PA2", "33-11", "2026-09-30", null), deputy("PA3", "10-2", null, null), deputy("PA4", "45-4", null, null)]),
+    ballots: ready("ballots", [votedFrom({ PA2: "33" })]),
+  });
+  const built = await room.result();
+  assert.deepEqual(built.unseated, [deputyId("PA3"), deputyId("PA4")]);
+  assert.equal(await seats.result(), built.seats);
+  assert.deepEqual(
+    built.seats.filter((s) => s.deputy !== null || s.constituency !== null).map((s) => [s.number, s.deputy, s.constituency]),
+    [
+      [seatNumber("33"), null, constituencyCode("33-11")],
+      [seatNumber("149"), deputyId("PA1"), constituencyCode("34-4")],
+    ],
+  );
+  assert.deepEqual(
+    warn.mock.calls.map((call) => call.arguments),
+    [["In office without a seat, so out of the hemicycle: PA3, PA4"]],
+  );
+
+  warn.mock.resetCalls();
+  await roomJobs({ deputies: ready("deputies", [deputy("PA1", "34-4", null, "149")]), ballots: ready("ballots", []) }).room.result();
+  assert.equal(warn.mock.callCount(), 0);
 });

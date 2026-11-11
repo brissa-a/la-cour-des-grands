@@ -5,8 +5,8 @@ import type { DeputyId } from "../jobs/deputies.ts";
 import type { CutoutReport } from "../photos/cutouts.ts";
 import type { Outcome } from "./publish.ts";
 
-// cutouts and unseated are null for a run that built no files: --publish-rejected.
-export type Built = Outcome & { readonly cutouts: CutoutReport | null; readonly unseated: readonly DeputyId[] | null };
+// A run that built no files, --publish-rejected, has neither cutouts nor deputies left without a seat.
+export type Built = Outcome & ({ readonly cutouts: CutoutReport; readonly unseated: readonly DeputyId[] } | { readonly cutouts: null; readonly unseated: null });
 
 type Failed = { readonly status: "failed"; readonly error: string };
 

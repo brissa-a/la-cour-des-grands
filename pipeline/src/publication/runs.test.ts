@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { test } from "node:test";
 import { deputyId } from "../jobs/deputies.ts";
 import { layout, snapshotPath } from "./paths.ts";
-import { type RunResult, exitCode, recordRun } from "./runs.ts";
+import { type Built, type RunResult, exitCode, recordRun } from "./runs.ts";
 import { temporaryRoot } from "./snapshots.fixture.ts";
 import { dataVersion } from "./version.ts";
 
@@ -15,6 +15,9 @@ const finishedAt = new Date("2026-11-07T04:20:00.000Z");
 const cutouts = { failed: [{ id: deputyId("PA1008"), reason: "killed by SIGKILL, most likely for lack of memory" }], waiting: 2 };
 const noCutout = { failed: [], waiting: 0 };
 const unseated = [deputyId("PA796046")];
+
+// @ts-expect-error a run that built its files, and so has its cutouts, also knows who it left without a seat
+void ((): Built => ({ status: "unchanged", version, counts, cutouts, unseated: null }));
 
 test("published and unchanged runs exit with 0, published ones whose retention failed with 5, refused ones with 3, failed ones with 1", () => {
   assert.equal(exitCode({ status: "published", version, previous, counts, override: null, warning: null }), 0);

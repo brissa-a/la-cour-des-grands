@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { csv, writeOutput } from "../core/csv.ts";
-import { job } from "../core/job.ts";
+import { type Job, job } from "../core/job.ts";
 import { entity } from "../core/entity.ts";
 import type { ConstituencyCode } from "./address/codes.ts";
 import { type Deputy, type DeputyId, type SeatNumber, deputies, inOffice, lastMandate, seatNumber } from "./deputies.ts";
@@ -116,21 +116,27 @@ export function roomSeats(deputies: readonly Deputy[], chronologicalBallots: rea
   return { seats, unseated };
 }
 
-export const room = job({
-  name: "room",
-  dependencies: { deputies, ballots },
-  run: ({ deputies, ballots }) => {
-    const built = roomSeats(deputies, ballots);
-    if (built.unseated.length > 0) console.warn(`In office without a seat, so out of the hemicycle: ${built.unseated.join(", ")}`);
-    return built;
-  },
-});
+type RoomSources = { readonly deputies: Job<readonly Deputy[]>; readonly ballots: Job<readonly Pick<Ballot, "id" | "seats">[]> };
 
-export const seats = job({
-  name: "seats",
-  dependencies: { room },
-  run: ({ room }) => room.seats,
-});
+export function roomJobs(sources: RoomSources) {
+  const room = job({
+    name: "room",
+    dependencies: sources,
+    run: ({ deputies, ballots }) => {
+      const built = roomSeats(deputies, ballots);
+      if (built.unseated.length > 0) console.warn(`In office without a seat, so out of the hemicycle: ${built.unseated.join(", ")}`);
+      return built;
+    },
+  });
+  const seats = job({
+    name: "seats",
+    dependencies: { room },
+    run: ({ room }) => room.seats,
+  });
+  return { room, seats };
+}
+
+export const { room, seats } = roomJobs({ deputies, ballots });
 
 export const seat = entity({
   name: "seat",
