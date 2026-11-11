@@ -1,8 +1,12 @@
 import assert from "node:assert/strict"
+import type { ComponentProps } from "react"
 import { test } from "node:test"
 import { constituencyCode } from "../address/codes.ts"
+import type { Stage } from "../layout/Stage.tsx"
+import type { seatsOf } from "../sources/seats.ts"
+import type { Deputy } from "./assembly.ts"
 import { deputyId } from "./deputyId.ts"
-import { officeOf } from "./office.ts"
+import { officeOf, type InOffice, type Sitting } from "./office.ts"
 
 const seat = { number: "1", x: 0.375, y: 0 }
 const empty = { number: "12", x: 0.5625, y: 0, constituency: null }
@@ -37,3 +41,23 @@ test("a deputy whose constituency is not a code, or is already held, stays in of
     [["deputies/init.csv: PA1 has constituency Var 7"], ["deputies/init.csv: PA796046 and PA2 both hold 83-7"]],
   )
 })
+
+const unseated: InOffice<typeof delyon> = { ...delyon, seat: null }
+
+export const unseatedProbes = {
+  // @ts-expect-error a deputy in office without a seat among the deputies the room draws
+  deputies: [unseated] satisfies Sitting<typeof delyon>["deputies"],
+  // @ts-expect-error a deputy in office without a seat found by id among the deputies the room draws
+  byId: new Map([[delyon.id, unseated]]) satisfies Sitting<typeof delyon>["byId"],
+  // @ts-expect-error the deputies in office, some without a seat, taken for the room's sitting
+  sitting: { ...officeOf([delyon], { seatOf: new Map(), emptySeats: [] }), emptySeats: [] } satisfies Sitting<typeof delyon>,
+}
+
+export type UnseatedOnStage = [
+  // @ts-expect-error the stage drawing a deputy in office without a seat
+  Accepts<ComponentProps<typeof Stage>["deputies"], readonly Deputy[]>,
+  // @ts-expect-error the seats read from a sitting holding a deputy in office without a seat
+  Accepts<Parameters<typeof seatsOf>[0], { deputies: readonly Deputy[]; emptySeats: [] }>,
+]
+
+type Accepts<Taken, Given extends Taken> = Given
