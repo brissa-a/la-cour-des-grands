@@ -42,3 +42,18 @@ test("a scrutin the data does not list is named as any vote, without a vote day 
     imageAlt: "Vote sur un scrutin en couleur · Siège en hémicycle · Données au 10 octobre 2026",
   })
 })
+
+test("a link's image alt rings a deputy only when the view draws them: not one in office without a seat yet, not one who no longer sits, not a predecessor in a vote while his successor has no seat yet, but one in a vote at his successor's seat", () => {
+  assert.deepEqual(textsOf("?deputy=PA796046", { ...DATA, generated: null }), {
+    title: "Isabelle Delyon · Groupe politique en couleur · Siège en hémicycle",
+    description: "Les députés de l'Assemblée nationale",
+    imageAlt: "Groupe politique en couleur · Siège en hémicycle",
+  })
+  assert.equal(textsOf("?deputy=PA796042", { ...DATA, generated: null }).imageAlt, "Groupe politique en couleur · Siège en hémicycle")
+  assert.equal(
+    textsOf("?vote=VTANR5L17V1&deputy=PA796042").imageAlt,
+    "Vote n° 1 en couleur · Siège en hémicycle · La motion de censure déposée par M. Boris Vallaud, Mme Mathilde Panot et 188 de leurs collègues. · Motion de censure du 8 octobre 2024 · Rejeté",
+  )
+  assert.equal(textsOf("?deputy=PA1327", { ...DATA, generated: null }).imageAlt, "Groupe politique en couleur · Siège en hémicycle")
+  assert.match(textsOf("?vote=VTANR5L17V1&deputy=PA1327").imageAlt, / · Un cercle désigne Nicolas Forissier$/)
+})

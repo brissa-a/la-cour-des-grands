@@ -17,6 +17,10 @@ test("the link service's data loads under plain Node from the reader it is given
   assert.deepEqual([...data.people], [
     [deputyId("PA720892"), { first_name: "Mathilde", last_name: "Panot" }],
     [deputyId("PA720614"), { first_name: "Marine", last_name: "Le Pen" }],
+    [deputyId("PA796042"), { first_name: "Frédéric", last_name: "Boccaletti" }],
+    [deputyId("PA796046"), { first_name: "Isabelle", last_name: "Delyon" }],
+    [deputyId("PA1327"), { first_name: "Nicolas", last_name: "Forissier" }],
+    [deputyId("PA841151"), { first_name: "Alix", last_name: "Fruchon" }],
   ])
   const censure = voteId("VTANR5L17V1")
   assert.ok(censure)
@@ -25,7 +29,7 @@ test("the link service's data loads under plain Node from the reader it is given
 })
 
 test("a data file the reader cannot give fails the load with that file's path", async () => {
-  for (const missing of ["catalog.json", "deputies/init.csv", "votes/votes.csv", "votes/values/result.csv"]) {
+  for (const missing of ["catalog.json", "deputies/init.csv", "seats/hemicycle.csv", "votes/votes.csv", "votes/values/result.csv"]) {
     const files = Object.fromEntries(Object.entries(FILES).filter(([path]) => path !== missing))
     await assert.rejects(loadShareData(readerOf(files)), new RegExp(`^Error: ${missing}`), missing)
   }
