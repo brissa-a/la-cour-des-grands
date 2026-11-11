@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { hostname, setPriority } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { claudeWriter } from "./claude.ts";
 import { scheduled } from "./commands.ts";
 
 const PIPELINE = join(import.meta.dirname, "..", "..");
@@ -20,4 +21,5 @@ process.exitCode = await scheduled(process.argv.slice(2), {
   log: (line) => console.log(line),
   error: (line) => console.error(line),
   now: () => new Date(),
+  writerFor: (key) => claudeWriter(key),
 });

@@ -13,7 +13,7 @@ const WIRING = new URL("wiring.fixture.ts", import.meta.url).pathname;
 const TOKEN = "tk_0123456789abcdefghij-_ABCDEFG";
 
 function start(args: readonly string[], env: Readonly<Record<string, string>>) {
-  const { NTFY_TOKEN: _, LCDG_DATA_ROOT: __, ...inherited } = process.env;
+  const { NTFY_TOKEN: _, LCDG_DATA_ROOT: __, ANTHROPIC_API_KEY: ___, ...inherited } = process.env;
   const child = spawn(process.execPath, [MAIN, ...args], { env: { ...inherited, ...env }, stdio: ["ignore", "pipe", "pipe"], signal: AbortSignal.timeout(30_000) });
   child.on("error", () => undefined);
   const ended = Promise.all([new Promise<number | null>((resolve) => child.on("close", resolve)), text(child.stdout), text(child.stderr)]).then(([code, stdout, stderr]) => ({
@@ -83,7 +83,7 @@ test("the scheduler starts only once the real ntfy client hears ntfy accept the 
   const root = await temporaryRoot();
   for (const [status, body, code, output] of [
     [401, "", 78, /ntfy refuses NTFY_TOKEN: https:\/\/ntfy\.kxv\.fr\/v1\/account answered HTTP 401/],
-    [200, JSON.stringify({ username: "lcdg_pipeline" }), 0, new RegExp(`^Ready: data root ${root}, alerts to ntfy as lcdg_pipeline\\.`)],
+    [200, JSON.stringify({ username: "lcdg_pipeline" }), 0, new RegExp(`^Ready: data root ${root}, alerts to ntfy as lcdg_pipeline, news written without Claude, no ANTHROPIC_API_KEY\\.`)],
   ] as const) {
     const ntfy = await localNtfy((_, response) => {
       response.writeHead(status, { "content-type": "application/json" }).end(body);

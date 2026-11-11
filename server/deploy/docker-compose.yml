@@ -163,8 +163,8 @@ services:
       start_period: 10s
       retries: 3
 
-  # Builds the data every night into lcdg-data, which lcdg-server serves, and tells Alexis's phone how it went (ntfy, user lcdg_pipeline).
-  # Its own image and network: the Internet for its downloads and ntfy, nothing of Traefik's or of the capture.
+  # Builds the data every night into lcdg-data, which lcdg-server serves, and tells Alexis's phone how it went (ntfy, user lcdg_pipeline),
+  # the news written by Claude. Its own image and network: the Internet for its downloads, ntfy and Claude, nothing of Traefik's or of the capture.
   lcdg-pipeline:
     <<: *confined
     image: lcdg-pipeline:${LCDG_TAG:-latest}
@@ -190,6 +190,8 @@ services:
     environment:
       LCDG_DATA_ROOT: /data
       NTFY_TOKEN: ${NTFY_TOKEN:?the token of the ntfy user lcdg_pipeline, which server/deploy/deploy.sh reads from ~/.config/ntfy/lcdg_pipeline-token}
+      # Optional: without it the news is written automatically, and the technical notification says so.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
       - data:/data
       - pipeline-cache:/app/pipeline/cache

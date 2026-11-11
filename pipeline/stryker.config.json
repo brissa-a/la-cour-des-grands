@@ -44,6 +44,8 @@
     "src/scheduled/markdown.ts",
     "src/scheduled/news.ts",
     "src/scheduled/changes.ts",
+    "src/scheduled/claude.ts",
+    "src/scheduled/writtenNews.ts",
     "src/scheduled/supervise.ts",
     "src/scheduled/alertedRun.ts",
     "src/photos/child.ts",

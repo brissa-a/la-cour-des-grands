@@ -15,6 +15,7 @@ const DOCKERFILE = await readFile(new URL("../deploy/Dockerfile", import.meta.ur
 const DOCKER_IGNORE = (await readFile(new URL("../deploy/Dockerfile.dockerignore", import.meta.url), "utf8")).split("\n")
 const STOP_RUN = await readFile(new URL("../deploy/stopRun.ts", import.meta.url), "utf8")
 const TOKEN = "tk_not_a_real_token"
+const KEY = "sk-ant-not-a-real-key-0123456789"
 const CUTOUTS_STREAM = "the cutouts as tar writes them"
 const CHECKOUT_DEPLOY = "server/deploy/deploy.sh"
 const BUILT_FRONT = "the front npm run build writes"
@@ -25,7 +26,7 @@ type Box = {
   readonly scheduler: "absent" | "stopped, changed" | "running, unchanged" | "running, changed" | "running, image rebuilt"
 }
 
-type Call = { readonly tool: string; readonly args: readonly string[]; readonly token: string | null; readonly stdin: string }
+type Call = { readonly tool: string; readonly args: readonly string[]; readonly token: string | null; readonly key: string | null; readonly stdin: string }
 
 const scratch = await mkdtemp(join(tmpdir(), "server-deploy-"))
 after(() => rm(scratch, { recursive: true, force: true }))
@@ -79,7 +80,7 @@ const { appendFileSync, readdirSync, readFileSync, writeFileSync } = require("no
 const { dirname, join, resolve } = require("node:path")
 const args = process.argv.slice(2)
 const stdin = readFileSync(0, "utf8")
-appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "docker", args, token: process.env.NTFY_TOKEN ?? null, stdin }) + "\\n")
+appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "docker", args, token: process.env.NTFY_TOKEN ?? null, key: process.env.ANTHROPIC_API_KEY ?? null, stdin }) + "\\n")
 const line = args.join(" ")
 const volume = process.env.FAKE_VOLUME
 const scheduler = process.env.FAKE_SCHEDULER
@@ -102,7 +103,7 @@ if (line.includes("inspect --format") && line.endsWith("lcdg-lcdg-pipeline-1")) 
 const FAKE_TOOL = (tool: string, output: string) => `#!/usr/bin/env node
 const { appendFileSync } = require("node:fs")
 const args = process.argv.slice(2)
-appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "${tool}", args, token: process.env.NTFY_TOKEN ?? null, stdin: "" }) + "\\n")
+appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "${tool}", args, token: process.env.NTFY_TOKEN ?? null, key: process.env.ANTHROPIC_API_KEY ?? null, stdin: "" }) + "\\n")
 process.stdout.write(${JSON.stringify(output)})
 `
 
@@ -118,7 +119,7 @@ const FAKE_TAR = `#!/usr/bin/env node
 const { appendFileSync } = require("node:fs")
 const args = process.argv.slice(2)
 if (args.includes("-x")) process.exit(require("node:child_process").spawnSync(process.env.REAL_TAR, args, { stdio: "inherit" }).status ?? 1)
-appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "tar", args, token: process.env.NTFY_TOKEN ?? null, stdin: "" }) + "\\n")
+appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "tar", args, token: process.env.NTFY_TOKEN ?? null, key: process.env.ANTHROPIC_API_KEY ?? null, stdin: "" }) + "\\n")
 process.stdout.write(${JSON.stringify(CUTOUTS_STREAM)})
 process.exitCode = Number(process.env.FAKE_TAR_STATUS ?? 0)
 `
@@ -129,10 +130,10 @@ function isStrings(value: unknown): value is string[] {
 
 function callOf(line: string): Call {
   const parsed: unknown = JSON.parse(line)
-  assert.ok(typeof parsed === "object" && parsed !== null && "tool" in parsed && "args" in parsed && "token" in parsed && "stdin" in parsed, line)
-  const { tool, args, token, stdin } = parsed
-  assert.ok(typeof tool === "string" && isStrings(args) && (token === null || typeof token === "string") && typeof stdin === "string", line)
-  return { tool, args, token, stdin }
+  assert.ok(typeof parsed === "object" && parsed !== null && "tool" in parsed && "args" in parsed && "token" in parsed && "key" in parsed && "stdin" in parsed, line)
+  const { tool, args, token, key, stdin } = parsed
+  assert.ok(typeof tool === "string" && isStrings(args) && (token === null || typeof token === "string") && (key === null || typeof key === "string") && typeof stdin === "string", line)
+  return { tool, args, token, key, stdin }
 }
 
 function filesOf(text: string): ReadonlyMap<string, string> {
@@ -144,12 +145,16 @@ function filesOf(text: string): ReadonlyMap<string, string> {
 }
 
 // The copy of deploy.sh a checkout holds, run there against git itself and fake docker, npm, curl and tar.
-async function deploy(box: Box, env: Readonly<Record<string, string>> = {}, checkout = MAIN): Promise<{ readonly status: number | null; readonly stderr: string; readonly calls: readonly Call[]; readonly built: ReadonlyMap<string, string> | null }> {
+async function deploy(box: Box, env: Readonly<Record<string, string>> = {}, checkout = MAIN, withKey = true): Promise<{ readonly status: number | null; readonly stderr: string; readonly calls: readonly Call[]; readonly built: ReadonlyMap<string, string> | null }> {
   const run = await mkdtemp(join(scratch, "run-"))
   const bin = join(run, "bin")
   await mkdir(bin)
   await mkdir(join(run, "home", ".config", "ntfy"), { recursive: true })
   await writeFile(join(run, "home", ".config", "ntfy", "lcdg_pipeline-token"), TOKEN)
+  if (withKey) {
+    await mkdir(join(run, "home", ".config", "anthropic"), { recursive: true })
+    await writeFile(join(run, "home", ".config", "anthropic", "lcdg_pipeline-key"), `${KEY}\n`, { mode: 0o600 })
+  }
   const tools = { docker: FAKE_DOCKER, npm: FAKE_NPM, curl: FAKE_TOOL("curl", '{"status":"ok","data":"ready"}'), tar: FAKE_TAR }
   for (const [name, script] of Object.entries(tools)) {
     await writeFile(join(bin, name), script)
@@ -181,7 +186,7 @@ function at(calls: readonly Call[], part: string): number {
 
 // DOCKER_HOST leads nowhere: compose resolves the file alone, whichever Docker context is current.
 const { stdout: resolvedCompose } = await promisify(execFile)("docker", ["compose", "-f", COMPOSE_FILE, "config", "--format", "json"], {
-  env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", DOCKER_HOST: "unix:///nonexistent.sock", NTFY_TOKEN: TOKEN, LCDG_TAG: TAG },
+  env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", DOCKER_HOST: "unix:///nonexistent.sock", NTFY_TOKEN: TOKEN, ANTHROPIC_API_KEY: KEY, LCDG_TAG: TAG },
 })
 const composed: unknown = JSON.parse(resolvedCompose)
 
@@ -226,11 +231,40 @@ test("a first deploy naming no cutouts stops once the images are built, before i
   assert.equal(lines(accepted.calls).filter(line => line.includes(" exec ")).length, 0)
 })
 
-test("the ntfy token reaches the compose commands alone, never another docker command, npm or the live test", { timeout: 60_000 }, async () => {
-  const { status, calls } = await deploy(FIRST, { LCDG_CUTOUTS_ON_BOX: "1" })
+test("the ntfy token and the Anthropic key reach the compose commands alone, never another docker command, npm or the live test, nor the deploy's output", { timeout: 60_000 }, async () => {
+  const { status, calls, stderr } = await deploy(FIRST, { LCDG_CUTOUTS_ON_BOX: "1" })
   assert.equal(status, 0)
-  for (const call of calls) assert.equal(call.token, call.tool === "docker" && call.args.includes("compose") ? TOKEN : null, `${call.tool} ${call.args.join(" ")}`)
+  for (const call of calls) {
+    const composed = call.tool === "docker" && call.args.includes("compose")
+    assert.deepEqual([call.token, call.key], composed ? [TOKEN, KEY] : [null, null], `${call.tool} ${call.args.join(" ")}`)
+  }
   assert.ok(calls.some(call => call.tool === "npm" && call.args.join(" ") === "run test:live"))
+  assert.ok(!stderr.includes(KEY))
+  assert.doesNotMatch(stderr, /anthropic/)
+})
+
+test("without the Anthropic key the deploy goes on, says the news will be written automatically, and compose passes an empty key", { timeout: 60_000 }, async () => {
+  const { status, calls, stderr } = await deploy(AGAIN, {}, MAIN, false)
+  assert.equal(status, 0, stderr)
+  assert.match(stderr, /Warning: no \S+\/\.config\/anthropic\/lcdg_pipeline-key: the news will be written automatically, not by Claude/)
+  assert.deepEqual(stderr.split("\n").filter(line => line.includes("anthropic")).length, 1, stderr)
+  const composing = calls.filter(call => call.tool === "docker" && call.args.includes("compose"))
+  assert.ok(composing.length > 0)
+  assert.deepEqual(new Set(composing.map(call => call.key)), new Set([""]))
+  at(calls, SCHEDULER_UP)
+})
+
+test("only the pipeline's container gets the Anthropic key, and an empty one when compose is given none", async () => {
+  const keyOf = (config: unknown): unknown => {
+    const environment = typeof config === "object" && config !== null && "environment" in config ? config.environment : null
+    return typeof environment === "object" && environment !== null && "ANTHROPIC_API_KEY" in environment ? environment.ANTHROPIC_API_KEY : null
+  }
+  const environments = (resolved: unknown) => ["lcdg-server", "lcdg-chromium", "lcdg-pipeline"].map(service => keyOf(field(resolved, "services", service)))
+  assert.deepEqual(environments(composed), [null, null, KEY])
+  const { stdout } = await promisify(execFile)("docker", ["compose", "-f", COMPOSE_FILE, "config", "--format", "json"], {
+    env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", DOCKER_HOST: "unix:///nonexistent.sock", NTFY_TOKEN: TOKEN, LCDG_TAG: TAG },
+  })
+  assert.deepEqual(environments(JSON.parse(stdout)), [null, null, ""])
 })
 
 test("a redeploy stops the pipeline run in progress before compose replaces its scheduler, and leaves it running when compose keeps the scheduler", { timeout: 60_000 }, async () => {

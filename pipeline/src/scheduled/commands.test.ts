@@ -5,9 +5,11 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { test } from "node:test";
 import { temporaryDir } from "../publication/snapshots.fixture.ts";
 import { type Host, MEMORY_EVENTS, check, run, scheduled, signalStops, writableDirectory } from "./commands.ts";
+import type { AnthropicKey, Writer } from "./claude.ts";
 import type { Fetch } from "./ntfy.ts";
 
 const TOKEN = "tk_0123456789abcdefghij-_ABCDEFG";
+const KEY = "sk-ant-api03-0123456789abcdefghijABCDEFGHIJ_-xyz";
 
 // Stands for src/main.ts: how it ends is chosen by the test, through its environment.
 const FAKE_PIPELINE = `
@@ -22,20 +24,20 @@ if (ending === "waiting") {
 
 type Sent = { readonly url: string; readonly title: string | null };
 
-type Recorded = { readonly errors: string[]; readonly lines: string[]; readonly sent: Sent[]; readonly priorities: number[]; readonly read: string[] };
+type Recorded = { readonly errors: string[]; readonly lines: string[]; readonly sent: Sent[]; readonly priorities: number[]; readonly read: string[]; readonly keys: AnthropicKey[] };
 
 type Ending = "exits" | "killed" | "waiting";
 
 async function host(overrides: Partial<Host> = {}, answer: (url: string) => Response = () => Response.json({ username: "lcdg_pipeline" }), ending: Ending = "exits") {
   const dir = await temporaryDir();
   await writeFile(`${dir}/pipeline.mjs`, FAKE_PIPELINE);
-  const recorded: Recorded = { errors: [], lines: [], sent: [], priorities: [], read: [] };
+  const recorded: Recorded = { errors: [], lines: [], sent: [], priorities: [], read: [], keys: [] };
   const fetcher: Fetch = (url) => {
     recorded.sent.push({ url, title: new URL(url).searchParams.get("title") });
     return Promise.resolve(answer(url));
   };
   const defaults: Host = {
-    env: { ...process.env, NTFY_TOKEN: TOKEN, LCDG_DATA_ROOT: dir, ENDING: ending },
+    env: { ...process.env, NTFY_TOKEN: TOKEN, ANTHROPIC_API_KEY: undefined, LCDG_DATA_ROOT: dir, ENDING: ending },
     fetcher,
     sleep: () => Promise.resolve(),
     setPriority: (priority) => recorded.priorities.push(priority),
@@ -51,6 +53,10 @@ async function host(overrides: Partial<Host> = {}, answer: (url: string) => Resp
     log: (line) => recorded.lines.push(line),
     error: (line) => recorded.errors.push(line),
     now: () => new Date(),
+    writerFor: (key): Writer => {
+      recorded.keys.push(key);
+      return () => Promise.reject(new Error("no Claude in these tests"));
+    },
   };
   return { dir, recorded, host: { ...defaults, ...overrides } };
 }
@@ -58,7 +64,7 @@ async function host(overrides: Partial<Host> = {}, answer: (url: string) => Resp
 test("the scheduler starts once ntfy accepts the token as lcdg_pipeline's and the data root is a directory it can write", async () => {
   const { dir, recorded, host: ready } = await host();
   assert.equal(await check(ready), 0);
-  assert.deepEqual(recorded.lines, [`Ready: data root ${dir}, alerts to ntfy as lcdg_pipeline.`]);
+  assert.deepEqual(recorded.lines, [`Ready: data root ${dir}, alerts to ntfy as lcdg_pipeline, news written without Claude, no ANTHROPIC_API_KEY.`]);
   assert.deepEqual(
     recorded.sent.map((s) => s.url),
     ["https://ntfy.kxv.fr/v1/account"],
@@ -201,4 +207,27 @@ test("a data root the scheduler cannot write names the user's uid, or a question
   const { dir, recorded, host: uidless } = await host({ uid: null });
   assert.equal(await check({ ...uidless, env: { ...uidless.env, LCDG_DATA_ROOT: `${dir}/missing` } }), 78);
   assert.deepEqual(recorded.errors, [`The data root ${dir}/missing is not a directory this user (uid ?) can write.`]);
+});
+
+test("the scheduler says at its start whether Claude writes the news, and reports a key it cannot use without refusing to start", async () => {
+  for (const [ANTHROPIC_API_KEY, news, errors] of [
+    [` ${KEY}\n`, "news written by claude-sonnet-5-5", []],
+    [undefined, "news written without Claude, no ANTHROPIC_API_KEY", []],
+    ["", "news written without Claude, no ANTHROPIC_API_KEY", []],
+    [" \n", "news written without Claude, no ANTHROPIC_API_KEY", []],
+    ["sk-proj-not-an-anthropic-key", "news written without Claude, no ANTHROPIC_API_KEY", ["ANTHROPIC_API_KEY holds no Anthropic API key: the news will be written without Claude."]],
+  ] as const) {
+    const { dir, recorded, host: ready } = await host();
+    assert.equal(await check({ ...ready, env: { ...ready.env, ANTHROPIC_API_KEY } }), 0);
+    assert.deepEqual([recorded.lines, recorded.errors], [[`Ready: data root ${dir}, alerts to ntfy as lcdg_pipeline, ${news}.`], errors]);
+    assert.ok(!recorded.lines.join("").includes(KEY));
+  }
+});
+
+test("a run makes Claude's writer from the key it was given, trimmed, and none from a missing or unusable one", async () => {
+  for (const [ANTHROPIC_API_KEY, keys] of [[` ${KEY}\n`, [KEY]], [undefined, []], ["sk-ant-short", []]] as const) {
+    const { recorded, host: runner } = await host();
+    assert.equal(await run([], { ...runner, env: { ...runner.env, ANTHROPIC_API_KEY } }), 0);
+    assert.deepEqual(recorded.keys, keys, String(ANTHROPIC_API_KEY));
+  }
 });

@@ -6,11 +6,13 @@ import { test } from "node:test";
 import { layout } from "../publication/paths.ts";
 import { temporaryDir, temporaryRoot } from "../publication/snapshots.fixture.ts";
 import { EventEmitter } from "node:events";
-import { alertedRun } from "./alertedRun.ts";
+import { NO_KEY_LINE, alertedRun } from "./alertedRun.ts";
+import type { Prompt, Writer } from "./claude.ts";
 import { type Fetch, ntfyToken } from "./ntfy.ts";
 import type { Stops } from "./supervise.ts";
 
 const TOKEN = "tk_0123456789abcdefghij-_ABCDEFG";
+const KEY = "sk-ant-api03-0123456789abcdefghijABCDEFGHIJ_-xyz";
 const VERSION = "6a64dfbf2449e4c8357bc0319b9fe0b747c577d9";
 const PREVIOUS = "0123456789abcdef0123456789abcdef01234567";
 
@@ -23,7 +25,7 @@ const v2 = process.env.LCDG_DATA_ROOT + "/v2";
 const summary = (fields) => writeFileSync(v2 + "/.runs/last.json", JSON.stringify({ startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(), ...fields }));
 const lock = (pid, host = hostname()) => writeFileSync(v2 + "/.lock", JSON.stringify({ pid, host, since: "2026-11-07T03:30:00.000Z" }) + "\\n");
 mkdirSync(v2 + "/.runs", { recursive: true });
-process.stderr.write("token seen by the pipeline: " + process.env.NTFY_TOKEN + "\\n");
+process.stderr.write("secrets seen by the pipeline: " + process.env.NTFY_TOKEN + ", " + process.env.ANTHROPIC_API_KEY + "\\n");
 switch (scenario) {
   case "published":
     summary({ status: "published", exitCode: 0, version: "${VERSION}", previousVersion: null, forced: false, counts: { deputies: 654, votes: 9759, newVotes: null }, refusals: [], warning: null, cutouts: { failed: [], waiting: 0 }, unseated: [], error: null });
@@ -90,7 +92,13 @@ function token() {
   return parsed;
 }
 
-async function scenario(name: string, memoryEvents: readonly (string | null)[] = ["oom_kill 0\n"], before: (v2: string) => Promise<void> = () => Promise.resolve(), notifications = 1) {
+async function scenario(
+  name: string,
+  memoryEvents: readonly (string | null)[] = ["oom_kill 0\n"],
+  before: (v2: string) => Promise<void> = () => Promise.resolve(),
+  notifications = 1,
+  writer: Writer | null = null,
+) {
   const root = await temporaryRoot();
   const { v2 } = layout(root);
   await mkdir(`${v2}/.runs`, { recursive: true });
@@ -104,10 +112,11 @@ async function scenario(name: string, memoryEvents: readonly (string | null)[] =
   const logged: string[] = [];
   let read = 0;
   const code = await alertedRun({
-    pipeline: { file: process.execPath, args: [await fakeFile, name], cwd: v2, env: { ...process.env, LCDG_DATA_ROOT: root, NTFY_TOKEN: TOKEN } },
+    pipeline: { file: process.execPath, args: [await fakeFile, name], cwd: v2, env: { ...process.env, LCDG_DATA_ROOT: root, NTFY_TOKEN: TOKEN, ANTHROPIC_API_KEY: KEY } },
     root,
     token: token(),
     ntfy: { fetcher, sleep: () => Promise.resolve(), log: (line) => logged.push(line) },
+    writer,
     memoryEvents: () => Promise.resolve(memoryEvents[Math.min(read++, memoryEvents.length - 1)] ?? null),
     host: hostname(),
     stops: NO_STOP,
@@ -140,18 +149,18 @@ const present = (path: string) =>
     () => false,
   );
 
-test("a run that publishes sends its quiet summary and exits as the pipeline did, the pipeline's error output passed through but never holding the token", async () => {
+test("a run that publishes sends its quiet summary and exits as the pipeline did, the pipeline's error output passed through but never holding the ntfy token nor the Anthropic key", async () => {
   const run = await scenario("published");
   assert.deepEqual([run.code, run.topic, run.priority, run.title], [0, "/lcdg_pipeline-done", "2", "Data published"]);
   assert.equal(run.body, `Version ${VERSION} (654 deputies, 9759 votes).\nFirst version of the data root.`);
-  assert.equal(run.stderr, "token seen by the pipeline: undefined\n");
+  assert.equal(run.stderr, "secrets seen by the pipeline: undefined, undefined\n");
 });
 
 test("a pipeline the kernel kills for memory is reported as such, with the end of its error output, and the lock it left is freed", async () => {
   const run = await scenario("oom", ["oom_kill 2\n", "oom_kill 3\n"]);
   assert.deepEqual([run.code, run.topic, run.priority, run.title], [137, "/lcdg_pipeline-failed", "4", "Run killed: out of memory"]);
   assert.match(run.body, /It recorded no run: no \/.+\/v2\/\.runs\/last\.json\.\nIts lock .+\/v2\/\.lock, held by no process any more, was released/);
-  assert.match(run.body, /Last lines of its error output:\ntoken seen by the pipeline: undefined\n {2}25\/40$/);
+  assert.match(run.body, /Last lines of its error output:\nsecrets seen by the pipeline: undefined, undefined\n {2}25\/40$/);
   assert.equal(await present(`${run.v2}/.lock`), false);
 });
 
@@ -224,6 +233,7 @@ test("a stop asked of the run is passed to the pipeline, whose interrupted end i
     root,
     token: token(),
     ntfy: { fetcher: (url) => (sent.push(new URL(url).searchParams.get("title") ?? ""), Promise.resolve(new Response("{}"))), sleep: () => Promise.resolve(), log: () => undefined },
+    writer: null,
     memoryEvents: () => Promise.resolve(null),
     host: hostname(),
     stops: stopsOf(stops),
@@ -243,6 +253,7 @@ test("a pipeline that cannot start is reported, and the run exits with 1", async
     root,
     token: token(),
     ntfy: { fetcher: (url) => (sent.push(new URL(url).searchParams.get("title") ?? ""), Promise.resolve(new Response("{}"))), sleep: () => Promise.resolve(), log: () => undefined },
+    writer: null,
     memoryEvents: () => Promise.resolve(null),
     host: hostname(),
     stops: NO_STOP,
@@ -270,27 +281,73 @@ async function versions(v2: string): Promise<void> {
   }
 }
 
-test("a run that publishes over an earlier version sends its technical summary, then the news of what that version brings, in Markdown on its own topic", async () => {
-  const run = await scenario("published-over", undefined, versions, 2);
-  assert.deepEqual([run.code, run.topic, run.title, run.markdown], [0, "/lcdg_pipeline-done", "Data published: 1 new votes", null]);
+const TECHNICAL = `Version ${VERSION} (654 deputies, 2 votes).\nPrevious version ${PREVIOUS}.`;
+const AUTOMATIC_NEWS = "1 scrutin le 10 novembre 2026\n\n**Projet de loi sur l'eau**\n- 1 article adopté\n\n_Résumé automatique à partir des données de l'Assemblée._";
+
+function writing(answer: () => Promise<string>) {
+  const prompts: Prompt[] = [];
+  const writer: Writer = (prompt) => {
+    prompts.push(prompt);
+    return answer();
+  };
+  return { writer, prompts };
+}
+
+test("a run that publishes over an earlier version sends its technical summary, then the news Claude wrote from what that version brings, in Markdown on its own topic", async () => {
+  const { writer, prompts } = writing(() => Promise.resolve("L'article 2 du **projet de loi sur l'eau** est adopté."));
+  const run = await scenario("published-over", undefined, versions, 2, writer);
+  assert.deepEqual([run.code, run.topic, run.title, run.markdown, run.body], [0, "/lcdg_pipeline-done", "Data published: 1 new votes", null, TECHNICAL]);
   assert.deepEqual(run.more, [
-    { topic: "/lcdg_pipeline-news", title: "Assemblée : 1 scrutin", priority: "3", markdown: "yes", body: "1 scrutin le 10 novembre 2026\n\n**Projet de loi sur l'eau**\n- 1 article adopté" },
+    { topic: "/lcdg_pipeline-news", title: "Assemblée : 1 scrutin", priority: "3", markdown: "yes", body: "L'article 2 du **projet de loi sur l'eau** est adopté.\n\n_Rédigé par Claude à partir des données de l'Assemblée._" },
   ]);
+  assert.equal(prompts.length, 1);
+  assert.match(prompts[0]?.user ?? "", /^Faits \(JSON\) :\n\{"votes":\[\{"id":"VTANR5L17V2",/);
 });
 
-test("a version that brings no vote nor deputy over the previous one sends no news", async () => {
-  const run = await scenario("published-over", undefined, async (v2) => {
-    await versions(v2);
-    await rm(`${v2}/${VERSION}`, { recursive: true });
-    await cp(`${v2}/${PREVIOUS}`, `${v2}/${VERSION}`, { recursive: true });
-  });
+test("without an Anthropic key the technical summary says so, and the news goes out written automatically", async () => {
+  const run = await scenario("published-over", undefined, versions, 2);
+  assert.equal(run.body, `${TECHNICAL}\n${NO_KEY_LINE}`);
+  assert.deepEqual(
+    run.more.map((news) => [news.topic, news.body]),
+    [["/lcdg_pipeline-news", AUTOMATIC_NEWS]],
+  );
+});
+
+test("Claude failing leaves the technical summary as it is and sends the automatic news, the reason logged without the key", async () => {
+  const { writer } = writing(() => Promise.reject(new Error("401 invalid x-api-key [ANTHROPIC_API_KEY]")));
+  const run = await scenario("published-over", undefined, versions, 2, writer);
+  assert.deepEqual([run.code, run.body], [0, TECHNICAL]);
+  assert.deepEqual(
+    run.more.map((news) => news.body),
+    [AUTOMATIC_NEWS],
+  );
+  assert.ok(run.logged.includes("News written automatically, Claude's set aside: 401 invalid x-api-key [ANTHROPIC_API_KEY]"), run.logged.join("\n"));
+  assert.ok(!run.logged.join("\n").includes(KEY));
+});
+
+const unasked: Writer = () => assert.fail("Claude asked with nothing to tell");
+
+test("a version that brings no vote nor deputy over the previous one sends no news, and Claude is not asked", async () => {
+  const run = await scenario(
+    "published-over",
+    undefined,
+    async (v2) => {
+      await versions(v2);
+      await rm(`${v2}/${VERSION}`, { recursive: true });
+      await cp(`${v2}/${PREVIOUS}`, `${v2}/${VERSION}`, { recursive: true });
+    },
+    1,
+    unasked,
+  );
   assert.deepEqual([run.code, run.topic, run.more], [0, "/lcdg_pipeline-done", []]);
 });
 
-test("a run that publishes nothing new, or whose candidate is set aside, sends no news", async () => {
+test("a run that publishes nothing new, or whose candidate is set aside, sends no news and says nothing of the key", async () => {
   for (const name of ["unchanged", "rejected"]) {
-    const run = await scenario(name, undefined, versions);
+    const run = await scenario(name, undefined, versions, 1, unasked);
     assert.deepEqual(run.more, [], name);
+    const keyless = await scenario(name, undefined, versions);
+    assert.ok(!keyless.body.includes(NO_KEY_LINE), name);
   }
 });
 

@@ -9,7 +9,7 @@
 #   LCDG_CUTOUTS_ON_BOX=1 server/deploy/deploy.sh   first deploy without them: the nightly runs cut out some 650 photos on the box, 30 min a night
 #   LCDG_ALLOW_OLDER_VERSION=1 server/deploy/deploy.sh   deploy a service that serves an older kept version than the one current.json names
 # Roll back to an earlier deploy, with the compose file of the commit its tag names: routes and PUBLIC_ORIGIN are not in the image.
-#   git show <tag>:server/deploy/docker-compose.yml > /tmp/lcdg-<tag>.yml && NTFY_TOKEN=$(<~/.config/ntfy/lcdg_pipeline-token) LCDG_TAG=<tag> docker --context abysshopper compose -f /tmp/lcdg-<tag>.yml up -d --no-build --wait --remove-orphans
+#   git show <tag>:server/deploy/docker-compose.yml > /tmp/lcdg-<tag>.yml && NTFY_TOKEN=$(<~/.config/ntfy/lcdg_pipeline-token) ANTHROPIC_API_KEY=$(<~/.config/anthropic/lcdg_pipeline-key) LCDG_TAG=<tag> docker --context abysshopper compose -f /tmp/lcdg-<tag>.yml up -d --no-build --wait --remove-orphans
 #   A tag older than the rename: og/deploy/docker-compose.yml, whose images are lcdg-og:<tag>.
 # Remove the services:            NTFY_TOKEN=unused docker --context abysshopper compose -f server/deploy/docker-compose.yml down
 set -euo pipefail
@@ -21,6 +21,7 @@ readonly PIPELINE_USER=10002:10002
 readonly PIPELINE_CONTAINER=lcdg-lcdg-pipeline-1
 readonly NTFY_USER=lcdg_pipeline
 readonly NTFY_TOKEN_FILE=$HOME/.config/ntfy/$NTFY_USER-token
+readonly ANTHROPIC_KEY_FILE=$HOME/.config/anthropic/lcdg_pipeline-key
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 root=$(cd "$here/../.." && pwd)
@@ -50,6 +51,9 @@ if [[ ! -r $NTFY_TOKEN_FILE ]]; then
   echo "No $NTFY_TOKEN_FILE: create the ntfy user $NTFY_USER and its token with ~/.claude/skills/ntfy-notify/scripts/add-publisher.sh $NTFY_USER" >&2
   exit 1
 fi
+if [[ ! -r $ANTHROPIC_KEY_FILE ]]; then
+  echo "Warning: no $ANTHROPIC_KEY_FILE: the news will be written automatically, not by Claude, and the technical notification will say so." >&2
+fi
 if [[ -n ${LCDG_PHOTOS_FROM:-} && ! -f $LCDG_PHOTOS_FROM/registry.json ]]; then
   echo "LCDG_PHOTOS_FROM=$LCDG_PHOTOS_FROM holds no registry.json: it is not the output/photos folder of a pipeline checkout." >&2
   exit 1
@@ -63,9 +67,12 @@ git -C "$root" archive "$head" | tar -x -C "$commit_tree"
 
 (cd "$commit_tree/web" && npm ci --no-audit --no-fund && npm run build)
 
-# Compose reads the token in this file whatever the command: only its process gets it, never this shell nor npm.
+# Compose reads the token and the key in their files whatever the command: only its process gets them, never this shell nor npm.
+anthropic_key() {
+  if [[ -r $ANTHROPIC_KEY_FILE ]]; then printf '%s' "$(<"$ANTHROPIC_KEY_FILE")"; fi
+}
 compose() {
-  NTFY_TOKEN=$(<"$NTFY_TOKEN_FILE") docker --context "$CONTEXT" compose -f "$commit_tree/server/deploy/docker-compose.yml" "$@"
+  NTFY_TOKEN=$(<"$NTFY_TOKEN_FILE") ANTHROPIC_API_KEY=$(anthropic_key) docker --context "$CONTEXT" compose -f "$commit_tree/server/deploy/docker-compose.yml" "$@"
 }
 
 docker --context "$CONTEXT" network inspect edge >/dev/null

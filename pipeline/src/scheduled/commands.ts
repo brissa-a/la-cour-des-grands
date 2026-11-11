@@ -4,6 +4,7 @@ import { parseOptions } from "../options.ts";
 import type { DataRoot } from "../publication/paths.ts";
 import { reasonOf } from "../publication/publish.ts";
 import { alertedRun } from "./alertedRun.ts";
+import { type AnthropicKey, MODEL, type Writer, anthropicKey } from "./claude.ts";
 import { type Fetch, NTFY_USER, type NtfyToken, checkToken, ntfyToken } from "./ntfy.ts";
 import type { Stops } from "./supervise.ts";
 
@@ -15,7 +16,8 @@ const STOPPING: readonly NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
 
 export const USAGE = `usage: node src/scheduled/main.ts check | run [pipeline options]
   check  exits 0 once NTFY_TOKEN is a token ntfy accepts for ${NTFY_USER} and the data root is writable
-  run    runs the pipeline once, then sends its outcome to ntfy and exits with its code`;
+  run    runs the pipeline once, then sends its outcome to ntfy and exits with its code
+ANTHROPIC_API_KEY, optional, lets Claude write the news; without it they are written automatically.`;
 
 export type Signals = Pick<EventEmitter, "on" | "off">;
 
@@ -33,12 +35,20 @@ export type Host = {
   readonly log: (line: string) => void;
   readonly error: (line: string) => void;
   readonly now: () => Date;
+  readonly writerFor: (key: AnthropicKey) => Writer;
 };
 
 function tokenOrNull(host: Host): NtfyToken | null {
   const token = ntfyToken(host.env.NTFY_TOKEN);
   if (token === null) host.error(`NTFY_TOKEN holds no ntfy token: without it no alert would go out. Run add-publisher.sh ${NTFY_USER} on the Mac, then deploy with server/deploy/deploy.sh.`);
   return token;
+}
+
+function keyOrNull(host: Host): AnthropicKey | null {
+  const raw = host.env.ANTHROPIC_API_KEY;
+  const key = anthropicKey(raw);
+  if (key === null && (raw ?? "").trim() !== "") host.error("ANTHROPIC_API_KEY holds no Anthropic API key: the news will be written without Claude.");
+  return key;
 }
 
 export async function writableDirectory(path: string): Promise<boolean> {
@@ -74,7 +84,8 @@ export async function check(host: Host): Promise<number> {
     host.error(`ntfy refuses NTFY_TOKEN: ${verdict.reason}`);
     return EXIT_CONFIG;
   }
-  host.log(`Ready: data root ${root}, alerts to ntfy as ${NTFY_USER}.`);
+  const news = keyOrNull(host) === null ? "news written without Claude, no ANTHROPIC_API_KEY" : `news written by ${MODEL}`;
+  host.log(`Ready: data root ${root}, alerts to ntfy as ${NTFY_USER}, ${news}.`);
   return 0;
 }
 
@@ -99,11 +110,13 @@ export async function run(args: string[], host: Host): Promise<number> {
   } catch (error) {
     host.error(`The run keeps its priority: ${reasonOf(error)}`);
   }
+  const key = keyOrNull(host);
   return alertedRun({
     pipeline: { file: host.pipeline.node, args: [host.pipeline.entry, ...args], cwd: host.pipeline.cwd, env: host.env },
     root,
     token,
     ntfy: { fetcher: host.fetcher, sleep: host.sleep, log: host.error },
+    writer: key === null ? null : host.writerFor(key),
     memoryEvents: () => host.readText(MEMORY_EVENTS).catch(() => null),
     host: host.hostname,
     stops: signalStops(host.signals),

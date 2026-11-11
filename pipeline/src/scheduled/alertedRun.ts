@@ -5,17 +5,20 @@ import { type DataRoot, layout } from "../publication/paths.ts";
 import { reasonOf } from "../publication/publish.ts";
 import { type LockHolder, lockHolder, oomKills } from "./host.ts";
 import { readChanges } from "./changes.ts";
+import type { Writer } from "./claude.ts";
 import { lastRun } from "./lastRun.ts";
-import { newsOf } from "./news.ts";
-import { type Notification, type NtfyDeps, type NtfyToken, publish } from "./ntfy.ts";
+import type { Changes } from "./news.ts";
+import { type NtfyDeps, type NtfyToken, publish } from "./ntfy.ts";
 import { type Exit, type Replacement, type RunRecord, notificationFor, replacementOf } from "./report.ts";
 import { type Command, type Stops, supervise } from "./supervise.ts";
+import { writtenNews } from "./writtenNews.ts";
 
 export type AlertedRunDeps = {
   readonly pipeline: Command;
   readonly root: DataRoot;
   readonly token: NtfyToken;
   readonly ntfy: NtfyDeps;
+  readonly writer: Writer | null;
   readonly memoryEvents: () => Promise<string | null>;
   readonly host: string;
   readonly stops: Stops;
@@ -67,19 +70,23 @@ async function releasedIfOrphaned(holder: LockHolder | null, pid: number | null,
   );
 }
 
-// The pipeline never sees the token: nothing it prints or crashes with can carry it.
-const withheld = (env: Command["env"]): Command["env"] => Object.fromEntries(Object.entries(env).filter(([name]) => name !== "NTFY_TOKEN"));
+// The pipeline never sees the secrets: nothing it prints or crashes with can carry them.
+const SECRETS: ReadonlySet<string> = new Set(["NTFY_TOKEN", "ANTHROPIC_API_KEY"]);
+const withheld = (env: Command["env"]): Command["env"] => Object.fromEntries(Object.entries(env).filter(([name]) => !SECRETS.has(name)));
+
+export const NO_KEY_LINE = "No Anthropic key (ANTHROPIC_API_KEY): the news is written without Claude.";
 
 // Sent after the technical notification, so that nothing in the news can hold it back.
-async function sendNews({ root, token, ntfy }: AlertedRunDeps, { version, previous }: Replacement): Promise<void> {
-  let news: Notification | null;
+async function sendNews({ root, token, ntfy, writer }: AlertedRunDeps, { version, previous }: Replacement): Promise<void> {
+  let changes: Changes;
   try {
     const paths = layout(root);
-    news = newsOf(await readChanges(paths.version(previous), paths.version(version)));
+    changes = await readChanges(paths.version(previous), paths.version(version));
   } catch (error) {
     ntfy.log(`No news of ${version}: ${reasonOf(error)}`);
     return;
   }
+  const news = await writtenNews(changes, { writer, log: ntfy.log });
   if (news !== null) await publish(news, token, ntfy);
 }
 
@@ -95,8 +102,10 @@ export async function alertedRun(deps: AlertedRunDeps): Promise<number> {
   const lockReleased = await releasedIfOrphaned(holder, pid, deps.host, lock);
   const outOfMemory = before !== null && after !== null && after > before;
   const observed = { exit, record, lockPath: lock, holder: described(holder, content), lockReleased, outOfMemory, stderr };
-  await publish(notificationFor(observed), deps.token, deps.ntfy);
+  const technical = notificationFor(observed);
   const replacement = replacementOf(observed);
+  const keyless = replacement !== null && deps.writer === null;
+  await publish(keyless ? { ...technical, body: `${technical.body}\n${NO_KEY_LINE}` } : technical, deps.token, deps.ntfy);
   if (replacement !== null) await sendNews(deps, replacement);
   return exitCodeOf(exit);
 }

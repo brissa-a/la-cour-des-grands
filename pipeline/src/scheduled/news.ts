@@ -268,7 +268,7 @@ function titleOf({ votes, deputies }: Changes): string {
   return `Assemblée : ${parts.flatMap(([n, singular, several]) => (n === 0 ? [] : [plural(n, singular, several)])).join(", ")}`;
 }
 
-export function newsOf(changes: Changes): Notification | null {
+export function newsOf(changes: Changes, maxBytes = MAX_BODY_BYTES): Notification | null {
   if (changes.votes.length === 0 && changes.deputies.length === 0) return null;
   const subjects = subjectsOf(changes.votes).toSorted(byImportance);
   const headline = subjects.filter((s) => rankOf(s) <= LAST_HEADLINE_RANK).map(subjectBlock);
@@ -277,7 +277,7 @@ export function newsOf(changes: Changes): Notification | null {
     topic: "news",
     priority: 3,
     title: titleOf(changes),
-    body: fitted(intro(changes.votes), [...headline, ...deputiesBlock(changes.deputies), ...rest]),
+    body: fitted(intro(changes.votes), [...headline, ...deputiesBlock(changes.deputies), ...rest], maxBytes),
     tags: ["classical_building"],
     markdown: true,
   };
